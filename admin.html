@@ -1,0 +1,26 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="robots" content="noindex"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin | Research Genius Hub</title>
+<style>body{font:16px system-ui;max-width:700px;margin:30px auto;padding:0 16px}input,button{padding:10px;margin:6px 0;width:100%;font:inherit}button{background:#0f5132;color:#fff;border:0;border-radius:8px;cursor:pointer}.r{display:flex;gap:8px;align-items:center;border-bottom:1px solid #ddd;padding:6px 0}.r button{width:auto;background:#b00020}</style></head><body>
+<h2>Sample files admin</h2>
+<p>GitHub token (needs "Contents: read & write" on this repo). Saved only in this browser.</p>
+<input id="tk" type="password" placeholder="GitHub token"><button id="sv">Save token</button><hr>
+<input id="ti" placeholder="Title (e.g. Marketing Dissertation Sample)"><input id="su" placeholder="Subject (optional)"><input id="fi" type="file">
+<button id="up">Upload sample</button><p id="m"></p><h3>Current samples</h3><div id="ls"></div>
+<script>
+const REPO="ResearchGeniusHub/ResearchGeniusHub.github.io",API="https://api.github.com/repos/"+REPO+"/contents/",$=i=>document.getElementById(i);
+$("tk").value=localStorage.t||"";$("sv").onclick=()=>{localStorage.t=$("tk").value;$("m").textContent="Token saved."};
+const H=()=>({Authorization:"Bearer "+localStorage.t,Accept:"application/vnd.github+json"});
+const b64=s=>btoa(unescape(encodeURIComponent(s)));
+async function getList(){const r=await fetch(API+"samples.json",{headers:H()});const j=await r.json();return{sha:j.sha,list:JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g,"")))))}}
+async function putList(list,sha){const r=await fetch(API+"samples.json",{method:"PUT",headers:H(),body:JSON.stringify({message:"Update samples",content:b64(JSON.stringify(list,null,1)),sha})});if(!r.ok)throw await r.text()}
+async function show(){try{const{list}=await getList();$("ls").innerHTML=list.map((s,i)=>`<div class="r"><span style="flex:1">${s.title} <small>(${s.file})</small></span><button onclick="del(${i})">Delete</button></div>`).join("")||"None yet."}catch(e){$("ls").textContent="Save a valid token first."}}
+$("up").onclick=async()=>{const f=$("fi").files[0];if(!f||!$("ti").value)return $("m").textContent="Add a title and choose a file.";
+ $("m").textContent="Uploading…";try{const name=Date.now()+"-"+f.name.replace(/[^\w.\-]/g,"_");
+ const data=await new Promise(r=>{const x=new FileReader;x.onload=()=>r(x.result.split(",")[1]);x.readAsDataURL(f)});
+ let r=await fetch(API+"sample-files/"+name,{method:"PUT",headers:H(),body:JSON.stringify({message:"Add sample",content:data})});if(!r.ok)throw await r.text();
+ const{list,sha}=await getList();list.push({title:$("ti").value,subject:$("su").value,file:name});await putList(list,sha);
+ $("m").textContent="Done! Live on the site in about a minute.";$("ti").value=$("su").value=$("fi").value="";show()}catch(e){$("m").textContent="Failed: "+e}};
+async function del(i){if(!confirm("Delete?"))return;const{list,sha}=await getList();const s=list.splice(i,1)[0];
+ const r=await fetch(API+"sample-files/"+s.file,{headers:H()});if(r.ok){const j=await r.json();await fetch(API+"sample-files/"+s.file,{method:"DELETE",headers:H(),body:JSON.stringify({message:"Delete sample",sha:j.sha})})}
+ await putList(list,sha);show()}
+show();
+</script></body></html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Research Genius Hub | Research Help, Data Analysis, Essays & Online Coaching</title>
+<meta name="description" content="Research support, SPSS/Excel/NVivo data analysis, essays, reports, editing and live online coaching for university students. Order in minutes.">
+<link rel="canonical" href="https://researchgeniushub.github.io/">
+<meta property="og:title" content="Research Genius Hub"><meta property="og:description" content="Research support, data analysis, editing and online coaching for students.">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"EducationalOrganization","name":"Research Genius Hub","url":"https://researchgeniushub.github.io/"}</script>
+<style>
+:root{--g:#0f5132;--a:#f4b400;--bg:#f7f8f6;--t:#1d2521}*{box-sizing:border-box}body{margin:0;font:16px/1.6 system-ui,sans-serif;color:var(--t);background:var(--bg)}
+header{background:var(--g);color:#fff;padding:14px 20px;display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:5}
+header a{color:#fff;text-decoration:none;margin-right:14px}header b{font-size:20px}
+.btn{background:var(--a);color:#222!important;padding:10px 18px;border-radius:8px;border:0;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block;font-size:16px}
+section{max-width:1000px;margin:auto;padding:36px 20px}.hero{background:#e7f1ea;text-align:center;padding:60px 20px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}.card{background:#fff;border-radius:12px;padding:18px;box-shadow:0 1px 4px #0002}
+label{display:block;font-weight:600;margin-top:12px}input,select,textarea{width:100%;padding:10px;border:1px solid #bbb;border-radius:8px;font:inherit}
+.hide{display:none}.note{background:#fff8e1;padding:10px;border-radius:8px;font-size:14px}#msg{font-weight:700;margin-top:12px}footer{background:#17211b;color:#ddd;text-align:center;padding:24px}
+.tabs{display:flex;gap:8px}.tabs button{flex:1;padding:12px;border:2px solid var(--g);background:#fff;border-radius:8px;font-weight:700;cursor:pointer}.tabs button.on{background:var(--g);color:#fff}
+</style></head><body>
+<header><b>Research Genius Hub</b><nav><a href="#services">Services</a><a href="#pricing">Pricing</a><a href="#samples">Samples</a><a href="#faq">FAQ</a><a class="btn" href="#order">Start an order</a></nav></header>
+
+<div class="hero"><h1>Turn your academic worries into results</h1><p>10 years of experience helping students in Australia, the US, China, the UK and Canada.</p><a class="btn" href="#order">Order without logging in</a> <a class="btn" href="#coaching" style="background:#fff">Book online coaching</a></div>
+
+<section id="services"><h2>Our services</h2><div class="grid">
+<div class="card"><h3>Research & data guidance</h3>Sources, questionnaires, interviews, SPSS, Excel and NVivo.</div>
+<div class="card"><h3>Essays, reports, PPTs & business plans</h3>Structured to your brief and marking criteria.</div>
+<div class="card"><h3>Online coaching</h3>One-to-one live sessions on Zoom, Google Meet or Microsoft Teams, including defence preparation.</div>
+<div class="card"><h3>Editing & proofreading</h3>Sharper arguments, clean grammar, correct referencing.</div>
+<div class="card"><h3>Dissertation & proposal support</h3>Topic, research questions, methods and chapters.</div>
+<div class="card"><h3>AI content removal</h3>Work rewritten to read as natural human writing.</div></div></section>
+
+<section id="pricing"><h2>Instant price estimate</h2><div class="card">
+<div class="grid"><div><label>Service</label><select id="pc_s"></select></div><div><label>Pages (275 words each) / Hours for coaching</label><input id="pc_n" type="number" min="1" value="5"></div><div><label>Deadline</label><select id="pc_d"></select></div></div>
+<h3>Estimated price: <span id="pc_out"></span></h3><div class="note">Final price is confirmed by email before you pay. Bank transfer, PayPal, card, Wise and Payoneer accepted.</div></div></section>
+
+<section id="order"><h2>Place an order <small style="font-weight:400">(no account needed)</small></h2>
+<div class="tabs"><button id="tOrder" class="on" type="button">Written work / support</button><button id="tCoach" type="button">Online coaching</button></div>
+<form id="f" class="card" style="margin-top:12px">
+<input type="hidden" name="_subject" id="subj"><input type="hidden" name="_template" value="table"><input type="hidden" name="_captcha" value="false"><input type="text" name="_honey" style="display:none">
+<input type="hidden" name="order_type" id="otype" value="Order"><input type="hidden" name="order_ref" id="oref">
+<div class="grid"><div><label>Full name *</label><input name="name" id="nm" required></div><div><label>Your email * (we reply here)</label><input name="email" id="em" type="email" required></div>
+<div><label>WhatsApp (optional)</label><input name="whatsapp"></div><div><label>Country / time zone</label><input name="timezone" placeholder="e.g. Nairobi, GMT+3"></div></div>
+<label>Service</label><select name="service" id="svc"></select>
+<div id="wr"><div class="grid"><div><label>Level</label><select name="level"><option>Undergraduate</option><option>Masters</option><option>PhD</option></select></div><div><label>Subject</label><input name="subject"></div>
+<div><label>Pages</label><input name="pages" type="number" min="1" id="pg"></div><div><label>Deadline</label><input name="deadline" type="datetime-local"></div></div></div>
+<div id="co" class="hide"><div class="grid"><div><label>Meeting platform *</label><select name="platform"><option>Zoom</option><option>Google Meet</option><option>Microsoft Teams</option></select></div>
+<div><label>Preferred date & time (your time zone)</label><input name="session_time" type="datetime-local"></div><div><label>Hours</label><input name="hours" type="number" min="1" value="1" id="hrs"></div></div>
+<div class="note" style="margin-top:10px">Book at least 3 hours ahead. Coaching is paid in full before the session; we email the meeting link once payment is confirmed.</div></div>
+<label>Brief / details (we reply to your email for files)</label><textarea name="details" rows="5"></textarea>
+<div id="payopt"><label>Payment plan</label><select name="payment_plan" id="plan"><option value="Full payment upfront">Pay 100% upfront</option><option value="70% commitment fee, 30% after full draft">Pay 70% commitment fee now, 30% after I receive the full draft</option></select></div>
+<p><b>Estimated total: <span id="tot"></span></b> <span id="dep"></span></p>
+<label style="font-weight:400"><input type="checkbox" required style="width:auto"> I agree to the academic integrity terms.</label>
+<p><button class="btn" id="sb">Send order request</button></p><div id="msg"></div></form></section>
+
+<section id="samples"><h2>Samples</h2><div id="sl" class="grid"><p>Loading samples…</p></div></section>
+
+<section id="faq"><h2>FAQ</h2><div class="card"><b>Do I need an account?</b><p>No. Send an order request and we email you the price and payment details.</p>
+<b>How does the 70% commitment fee work?</b><p>You pay 70% to start. The remaining 30% is paid after the full draft is sent. Not available for coaching.</p>
+<b>How do coaching sessions work?</b><p>Choose Zoom, Google Meet or Microsoft Teams. We send the link after payment.</p>
+<b>Is my work private?</b><p>Yes. We never share your details or files.</p></div></section>
+<footer>© <span id="y"></span> Research Genius Hub · <a style="color:#f4b400" href="mailto:" id="mail"></a></footer>
+
+<script>
+/* ====== EDIT THESE ====== */
+const CONFIG={
+ ORDER_EMAIL:"YOUR_EMAIL@gmail.com", // the inbox that receives orders
+ // price per page in USD; coaching = per hour
+ RATES:{"Essay / report / PPT / business plan":12,"Research & data analysis (SPSS, Excel, NVivo)":15,"Dissertation / proposal support":16,"Editing & proofreading":6,"AI content removal":7,"Online coaching (per hour)":25},
+ // deadline multipliers
+ DEADLINES:{"7+ days":1,"3-6 days":1.25,"24-72 hours":1.6,"Under 24 hours":2}
+};
+const $=id=>document.getElementById(id),svcs=Object.keys(CONFIG.RATES);let coach=false;
+$("y").textContent=new Date().getFullYear();$("mail").textContent=CONFIG.ORDER_EMAIL;$("mail").href="mailto:"+CONFIG.ORDER_EMAIL;
+[$("pc_s"),$("svc")].forEach(s=>svcs.forEach(v=>s.add(new Option(v))));
+Object.keys(CONFIG.DEADLINES).forEach(d=>$("pc_d").add(new Option(d)));
+function pc(){const r=CONFIG.RATES[$("pc_s").value],m=CONFIG.DEADLINES[$("pc_d").value];$("pc_out").textContent="$"+(r*m*Math.max(1,$("pc_n").value)).toFixed(2)}
+["pc_s","pc_n","pc_d"].forEach(i=>$(i).oninput=pc);pc();
+function mode(c){coach=c;$("tCoach").classList.toggle("on",c);$("tOrder").classList.toggle("on",!c);
+ $("co").classList.toggle("hide",!c);$("wr").classList.toggle("hide",c);$("payopt").classList.toggle("hide",c);
+ $("otype").value=c?"Coaching":"Order";const o=[...$("svc").options].find(x=>/coaching/i.test(x.text)===c);if(o)$("svc").value=o.value;
+ if(c)$("plan").value="Full payment upfront";tot()}
+$("tOrder").onclick=()=>mode(false);$("tCoach").onclick=()=>mode(true);
+$("svc").onchange=()=>mode(/coaching/i.test($("svc").value));
+function tot(){const r=CONFIG.RATES[$("svc").value];let n=coach?$("hrs").value:$("pg").value||1;let t=r*n;
+ $("tot").textContent="$"+t.toFixed(2)+" (estimate)";const d=!coach&&$("plan").value.startsWith("70");
+ $("dep").textContent=d?"· Pay now: $"+(t*.7).toFixed(2)+" · After draft: $"+(t*.3).toFixed(2):""}
+["hrs","pg","plan"].forEach(i=>$(i).oninput=tot);tot();
+if(location.hash==="#coaching"){mode(true)}
+document.querySelector('a[href="#coaching"]').onclick=()=>{mode(true);location.hash="order";return false};
+$("f").onsubmit=async e=>{e.preventDefault();const ref="RGH-"+Date.now().toString(36).toUpperCase();$("oref").value=ref;
+ $("subj").value=`New ${$("otype").value} ${ref} from ${$("nm").value} <${$("em").value}>`;
+ $("sb").disabled=true;$("msg").textContent="Sending…";
+ try{const r=await fetch("https://formsubmit.co/ajax/"+CONFIG.ORDER_EMAIL,{method:"POST",headers:{Accept:"application/json"},body:new FormData($("f"))});
+ const j=await r.json();if(!r.ok||j.success==="false")throw 0;
+ $("msg").style.color="green";$("msg").textContent=`Thank you! Your request ${ref} was sent. We will email you at ${$("em").value} shortly.`;$("f").reset()}
+ catch(x){$("msg").style.color="red";$("msg").textContent="Could not send. Please email us directly at "+CONFIG.ORDER_EMAIL}
+ $("sb").disabled=false};
+fetch("samples.json?"+Date.now()).then(r=>r.json()).then(l=>{$("sl").innerHTML=l.length?l.map(s=>`<div class="card"><h3>${esc(s.title)}</h3><p>${esc(s.subject||"")}</p><a class="btn" href="sample-files/${encodeURIComponent(s.file)}" target="_blank">View / download</a></div>`).join(""):"<p>Samples coming soon.</p>"}).catch(()=>$("sl").innerHTML="<p>Samples coming soon.</p>");
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+</script></body></html>
