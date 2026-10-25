@@ -1,2 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://researchgeniushub.github.io/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url></urlset>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<url><loc>https://researchgeniushub.github.io/</loc></url>
+<url><loc>https://researchgeniushub.github.io/services.html</loc></url>
+<url><loc>https://researchgeniushub.github.io/pricing.html</loc></url>
+<url><loc>https://researchgeniushub.github.io/guides.html</loc></url>
+<url><loc>https://researchgeniushub.github.io/samples.html</loc></url>
+<url><loc>https://researchgeniushub.github.io/account.html</loc></url>
+<url><loc>https://researchgeniushub.github.io/faq.html</loc></url>
+<url><loc>https://researchgeniushub.github.io/contact.html</loc></url>
+<url><loc>https://researchgeniushub.github.io/coaching.html</loc></url>
+<url><loc>https://researchgeniushub.github.io/payments.html</loc></url>
+<url><loc>https://researchgeniushub.github.io/terms.html</loc></url>
+</urlset>
