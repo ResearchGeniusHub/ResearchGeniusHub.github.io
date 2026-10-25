@@ -1,26 +1,234 @@
-<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="robots" content="noindex"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin | Research Genius Hub</title>
-<style>body{font:16px system-ui;max-width:700px;margin:30px auto;padding:0 16px}input,button{padding:10px;margin:6px 0;width:100%;font:inherit}button{background:#0f5132;color:#fff;border:0;border-radius:8px;cursor:pointer}.r{display:flex;gap:8px;align-items:center;border-bottom:1px solid #ddd;padding:6px 0}.r button{width:auto;background:#b00020}</style></head><body>
-<h2>Sample files admin</h2>
-<p>GitHub token (needs "Contents: read & write" on this repo). Saved only in this browser.</p>
-<input id="tk" type="password" placeholder="GitHub token"><button id="sv">Save token</button><hr>
-<input id="ti" placeholder="Title (e.g. Marketing Dissertation Sample)"><input id="su" placeholder="Subject (optional)"><input id="fi" type="file">
-<button id="up">Upload sample</button><p id="m"></p><h3>Current samples</h3><div id="ls"></div>
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Admin | Research Genius Hub</title>
+<style>
+:root{--ink:#0F1B33;--teal:#0E7C86;--paper:#F6F7FA;--line:#cfd6e2;--pen:#C0303C;--ok:#1a7f4b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:16px}
+main{max-width:660px;margin:0 auto}
+h1{font-size:1.6rem;margin:.2em 0}h2{font-size:1.2rem;margin:0 0 6px}
+label{display:block;font-weight:600;margin:14px 0 4px}
+input,select,textarea{width:100%;font:inherit;padding:11px;border:1.5px solid var(--ink);border-radius:8px;background:#fff;color:var(--ink)}
+textarea{min-height:180px}
+button,.btn{font:inherit;font-weight:700;background:var(--ink);color:#fff;border:0;border-radius:8px;padding:13px 18px;margin:12px 8px 0 0;cursor:pointer}
+button.alt{background:#fff;color:var(--ink);border:1.5px solid var(--ink)}
+button.del{background:#fff;color:var(--pen);border:1.5px solid var(--pen);padding:8px 12px;margin:0}
+button:disabled{opacity:.5}
+.hint{color:#51607a;font-size:.9rem}
+.box{background:#fff;border:1.5px solid var(--ink);border-radius:10px;padding:16px;margin-top:16px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ok{color:var(--ok);font-weight:600}.err{color:var(--pen);font-weight:600}
+.item{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.item:last-child{border:0}
+details{margin-top:10px}summary{font-weight:600;cursor:pointer}
+ol{padding-left:20px}
+</style>
+</head>
+<body><main>
+<h1>Admin: samples</h1>
+<p class="hint">For you only. Add or remove samples on the live website, straight from your phone. Nothing here is visible to students.</p>
+
+<section class="box" id="connect">
+  <h2>1. Connect to GitHub (one time)</h2>
+  <p id="cstate" class="hint">Not connected yet.</p>
+  <details>
+    <summary>How to get your access token</summary>
+    <ol>
+      <li>On GitHub tap your profile picture, then <b>Settings</b>.</li>
+      <li>Scroll to the bottom of the menu and tap <b>Developer settings</b>.</li>
+      <li>Tap <b>Personal access tokens</b>, then <b>Fine-grained tokens</b>, then <b>Generate new token</b>.</li>
+      <li>Name it <b>Samples admin</b>. Set Expiration to 90 days.</li>
+      <li>Under <b>Repository access</b> choose <b>Only select repositories</b> and pick your <b>researchgeniushub.github.io</b> repository.</li>
+      <li>Under <b>Permissions</b>, then <b>Repository permissions</b>, find <b>Contents</b> and set it to <b>Read and write</b>.</li>
+      <li>Tap <b>Generate token</b> and copy it. It starts with <code>github_pat_</code>. You only see it once.</li>
+    </ol>
+    <p class="hint">The token is kept only in this browser on this phone. Never share it. You can delete it on GitHub at any time.</p>
+  </details>
+  <label for="repo">Repository</label><input id="repo" autocapitalize="none" autocorrect="off">
+  <label for="tok">Access token</label><input id="tok" type="password" autocomplete="off" autocapitalize="none" autocorrect="off" placeholder="github_pat_...">
+  <button id="save">Save and test</button><button class="alt" id="forget">Forget token</button>
+  <p id="cmsg" role="status"></p>
+</section>
+
+<section class="box" id="addbox" hidden>
+  <h2>2. Add a sample</h2>
+  <label for="t">Sample title</label><input id="t" placeholder="Literature review on remote working">
+  <div class="row">
+    <div><label for="sb">Subject</label><input id="sb" placeholder="Business Management"></div>
+    <div><label for="lv">Level</label><select id="lv"><option>Undergraduate</option><option>Masters</option><option>PhD</option></select></div>
+  </div>
+  <div class="row">
+    <div><label for="st">Referencing</label><input id="st" value="Harvard"></div>
+    <div><label for="wp">Words per page</label><input id="wp" type="number" value="275"></div>
+  </div>
+  <label for="iw">Free introduction length (words)</label><input id="iw" type="number" value="275">
+  <label for="fl">Choose a Word (.docx) or text (.txt) file</label>
+  <input id="fl" type="file" accept=".docx,.txt">
+  <p class="hint" id="fmsg">Or paste the text below. PDF files are not supported: open the PDF, copy the text and paste it.</p>
+  <label for="tx">Full sample text</label>
+  <textarea id="tx" placeholder="The whole document text. Only the free introduction is published on the website. The rest is never uploaded."></textarea>
+  <p class="hint" id="sum"></p>
+  <button id="pub">Publish sample</button>
+  <p id="pmsg" role="status"></p>
+</section>
+
+<section class="box" id="listbox" hidden>
+  <h2>3. Samples on the website</h2>
+  <div id="list"><p class="hint">Loading...</p></div>
+</section>
+
+<p class="hint" style="margin-top:18px">After you publish or delete, the website rebuilds in 1 to 2 minutes. Refresh the Samples page to see the change. Only the free introduction is published. Send the paid pages to the student by email after you confirm their payment.</p>
+
 <script>
-const REPO="ResearchGeniusHub/ResearchGeniusHub.github.io",API="https://api.github.com/repos/"+REPO+"/contents/",$=i=>document.getElementById(i);
-$("tk").value=localStorage.t||"";$("sv").onclick=()=>{localStorage.t=$("tk").value;$("m").textContent="Token saved."};
-const H=()=>({Authorization:"Bearer "+localStorage.t,Accept:"application/vnd.github+json"});
-const b64=s=>btoa(unescape(encodeURIComponent(s)));
-async function getList(){const r=await fetch(API+"samples.json",{headers:H()});const j=await r.json();return{sha:j.sha,list:JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g,"")))))}}
-async function putList(list,sha){const r=await fetch(API+"samples.json",{method:"PUT",headers:H(),body:JSON.stringify({message:"Update samples",content:b64(JSON.stringify(list,null,1)),sha})});if(!r.ok)throw await r.text()}
-async function show(){try{const{list}=await getList();$("ls").innerHTML=list.map((s,i)=>`<div class="r"><span style="flex:1">${s.title} <small>(${s.file})</small></span><button onclick="del(${i})">Delete</button></div>`).join("")||"None yet."}catch(e){$("ls").textContent="Save a valid token first."}}
-$("up").onclick=async()=>{const f=$("fi").files[0];if(!f||!$("ti").value)return $("m").textContent="Add a title and choose a file.";
- $("m").textContent="Uploading…";try{const name=Date.now()+"-"+f.name.replace(/[^\w.\-]/g,"_");
- const data=await new Promise(r=>{const x=new FileReader;x.onload=()=>r(x.result.split(",")[1]);x.readAsDataURL(f)});
- let r=await fetch(API+"sample-files/"+name,{method:"PUT",headers:H(),body:JSON.stringify({message:"Add sample",content:data})});if(!r.ok)throw await r.text();
- const{list,sha}=await getList();list.push({title:$("ti").value,subject:$("su").value,file:name});await putList(list,sha);
- $("m").textContent="Done! Live on the site in about a minute.";$("ti").value=$("su").value=$("fi").value="";show()}catch(e){$("m").textContent="Failed: "+e}};
-async function del(i){if(!confirm("Delete?"))return;const{list,sha}=await getList();const s=list.splice(i,1)[0];
- const r=await fetch(API+"sample-files/"+s.file,{headers:H()});if(r.ok){const j=await r.json();await fetch(API+"sample-files/"+s.file,{method:"DELETE",headers:H(),body:JSON.stringify({message:"Delete sample",sha:j.sha})})}
- await putList(list,sha);show()}
-show();
-</script></body></html>
+const $ = id => document.getElementById(id);
+const FILE = "samples-data.js";
+const K_TOK = "rgh_admin_token", K_REPO = "rgh_admin_repo";
+const store = {
+  get(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} }
+};
+let TOKEN = store.get(K_TOK);
+let REPO = store.get(K_REPO) || (location.hostname.endsWith(".github.io") ? location.hostname.replace(".github.io", "") + "/" + location.hostname : "");
+$("repo").value = REPO;
+if (TOKEN) $("tok").placeholder = "Token saved on this phone";
+
+const api = (path, opt = {}) => fetch("https://api.github.com" + path, Object.assign({}, opt, {
+  headers: Object.assign({ Accept: "application/vnd.github+json", Authorization: "Bearer " + TOKEN }, opt.headers || {})
+}));
+const b64enc = s => { const b = new TextEncoder().encode(s); let t = ""; b.forEach(x => t += String.fromCharCode(x)); return btoa(t); };
+const b64dec = s => { const t = atob(s.replace(/\s/g, "")); const b = new Uint8Array(t.length); for (let i = 0; i < t.length; i++) b[i] = t.charCodeAt(i); return new TextDecoder().decode(b); };
+const show = (el, msg, cls) => { el.textContent = msg; el.className = cls || ""; };
+
+async function readList() {
+  const r = await api("/repos/" + REPO + "/contents/" + FILE);
+  if (r.status === 404) return { list: [], sha: null };
+  if (!r.ok) throw new Error(await explain(r));
+  const j = await r.json(), text = b64dec(j.content);
+  let list = [];
+  try { list = JSON.parse(text.slice(text.indexOf("=") + 1).trim().replace(/;\s*$/, "")); } catch (e) { list = []; }
+  return { list: Array.isArray(list) ? list : [], sha: j.sha };
+}
+async function writeList(list, sha, message) {
+  const body = { message, content: b64enc("window.RGH_SAMPLES = " + JSON.stringify(list, null, 2) + ";\n") };
+  if (sha) body.sha = sha;
+  const r = await api("/repos/" + REPO + "/contents/" + FILE, { method: "PUT", body: JSON.stringify(body) });
+  if (!r.ok) throw new Error(await explain(r));
+}
+async function explain(r) {
+  if (r.status === 401) return "GitHub did not accept the token. Make a new one and save it again.";
+  if (r.status === 403 || r.status === 404) return "The token cannot reach this repository, or it does not have Contents set to Read and write. Check the repository name and the token permissions.";
+  if (r.status === 409 || r.status === 422) return "The website changed while you were working. Refresh this page and try again.";
+  let m = ""; try { m = (await r.json()).message; } catch (e) {}
+  return "GitHub said: " + (m || r.status);
+}
+
+async function refreshList() {
+  const box = $("list");
+  try {
+    const { list } = await readList();
+    if (!list.length) { box.innerHTML = '<p class="hint">No samples yet.</p>'; return; }
+    box.innerHTML = "";
+    list.forEach((s, i) => {
+      const d = document.createElement("div"); d.className = "item";
+      const a = document.createElement("div"); a.innerHTML = "<b></b><br><span class='hint'></span>";
+      a.querySelector("b").textContent = s.title;
+      a.querySelector("span").textContent = [s.subject, s.level, s.pages + " pages", s.style].filter(Boolean).join(" · ");
+      const b = document.createElement("button"); b.className = "del"; b.textContent = "Delete";
+      b.onclick = async () => {
+        if (!confirm("Delete this sample from the website?\n" + s.title)) return;
+        b.disabled = true;
+        try {
+          const cur = await readList();
+          const next = cur.list.filter(x => !(x.title === s.title && x.pages === s.pages));
+          await writeList(next, cur.sha, "Remove sample: " + s.title);
+          await refreshList();
+        } catch (e) { alert(e.message); b.disabled = false; }
+      };
+      d.append(a, b); box.append(d);
+    });
+  } catch (e) { box.innerHTML = ""; const p = document.createElement("p"); p.className = "err"; p.textContent = e.message; box.append(p); }
+}
+
+async function connected() {
+  $("addbox").hidden = false; $("listbox").hidden = false;
+  await refreshList();
+}
+
+$("save").onclick = async () => {
+  const repo = $("repo").value.trim().replace(/^https?:\/\/github\.com\//, "").replace(/\/$/, "");
+  const tok = $("tok").value.trim() || TOKEN;
+  if (!/^[^\/\s]+\/[^\/\s]+$/.test(repo)) return show($("cmsg"), "Repository should look like researchgeniushub/researchgeniushub.github.io", "err");
+  if (!tok) return show($("cmsg"), "Paste your access token first.", "err");
+  REPO = repo; TOKEN = tok;
+  show($("cmsg"), "Testing...", "hint");
+  try {
+    const r = await api("/repos/" + REPO);
+    if (!r.ok) throw new Error(await explain(r));
+    const j = await r.json();
+    if (!j.permissions || !j.permissions.push) throw new Error("This token can read the repository but cannot change it. Set Contents to Read and write, then make a new token.");
+    store.set(K_TOK, TOKEN); store.set(K_REPO, REPO); $("tok").value = "";
+    show($("cmsg"), "Connected to " + j.full_name + ".", "ok"); show($("cstate"), "Connected: " + j.full_name, "ok");
+    connected();
+  } catch (e) { show($("cmsg"), e.message, "err"); }
+};
+$("forget").onclick = () => { store.del(K_TOK); TOKEN = ""; $("addbox").hidden = true; $("listbox").hidden = true; show($("cmsg"), "Token removed from this phone.", "hint"); show($("cstate"), "Not connected yet.", "hint"); };
+
+/* ---- reading a Word or text file ---- */
+function loadMammoth() {
+  return new Promise((res, rej) => {
+    if (window.mammoth) return res();
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js";
+    s.onload = res; s.onerror = () => rej(new Error("Could not load the Word reader. Paste the text instead."));
+    document.head.appendChild(s);
+  });
+}
+$("fl").onchange = async () => {
+  const f = $("fl").files[0]; if (!f) return;
+  show($("fmsg"), "Reading " + f.name + "...", "hint");
+  try {
+    let text = "";
+    if (/\.txt$/i.test(f.name)) text = await f.text();
+    else if (/\.docx$/i.test(f.name)) { await loadMammoth(); const r = await window.mammoth.extractRawText({ arrayBuffer: await f.arrayBuffer() }); text = r.value; }
+    else throw new Error("Choose a .docx or .txt file, or paste the text.");
+    $("tx").value = text.trim();
+    if (!$("t").value.trim()) $("t").value = f.name.replace(/\.[^.]+$/, "");
+    show($("fmsg"), "Loaded " + f.name + ".", "ok"); preview();
+  } catch (e) { show($("fmsg"), e.message, "err"); }
+};
+
+const words = t => t.replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
+function calc() {
+  const w = words($("tx").value), wp = Math.max(50, +$("wp").value || 275), iw = Math.max(30, +$("iw").value || wp);
+  return { w, wp, iw, pages: Math.max(1, Math.ceil(w.length / wp)) };
+}
+function preview() {
+  const c = calc();
+  $("sum").textContent = c.w.length ? c.w.length + " words = " + c.pages + " page" + (c.pages > 1 ? "s" : "") + ". The first " + Math.min(c.iw, c.w.length) + " words are shown free. Students can unlock " + Math.max(0, c.pages - 1) + " more page" + (c.pages - 1 === 1 ? "" : "s") + "." : "";
+}
+["tx", "wp", "iw"].forEach(id => $(id).addEventListener("input", preview));
+
+$("pub").onclick = async () => {
+  const c = calc(), title = $("t").value.trim();
+  if (!title) return show($("pmsg"), "Add a sample title.", "err");
+  if (c.pages < 2) return show($("pmsg"), "The text is too short. It needs more than one page so students have pages to unlock.", "err");
+  $("pub").disabled = true; show($("pmsg"), "Publishing...", "hint");
+  try {
+    const cur = await readList();
+    cur.list.push({ title, subject: $("sb").value.trim(), level: $("lv").value, pages: c.pages, style: $("st").value.trim() || "Harvard", introFile: "", introText: c.w.slice(0, c.iw).join(" ") });
+    await writeList(cur.list, cur.sha, "Add sample: " + title);
+    show($("pmsg"), "Published. It appears on the Samples page in 1 to 2 minutes.", "ok");
+    $("t").value = ""; $("sb").value = ""; $("tx").value = ""; $("fl").value = ""; show($("fmsg"), "Or paste the text below. PDF files are not supported: open the PDF, copy the text and paste it.", "hint"); preview();
+    await refreshList();
+  } catch (e) { show($("pmsg"), e.message, "err"); }
+  $("pub").disabled = false;
+};
+
+if (TOKEN && REPO) { show($("cstate"), "Checking saved token...", "hint"); api("/repos/" + REPO).then(async r => { if (r.ok) { show($("cstate"), "Connected: " + REPO, "ok"); connected(); } else show($("cstate"), "Saved token no longer works. Make a new one below.", "err"); }).catch(() => show($("cstate"), "Could not reach GitHub. Check your connection.", "err")); }
+</script>
+</main></body></html>

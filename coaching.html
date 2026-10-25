@@ -448,7 +448,7 @@ table.rates{max-width:720px}.rates th:not(:first-child),.rates td:not(:first-chi
           </div>
         </fieldset>
         <fieldset>
-          <legend>Length</legend>
+          <legend data-len-legend>Length</legend>
           <div class="two">
             <div class="seg">
               <input type="radio" name="${id}mode" id="${id}m1" value="pages" checked><label for="${id}m1">Pages</label>
@@ -457,6 +457,7 @@ table.rates{max-width:720px}.rates th:not(:first-child),.rates td:not(:first-chi
             <input type="number" min="1" step="1" value="5" aria-label="Amount" data-qty>
           </div>
         </fieldset>
+        <p class="small muted" data-ai-note hidden style="margin:-6px 0 14px">AI content removal is charged only for the pages or words that need AI removed, not the whole document.</p>
         <div class="f" data-deadline>
           <label class="lbl" for="${id}dl">Deadline</label>
           <select id="${id}dl" data-tier></select>
@@ -488,12 +489,14 @@ table.rates{max-width:720px}.rates th:not(:first-child),.rates td:not(:first-chi
       fillTiers();
       const s = state(), q = quote(s), cur = $("[data-cur]").value;
       $("[data-deadline]").hidden = s.ai;
+      $("[data-ai-note]").hidden = !s.ai;
+      $("[data-len-legend]").textContent = s.ai ? "Length of the AI-affected text" : "Length";
       $("[data-approx]").hidden = cur === "GBP";
       $("[data-approx]").textContent = "(approximate, rates of " + (C.fxDate || "today") + ")";
       $("[data-total]").textContent = money(q.total, cur);
       $("[data-break]").textContent = q.pages
         ? `${q.pages} page${q.pages > 1 ? "s" : ""} x ${money(q.rate, cur)}` +
-          (s.ai ? " (AI content removal, any deadline)" : ` (${q.tier.label.toLowerCase()})`) +
+          (s.ai ? " (AI content removal, only the parts rewritten, any deadline)" : ` (${q.tier.label.toLowerCase()})`) +
           (s.mode === "words" ? `. ${Number(s.qty).toLocaleString()} words rounds up to ${q.pages}.` : "")
         : "Enter a length to see your price.";
       $("[data-go]").setAttribute("aria-disabled", q.pages ? "false" : "true");
@@ -562,7 +565,7 @@ table.rates{max-width:720px}.rates th:not(:first-child),.rates td:not(:first-chi
 
   const KB = [
     { re: /coach|tutor|lesson|session|hourly|per hour/i, a: () => `Online coaching for undergraduate, postgraduate and PhD students, including thesis defence preparation, costs ${m(C.coaching.first)} for 1 hour, or ${m(C.coaching.additional)} per hour when you book more than 1 hour. Please book at least ${C.coaching.noticeHours} hours before the lesson. <a href="coaching.html">See coaching</a>` },
-    { re: /\bai\b|detect|humani|turnitin|plagiar/i, a: () => `AI content removal is ${m(C.aiRemovalRate)} per page for finished work, at any deadline. We rewrite it so it reads as natural human writing and keep your meaning and citations. We cannot guarantee a particular detector score.` },
+    { re: /\bai\b|detect|humani|turnitin|plagiar/i, a: () => `AI content removal is ${m(C.aiRemovalRate)} per page for finished work, at any deadline. You pay only for the pages or words that need AI removed, not the whole document. We rewrite it so it reads as natural human writing and keep your meaning and citations. We cannot guarantee a particular detector score.` },
     { re: /sample|example|preview/i, a: () => `Every sample introduction is free to read. The full sample costs ${m(C.samplePerPage)} per page. <a href="samples.html">See samples</a>` },
     { re: /pay|paypal|card|bank|wise|payoneer|transfer|invoice|receipt/i, a: () => `After you place an order you can pay by PayPal or by mobile money (M-Pesa) sent from Wise or WorldRemit. We send full details with your invoice. <a href="payments.html">Payment support</a>` },
     { re: /urgent|rush|asap|today|tonight|24 hour|deadline|fast|quick/i, a: () => `Yes, we take urgent orders. Under 24 hours is ${m(C.tiers[0].rate)} per page. Longer deadlines cost less. Undergraduate and Masters: ${tiers}. PhD: ${tiersPhd}.` },
@@ -667,33 +670,69 @@ table.rates{max-width:720px}.rates th:not(:first-child),.rates td:not(:first-chi
     btn.setAttribute("aria-expanded", open);
   });
 
-  // Samples: introduction is free, full sample is paid per page
+  // Samples: the introduction is free; the student chooses how many more pages to unlock (price per page).
   const grid = document.querySelector("[data-samples]");
   const money = n => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(n);
   const esc = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const unlockedGet = () => { try { return JSON.parse(localStorage.getItem("rgh_unlocked") || "{}"); } catch (e) { return {}; } };
+  const unlockedSet = (t, n) => { try { const u = unlockedGet(); u[t] = Math.max(u[t] || 0, n); localStorage.setItem("rgh_unlocked", JSON.stringify(u)); } catch (e) {} };
+  const paidOf = s => Math.max(1, (s.pages || 2) - 1);
+  const instant = s => !!(C.paypalClientId && s.pagesText && s.pagesText.length);
+  function unlockedHtml(s, n) {
+    return `<div class="unlocked"><strong>Unlocked pages</strong>` + s.pagesText.slice(0, n).map((t, k) => `<h4 style="margin:14px 0 4px">Page ${k + 2}</h4><p>${esc(t)}</p>`).join("") + `</div>`;
+  }
+  function loadPayPal(cb) {
+    if (window.paypal) return cb();
+    const sc = document.createElement("script");
+    sc.src = "https://www.paypal.com/sdk/js?client-id=" + encodeURIComponent(C.paypalClientId) + "&currency=GBP";
+    sc.onload = cb; document.head.appendChild(sc);
+  }
   if (grid) {
+    if (Array.isArray(window.RGH_SAMPLES)) C.samples = window.RGH_SAMPLES;
     const ready = C.samples.map((s, i) => ({ s, i })).filter(x => x.s.introFile || x.s.introText);
     if (!ready.length) { grid.innerHTML = '<p class="muted">Samples are being added. Email <a href="mailto:' + C.email + '">' + C.email + '</a> to ask for an introduction in your subject.</p>'; }
     else grid.innerHTML = ready.map(({ s, i }) => {
-      const has = s.introFile || s.introText;
-      return `<article class="sample">
+      const paid = paidOf(s), def = Math.min(2, paid), have = unlockedGet()[s.title] || 0;
+      return `<article class="sample" data-card="${i}">
         ${s.example ? '<span class="badge due">Example layout</span>' : ""}
         <h3>${esc(s.title)}</h3>
         <div class="meta">${esc(s.subject)} · ${esc(s.level)}<br>${s.pages} pages · ${esc(s.style)} referencing</div>
-        ${has ? `
-          ${s.introText ? `<details class="intro"><summary>Read the introduction (free)</summary><p>${esc(s.introText)}</p></details>` : ""}
-          ${s.introFile ? `<a class="btn sm alt" href="${esc(s.introFile)}" target="_blank" rel="noopener">Read the introduction (free)</a>` : ""}
-          <div class="locked"><strong>Full sample: ${money(s.pages * C.samplePerPage)}</strong>
-            <span class="small muted">${s.pages} pages x ${money(C.samplePerPage)}</span>
-            <button class="btn sm" data-buy="${i}">Get full access</button></div>`
-          : `<p class="soon">Sample being added.</p>`}
+        ${s.introText ? `<details class="intro"><summary>Read the introduction (free)</summary><p>${esc(s.introText)}</p></details>` : ""}
+        ${s.introFile ? `<a class="btn sm alt" href="${esc(s.introFile)}" target="_blank" rel="noopener">Read the introduction (free)</a>` : ""}
+        <div class="locked" data-locked="${i}">
+          <strong>Unlock more pages</strong>
+          <span class="small muted">${money(C.samplePerPage)} per page. You choose how many (1 to ${paid}).</span>
+          <label class="small" for="n${i}">Pages to unlock</label>
+          <input type="number" id="n${i}" min="1" max="${paid}" step="1" value="${def}" data-n="${i}" style="max-width:110px">
+          <strong data-price="${i}">${money(def * C.samplePerPage)}</strong>
+          <div data-pp="${i}"></div>
+          <button class="btn sm" data-buy="${i}">${instant(s) ? "Order by M-Pesa or other method" : "Unlock these pages"}</button>
+        </div>
+        <div data-open="${i}">${have && s.pagesText ? unlockedHtml(s, Math.min(have, s.pagesText.length)) : ""}</div>
       </article>`;
     }).join("");
+    const nOf = i => { const s = C.samples[i], inp = grid.querySelector(`[data-n="${i}"]`); return Math.min(paidOf(s), Math.max(1, Math.floor(Number(inp.value) || 1))); };
+    grid.querySelectorAll("[data-n]").forEach(inp => inp.addEventListener("input", () => {
+      const i = inp.dataset.n; grid.querySelector(`[data-price="${i}"]`).textContent = money(nOf(i) * C.samplePerPage);
+    }));
     grid.querySelectorAll("[data-buy]").forEach(b => b.addEventListener("click", () => {
-      const s = C.samples[b.dataset.buy];
-      try { sessionStorage.setItem("rgh_sample", JSON.stringify({ title: s.title, subject: s.subject, pages: s.pages })); } catch (e) {}
+      const i = b.dataset.buy, s = C.samples[i];
+      try { sessionStorage.setItem("rgh_sample", JSON.stringify({ title: s.title, subject: s.subject, pages: nOf(i) })); } catch (e) {}
       location.href = "account.html#new";
     }));
+    // Instant unlock after PayPal (only when a PayPal client ID and the sample text are both in site-config.js)
+    ready.filter(x => instant(x.s)).forEach(({ s, i }) => {
+      loadPayPal(() => {
+        window.paypal.Buttons({
+          createOrder: (d, a) => a.order.create({ purchase_units: [{ description: "Sample pages: " + s.title, amount: { currency_code: "GBP", value: (nOf(i) * C.samplePerPage).toFixed(2) } }] }),
+          onApprove: (d, a) => a.order.capture().then(() => {
+            const n = nOf(i); unlockedSet(s.title, n);
+            grid.querySelector(`[data-open="${i}"]`).innerHTML = unlockedHtml(s, n);
+          }),
+          onError: () => { grid.querySelector(`[data-pp="${i}"]`).insertAdjacentHTML("beforeend", '<p class="err">PayPal could not complete the payment. Try again or order another way.</p>'); }
+        }).render(grid.querySelector(`[data-pp="${i}"]`));
+      });
+    });
   }
 
   // Real student reviews (section stays hidden while the list is empty)
