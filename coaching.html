@@ -3,11 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Online coaching | Research Genius Hub</title>
-<meta name="description" content="One-to-one online coaching, including defence preparation, for undergraduate, postgraduate and PhD students at £15 per hour.">
+<title>Online Coaching and Defence Preparation | Research Genius Hub</title>
+<meta name="description" content="Live one-to-one online coaching on research methods, thesis structure, data analysis and viva or defence preparation.">
 <link rel="canonical" href="https://researchgeniushub.github.io/coaching.html">
-<meta property="og:title" content="Online coaching | Research Genius Hub">
-<meta property="og:description" content="One-to-one online coaching, including defence preparation, for undergraduate, postgraduate and PhD students at £15 per hour.">
+<meta property="og:site_name" content="Research Genius Hub">
+<meta property="og:image" content="https://researchgeniushub.github.io/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0F1B33">
+<meta property="og:title" content="Online Coaching and Defence Preparation | Research Genius Hub">
+<meta property="og:description" content="Live one-to-one online coaching on research methods, thesis structure, data analysis and viva or defence preparation.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://researchgeniushub.github.io/coaching.html">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -319,6 +323,33 @@ body{background:var(--paper)}
 table.rates{max-width:720px}.rates th:not(:first-child),.rates td:not(:first-child){text-align:right}
 [hidden]{display:none!important}
 
+/* ---- v3: cards, stats, how it works, CTA and related links ---- */
+.cardgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.card{display:block;background:var(--white);border:1.5px solid var(--ink);border-radius:14px;padding:22px 22px 20px;color:var(--ink);text-decoration:none;box-shadow:5px 5px 0 var(--hi);transition:transform .15s ease,box-shadow .15s ease}
+a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color:var(--ink)}
+.card h3{font-size:1.25rem;margin:10px 0 .3em}
+.card p{margin:0;color:var(--ink2);font-size:.98rem}
+.card .ic,.ic-lg{width:34px;height:34px;fill:none;stroke:var(--teal-d);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.card .more{display:inline-block;margin-top:12px;font-weight:700;font-size:.95rem;color:var(--teal-d)}
+.cardgrid.four{grid-template-columns:repeat(4,1fr)}
+.statbar{background:var(--ink);color:#fff;padding:26px 0}
+.statbar .wrap{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.statbar b{display:block;font-family:var(--serif);font-weight:500;font-size:1.5rem;line-height:1.1;color:var(--hi)}
+.statbar span{font-size:.93rem;opacity:.9}
+.faqmini details{background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:4px 18px;margin-bottom:10px}
+.faqmini summary{font-weight:700;padding:14px 0;cursor:pointer}
+.faqmini .body{padding:0 0 14px;color:var(--ink2)}
+.ctaband{background:var(--teal-d);color:#fff;padding:40px 0}
+.ctaband .wrap{display:flex;flex-wrap:wrap;gap:16px 28px;align-items:center;justify-content:space-between}
+.ctaband h2{font-size:clamp(1.5rem,3vw,2.1rem);margin:0;max-width:24ch;color:#fff}
+.ctaband .btn.alt{background:transparent;color:#fff;border-color:#fff}
+.related{padding:26px 0;border-top:1px solid var(--line);background:var(--white)}
+.related h2{font-size:1.1rem;font-family:var(--sans);font-weight:700;margin:0 0 8px;letter-spacing:0}
+.related ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px 22px}
+.legal a{color:inherit;opacity:.8;margin-left:14px}
+@media (max-width:900px){.cardgrid,.cardgrid.four{grid-template-columns:1fr 1fr}.statbar .wrap{grid-template-columns:1fr 1fr}}
+@media (max-width:600px){.cardgrid,.cardgrid.four{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
@@ -364,6 +395,7 @@ table.rates{max-width:720px}.rates th:not(:first-child),.rates td:not(:first-chi
 </div></section>
 </section>
 </main>
+<section class="ctaband"><div class="wrap"><h2>Ready to turn your worry into results?</h2><div><a class="btn yellow" href="account.html#new">Order now</a> <a class="btn alt" href="contact.html">Ask a question</a></div></div></section><section class="related"><div class="wrap"><h2>Related</h2><ul><li><a href="services.html">See all research and writing services</a></li><li><a href="pricing.html">Check prices</a></li><li><a href="faq.html">Read the FAQ</a></li></ul></div></section>
 <footer class="site-footer"><div class="wrap">
   <div class="grid">
     <div><a class="brand" href="index.html"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCIgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlJlc2VhcmNoIEdlbml1cyBIdWIgbG9nbyI+CiAgPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTUiIGZpbGw9IiMwRjFCMzMiLz4KICA8cmVjdCB4PSIxIiB5PSIxIiB3aWR0aD0iNjIiIGhlaWdodD0iNjIiIHJ4PSIxNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utb3BhY2l0eT0iLjIyIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDxwYXRoIGQ9Ik0xMCAyNkMxOCAyMiAyNiAyMiAzMiAyNlY1MEMyNiA0NiAxOCA0NiAxMCA1MFoiIGZpbGw9IiNmZmYiLz4KICA8cGF0aCBkPSJNNTQgMjZDNDYgMjIgMzggMjIgMzIgMjZWNTBDMzggNDYgNDYgNDYgNTQgNTBaIiBmaWxsPSIjRERFM0VGIi8+CiAgPHJlY3QgeD0iMTQiIHk9IjMxIiB3aWR0aD0iMTQiIGhlaWdodD0iNSIgcng9IjIuNSIgZmlsbD0iI0ZGRTQ1QyIvPgogIDxyZWN0IHg9IjE0IiB5PSIzMSIgd2lkdGg9IjE0IiBoZWlnaHQ9IjUiIHJ4PSIyLjUiIGZpbGw9Im5vbmUiLz4KICA8cGF0aCBkPSJNMTQgNDBoMTNNMTQgNDRoOSIgc3Ryb2tlPSIjMEU3Qzg2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIDxwYXRoIGQ9Ik0zNyAzM2gxM00zNyAzN2gxM00zNyA0MWg4IiBzdHJva2U9IiM4RTlBQjMiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPHBhdGggZD0iTTQ2IDZsMi4zIDYuMkw1NC41IDE0LjUgNDguMyAxNi44IDQ2IDIzbC0yLjMtNi4yTDM3LjUgMTQuNWw2LjItMi4zWiIgZmlsbD0iI0ZGRTQ1QyIvPgo8L3N2Zz4K" width="38" height="38" alt=""><b>Research Genius Hub</b></a>
@@ -372,7 +404,7 @@ table.rates{max-width:720px}.rates th:not(:first-child),.rates td:not(:first-chi
     <div><h4>Learn</h4><ul><li><a href="guides.html">Assignment guides</a></li><li><a href="faq.html">FAQ</a></li><li><a href="terms.html">Terms and academic integrity</a></li></ul></div>
     <div><h4>Contact</h4><ul><li><a data-email></a></li><li><a data-wa></a></li><li><a href="contact.html">Contact page</a></li><li><a href="payments.html">Payment support</a></li><li><a data-account-link href="account.html">Your account</a></li></ul></div>
   </div>
-  <div class="legal">&copy; <span data-year></span> Research Genius Hub.</div>
+  <div class="legal">&copy; <span data-year></span> Research Genius Hub.<a href="admin.html" rel="nofollow">Admin</a></div>
 </div></footer>
 <a class="wa" href="#" target="_blank" rel="noopener">WhatsApp us</a>
 <script src="site-config.js"></script>
