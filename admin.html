@@ -29,12 +29,12 @@ ol{padding-left:20px}
 </style>
 </head>
 <body><main>
-<h1>Admin: samples</h1>
-<p class="hint">For you only. Add or remove samples on the live website, straight from your phone. Nothing here is visible to students.</p>
+<h1>Admin: add samples</h1>
+<p class="hint">For you only. Add or remove samples from your phone. Choose a Word or text file, tap one button, and the Samples page updates.</p>
 
 <section class="box" id="connect">
-  <h2>1. Connect to GitHub (one time)</h2>
-  <p id="cstate" class="hint">Not connected yet.</p>
+  <h2>Optional: one-tap publishing</h2><p class="hint">Without this, the page makes a small file for you to upload to GitHub (like you already do). Connect a token only if you want samples to publish by themselves.</p>
+  <p id="cstate" class="hint">Not connected. That is fine.</p>
   <p><a class="btn" style="display:inline-block;text-decoration:none" target="_blank" rel="noopener" href="https://github.com/settings/personal-access-tokens/new?name=Samples+admin&description=Publish+samples+on+the+website&target_name=ResearchGeniusHub&expires_in=90&contents=write">Open the GitHub token page</a></p>
   <p class="hint">On that page choose <b>Only select repositories</b>, pick <b>researchgeniushub.github.io</b>, then tap <b>Generate token</b> and copy it. Paste it below.</p>
   <details>
@@ -56,8 +56,8 @@ ol{padding-left:20px}
   <p id="cmsg" role="status"></p>
 </section>
 
-<section class="box" id="addbox" hidden>
-  <h2>2. Add a sample</h2>
+<section class="box" id="addbox">
+  <h2>Add a sample</h2>
   <label for="t">Sample title</label><input id="t" placeholder="Literature review on remote working">
   <div class="row">
     <div><label for="sb">Subject</label><input id="sb" placeholder="Business Management"></div>
@@ -74,16 +74,18 @@ ol{padding-left:20px}
   <label for="tx">Full sample text</label>
   <textarea id="tx" placeholder="The whole document text. Only the free introduction is published on the website. The rest is never uploaded."></textarea>
   <p class="hint" id="sum"></p>
-  <button id="pub">Publish sample</button>
+  <button id="pub">Make samples file</button>
   <p id="pmsg" role="status"></p>
+  <div id="dl" hidden><a class="btn" id="dla" style="display:inline-block;text-decoration:none" download="samples-data.js">Download samples-data.js</a>
+    <ol><li>Tap the button above and save the file.</li><li>Open your repository on GitHub, tap <b>Add file</b>, then <b>Upload files</b>.</li><li>Choose <b>samples-data.js</b>, then tap <b>Commit changes</b>.</li><li>Wait 1 to 2 minutes and refresh the Samples page.</li></ol></div>
 </section>
 
-<section class="box" id="listbox" hidden>
-  <h2>3. Samples on the website</h2>
+<section class="box" id="listbox">
+  <h2>Samples on the website</h2>
   <div id="list"><p class="hint">Loading...</p></div>
 </section>
 
-<p class="hint" style="margin-top:18px">After you publish or delete, the website rebuilds in 1 to 2 minutes. Refresh the Samples page to see the change. Only the free introduction is published. Send the paid pages to the student by email after you confirm their payment.</p>
+<p class="hint" style="margin-top:18px">After you publish or upload, the website rebuilds in 1 to 2 minutes. Refresh the Samples page to see the change. Only the free introduction is published. Send the paid pages to the student by email after you confirm their payment.</p>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -94,7 +96,7 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
   del(k) { try { localStorage.removeItem(k); } catch (e) {} }
 };
-let TOKEN = store.get(K_TOK);
+let TOKEN = store.get(K_TOK), CONNECTED = false;
 let REPO = store.get(K_REPO) || (location.hostname.endsWith(".github.io") ? location.hostname.replace(".github.io", "") + "/" + location.hostname : "");
 $("repo").value = REPO;
 if (TOKEN) $("tok").placeholder = "Token saved on this phone";
@@ -106,7 +108,16 @@ const b64enc = s => { const b = new TextEncoder().encode(s); let t = ""; b.forEa
 const b64dec = s => { const t = atob(s.replace(/\s/g, "")); const b = new Uint8Array(t.length); for (let i = 0; i < t.length; i++) b[i] = t.charCodeAt(i); return new TextDecoder().decode(b); };
 const show = (el, msg, cls) => { el.textContent = msg; el.className = cls || ""; };
 
+function parseList(text) {
+  let list = [];
+  try { list = JSON.parse(text.slice(text.indexOf("=") + 1).trim().replace(/;\s*$/, "")); } catch (e) { list = []; }
+  return Array.isArray(list) ? list : [];
+}
 async function readList() {
+  if (!CONNECTED) {
+    try { const r = await fetch("samples-data.js?t=" + Date.now()); return { list: r.ok ? parseList(await r.text()) : [], sha: null }; }
+    catch (e) { return { list: [], sha: null }; }
+  }
   const r = await api("/repos/" + REPO + "/contents/" + FILE);
   if (r.status === 404) return { list: [], sha: null };
   if (!r.ok) throw new Error(await explain(r));
@@ -115,7 +126,15 @@ async function readList() {
   try { list = JSON.parse(text.slice(text.indexOf("=") + 1).trim().replace(/;\s*$/, "")); } catch (e) { list = []; }
   return { list: Array.isArray(list) ? list : [], sha: j.sha };
 }
+function offerFile(list) {
+  const text = "window.RGH_SAMPLES = " + JSON.stringify(list, null, 2) + ";\n";
+  const url = URL.createObjectURL(new Blob([text], { type: "text/javascript" }));
+  const a = $("dla"); a.href = url; $("dl").hidden = false;
+  try { a.click(); } catch (e) {}
+  $("dl").scrollIntoView({ behavior: "smooth" });
+}
 async function writeList(list, sha, message) {
+  if (!CONNECTED) { offerFile(list); return; }
   const body = { message, content: b64enc("window.RGH_SAMPLES = " + JSON.stringify(list, null, 2) + ";\n") };
   if (sha) body.sha = sha;
   const r = await api("/repos/" + REPO + "/contents/" + FILE, { method: "PUT", body: JSON.stringify(body) });
@@ -157,7 +176,7 @@ async function refreshList() {
 }
 
 async function connected() {
-  $("addbox").hidden = false; $("listbox").hidden = false;
+  CONNECTED = true; $("pub").textContent = "Publish sample";
   await refreshList();
 }
 
@@ -178,7 +197,7 @@ $("save").onclick = async () => {
     connected();
   } catch (e) { show($("cmsg"), e.message, "err"); }
 };
-$("forget").onclick = () => { store.del(K_TOK); TOKEN = ""; $("addbox").hidden = true; $("listbox").hidden = true; show($("cmsg"), "Token removed from this phone.", "hint"); show($("cstate"), "Not connected yet.", "hint"); };
+$("forget").onclick = () => { store.del(K_TOK); TOKEN = ""; CONNECTED = false; $("pub").textContent = "Make samples file"; refreshList(); show($("cmsg"), "Token removed from this phone.", "hint"); show($("cstate"), "Not connected. That is fine.", "hint"); };
 
 /* ---- reading a Word or text file ---- */
 function loadMammoth() {
@@ -224,13 +243,14 @@ $("pub").onclick = async () => {
     const cur = await readList();
     cur.list.push({ title, subject: $("sb").value.trim(), level: $("lv").value, pages: c.pages, style: $("st").value.trim() || "Harvard", introFile: "", introText: c.w.slice(0, c.iw).join(" ") });
     await writeList(cur.list, cur.sha, "Add sample: " + title);
-    show($("pmsg"), "Published. It appears on the Samples page in 1 to 2 minutes.", "ok");
+    show($("pmsg"), CONNECTED ? "Published. It appears on the Samples page in 1 to 2 minutes." : "Your file is ready. Download it and upload it to GitHub, as shown below.", "ok");
     $("t").value = ""; $("sb").value = ""; $("tx").value = ""; $("fl").value = ""; show($("fmsg"), "Or paste the text below. PDF files are not supported: open the PDF, copy the text and paste it.", "hint"); preview();
     await refreshList();
   } catch (e) { show($("pmsg"), e.message, "err"); }
   $("pub").disabled = false;
 };
 
+refreshList();
 if (TOKEN && REPO) { show($("cstate"), "Checking saved token...", "hint"); api("/repos/" + REPO).then(async r => { if (r.ok) { show($("cstate"), "Connected: " + REPO, "ok"); connected(); } else show($("cstate"), "Saved token no longer works. Make a new one below.", "err"); }).catch(() => show($("cstate"), "Could not reach GitHub. Check your connection.", "err")); }
 </script>
 </main></body></html>

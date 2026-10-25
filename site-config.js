@@ -5,6 +5,7 @@
 window.RGH = {
   businessName: "Research Genius Hub",
   email: "researchgeniushub@gmail.com",
+  formSubmit: true,               // lets students attach files and send orders to your email (free FormSubmit service); set false to use email buttons only
 
   // UK WhatsApp number, digits only with country code, no "+" or spaces.
   // Example: "447700900123". Leave "" to hide the WhatsApp button.

@@ -10,6 +10,7 @@
 <meta property="og:image" content="https://researchgeniushub.github.io/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#0F1B33">
+
 <meta property="og:title" content="Place an Order | Research Genius Hub">
 <meta property="og:description" content="Choose your service, see the price, send your requirements and pay by PayPal or M-Pesa.">
 <meta property="og:type" content="website">
@@ -414,8 +415,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
           <div class="f" id="tier-wrap"><label for="o-tier">Deadline</label><select id="o-tier" name="tier"></select></div>
           <div class="f"><label for="o-due" id="due-label">Exact due date and time (optional)</label><input type="datetime-local" id="o-due" name="due"><div class="hint">Use your local time and tell us your time zone in the instructions.</div></div>
           <div class="f"><label for="o-ins">Instructions</label><textarea id="o-ins" name="instructions" placeholder="Paste your brief, marking criteria, and anything your tutor asked for."></textarea></div>
-          <div class="f" data-live-only><label for="o-files">Upload your requirements</label><input type="file" id="o-files" name="files_in" multiple accept=".pdf,.doc,.docx,.txt,.rtf,.ppt,.pptx,.xls,.xlsx,.png,.jpg,.jpeg"><div class="hint">Up to 10 files, 15 MB each. Brief, rubric, readings, your draft.</div><div class="small" id="file-msg" aria-live="polite"></div></div>
-          <div class="f" data-email-only hidden><label>Your files</label><p class="small muted" style="margin:0">When you tap Place order, you get an email ready to send. Attach your brief, marking criteria, readings and any draft to that email.</p></div>
+          <div class="f"><label for="o-files">Attach your requirements</label><input type="file" id="o-files" name="files_in" multiple accept=".pdf,.doc,.docx,.txt,.rtf,.ppt,.pptx,.xls,.xlsx,.png,.jpg,.jpeg"><div class="hint" id="file-hint">Up to 10 files. Brief, marking criteria, readings, your draft.</div><div class="small" id="file-msg" aria-live="polite"></div></div>
           <div class="total"><span>Order total</span><output id="o-total">£0.00</output></div>
           <p class="breakdown" id="o-break"></p>
           <p class="approx" id="o-approx"></p>
@@ -821,7 +821,8 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     const list = Array.from(fileIn.files), bad = [];
     if (list.length > MAX_FILES) bad.push(`Choose up to ${MAX_FILES} files.`);
     list.forEach(f => { if (f.size > MAX_MB * 1048576) bad.push(`${f.name} is over ${MAX_MB} MB.`); });
-    $("#file-msg").textContent = bad.length ? bad.join(" ") : (list.length ? `${list.length} file${list.length > 1 ? "s" : ""} ready to upload.` : "");
+    if (!LIVE && C.formSubmit !== false && list.reduce((t, f) => t + f.size, 0) > 10 * 1048576) bad.push("Files are over 10 MB in total. You can still send them by email instead.");
+    $("#file-msg").textContent = bad.length ? bad.join(" ") : (list.length ? `${list.length} file${list.length > 1 ? "s" : ""} ready to ${LIVE ? "upload" : "attach"}.` : "");
     $("#file-msg").style.color = bad.length ? "var(--pen)" : "";
     if (bad.length) fileIn.value = "";
   });
@@ -851,7 +852,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     $("#o-submit").disabled = true; $("#o-submit").textContent = "Placing order...";
     if (!LIVE) {
       order.id = "RGH-" + Date.now().toString(36).toUpperCase();
-      showEmailOrder(order); form.reset(); updatePrice();
+      showEmailOrder(order);
       $("#o-submit").textContent = "Place order"; $("#o-submit").disabled = false;
       return;
     }
@@ -881,6 +882,24 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     return lines.filter((l, i) => l !== "" || lines[i - 1] !== "").join("\n");
   }
 
+  function sendToForm(o, subj) {
+    const files = Array.from(fileIn.files);
+    if (files.reduce((t, f) => t + f.size, 0) > 10 * 1048576) { $("#copy-msg").textContent = "Your files are over 10 MB in total. Use one of the email buttons and attach them there."; return; }
+    const f = document.createElement("form");
+    f.method = "POST"; f.action = "https://formsubmit.co/" + C.email; f.enctype = "multipart/form-data"; f.style.display = "none";
+    const add = (k, v) => { const i = document.createElement("input"); i.type = "hidden"; i.name = k; i.value = v == null ? "" : String(v); f.appendChild(i); };
+    add("_subject", subj); add("_template", "table"); add("_captcha", "false"); add("_honey", "");
+    add("_next", location.origin + location.pathname.replace(/[^/]*$/, "") + "thanks.html?order=" + encodeURIComponent(o.id) + "&total=" + (o.total || 0) + "&q=" + (o.status === "awaiting_quote" ? 1 : 0));
+    add("name", o.customer); add("email", o.customerEmail); add("whatsapp", o.phone);
+    add("order_id", o.id); add("service", o.service); add("title", o.title); add("subject", o.subject); add("level", o.level);
+    add("country", o.country); add("referencing", o.style); add("length", o.coaching ? o.pages + " hours" : o.pages + " pages");
+    add("deadline", o.tier || ""); add("due", o.due || ""); add("price", o.status === "awaiting_quote" ? "quote needed" : Q.money(o.total)); add("instructions", o.instructions);
+    if (files.length) { fileIn.name = "attachment"; f.appendChild(fileIn); }
+    document.body.appendChild(f);
+    $("#send-form").disabled = true; $("#send-form").textContent = "Sending...";
+    f.submit();
+  }
+
   function showEmailOrder(o) {
     const subj = "New order " + o.id + " - " + o.service + (o.status === "awaiting_quote" ? "" : " - " + Q.money(o.total));
     const mail = "mailto:" + C.email + "?subject=" + encodeURIComponent(subj) + "&body=" + encodeURIComponent(orderText(o, true));
@@ -891,9 +910,10 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     const paying = o.status !== "awaiting_quote" && o.total > 0 && methods().length;
     box.innerHTML = `<div class="panel">
       <h3 style="margin-top:0">Order ${esc(o.id)} is ready</h3>
-      <p><strong>It has not been sent yet.</strong> Choose one option below, attach your brief and files, and send. We reply within ${esc(C.chat.replyWithin || "1 hour")}.</p>
+      <p><strong>It has not been sent yet.</strong> Tap <b>Send order</b> below, or send it by email and attach your files there. We reply within ${esc(C.chat.replyWithin || "1 hour")}.</p>
       <p style="font-family:var(--serif);font-size:1.4rem;margin:8px 0">${o.status === "awaiting_quote" ? "Quote pending" : esc(Q.money(o.total))}</p>
-      <p><a class="btn block" target="_blank" rel="noopener" href="${esc(gm)}">Send with Gmail</a></p>
+      ${C.formSubmit !== false ? `<p><button type="button" class="btn block" id="send-form">Send order${fileIn.files.length ? " with " + fileIn.files.length + " file" + (fileIn.files.length > 1 ? "s" : "") : ""}</button></p><p class="small muted">Or send it by email instead:</p>` : ""}
+      <p><a class="btn block${C.formSubmit !== false ? " alt" : ""}" target="_blank" rel="noopener" href="${esc(gm)}">Send with Gmail</a></p>
       <p><a class="btn block alt" href="${esc(mail)}">Send with my email app</a></p>
       ${wa ? `<p><a class="btn block alt" target="_blank" rel="noopener" href="${esc(wa)}">Send on WhatsApp</a></p>` : ""}
       <p><button type="button" class="btn block alt" id="copy-order">Copy the order text</button></p>
@@ -901,6 +921,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       <p class="small muted">If you copy it, paste it into any email to ${esc(C.email)}.</p>
       ${paying ? `<hr><h4>Ready to pay now?</h4><div class="paybox" id="email-pay"></div>` : `<p class="small muted">${o.status === "awaiting_quote" ? "We review your brief and email you a price before any payment." : "We send payment options with your invoice."}</p>`}
     </div>`;
+    if (C.formSubmit !== false) $("#send-form").addEventListener("click", () => sendToForm(o, subj));
     $("#copy-order").addEventListener("click", async () => {
       const t = "To: " + C.email + "\nSubject: " + subj + "\n\n" + orderText(o, false);
       try { await navigator.clipboard.writeText(t); $("#copy-msg").textContent = "Copied. Paste it into an email and attach your files."; }
