@@ -1,0 +1,1 @@
+window.RGH_TESTIMONIALS = [];

@@ -351,13 +351,28 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 @media (max-width:900px){.cardgrid,.cardgrid.four{grid-template-columns:1fr 1fr}.statbar .wrap{grid-template-columns:1fr 1fr}}
 @media (max-width:600px){.cardgrid,.cardgrid.four{grid-template-columns:1fr}}
 
+/* ---- v4: dark header to match footer ---- */
+.site-header{background:rgba(15,27,51,.98);border-bottom:1px solid #22345a;backdrop-filter:none}
+.site-header .brand,.site-header .brand:hover{color:#fff}
+.site-header .nav a{color:#fff}
+.site-header .nav a:hover,.site-header .nav a[aria-current="page"]{border-bottom-color:var(--hi);color:#fff}
+.site-header .hdr-actions a:not(.btn){color:#fff}
+.site-header .btn{background:var(--hi);border-color:var(--hi);color:var(--ink)}
+.site-header .btn:hover{background:#fff;border-color:#fff;color:var(--ink)}
+.site-header .menu-toggle{border-color:#fff;color:#fff}
+.site-header img[width="38"]{border-radius:9px;box-shadow:0 0 0 1.5px #3a4d78}
+.about-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:36px;align-items:start}
+@media (max-width:900px){.about-grid{grid-template-columns:1fr}}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:600px){.field-row{grid-template-columns:1fr}}
+
 </style>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Which students do you work with?", "acceptedAnswer": {"@type": "Answer", "text": "Students from Australia, the United States, China, the United Kingdom and Canada, at undergraduate, Masters and PhD level. We follow the referencing and spelling conventions of your country."}}, {"@type": "Question", "name": "How is a page counted?", "acceptedAnswer": {"@type": "Answer", "text": "One page is about 275 words. Part pages round up, so 1.2 pages is charged as 2."}}, {"@type": "Question", "name": "How much does it cost?", "acceptedAnswer": {"@type": "Answer", "text": "For undergraduate and Masters work it is £15 per page for deadlines under 24 hours, £13 for 1 to 2 days, £12 for 2 to 4 days and £10 for 5 days or more. For PhD work it is £20, £17, £15 and £13. AI content removal is £7 per page, and you pay only for the pages or words that need AI removed, not the whole document. Use the calculator for an exact total."}}, {"@type": "Question", "name": "How does online coaching work?", "acceptedAnswer": {"@type": "Answer", "text": "You book a one-to-one live session for undergraduate, postgraduate or PhD level, including thesis and viva defence preparation. Order at least 3 hours before the lesson. It costs £15 for 1 hour, or £13 per hour when you book more than 1 hour. After your payment is confirmed, we email you the video link. See coaching."}}, {"@type": "Question", "name": "Can I read a full sample?", "acceptedAnswer": {"@type": "Answer", "text": "Every sample introduction is free to read. Choose how many extra pages to unlock, at £2 per page. They open on the Samples page after PayPal payment where available, or we email them once your payment is confirmed."}}, {"@type": "Question", "name": "How do I pay?", "acceptedAnswer": {"@type": "Answer", "text": "From your account after you place an order. You can pay by PayPal, by card or Wise, or by bank transfer in GBP, USD, CAD, AUD or EUR, depending on what is available at checkout. See Payment support for help."}}, {"@type": "Question", "name": "What is AI content removal?", "acceptedAnswer": {"@type": "Answer", "text": "It is a separate service for work you already have. You are charged only for the pages or words that need AI content removed, not the whole document. We rewrite passages that read as machine-generated so they sound like natural human writing, keeping your meaning, structure and citations. We cannot guarantee a particular detector score, because detectors disagree and change."}}, {"@type": "Question", "name": "Can I upload my brief and files?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Create an account, then attach your brief, marking rubric, readings and any draft when you place the order."}}, {"@type": "Question", "name": "Can I ask for changes?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Send revision notes within 7 days of delivery and we will update the work against your original brief."}}, {"@type": "Question", "name": "Is my information private?", "acceptedAnswer": {"@type": "Answer", "text": "We use your details and files only to complete your order and never share them with other students or third parties."}}, {"@type": "Question", "name": "How should I use the work I receive?", "acceptedAnswer": {"@type": "Answer", "text": "As a study aid, model and reference. Follow your institution's academic integrity rules about what you submit. See our terms."}}]}</script>
 </head>
 <body>
 <header class="site-header"><div class="wrap">
   <a class="brand" href="index.html"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCIgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlJlc2VhcmNoIEdlbml1cyBIdWIgbG9nbyI+CiAgPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTUiIGZpbGw9IiMwRjFCMzMiLz4KICA8cmVjdCB4PSIxIiB5PSIxIiB3aWR0aD0iNjIiIGhlaWdodD0iNjIiIHJ4PSIxNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utb3BhY2l0eT0iLjIyIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDxwYXRoIGQ9Ik0xMCAyNkMxOCAyMiAyNiAyMiAzMiAyNlY1MEMyNiA0NiAxOCA0NiAxMCA1MFoiIGZpbGw9IiNmZmYiLz4KICA8cGF0aCBkPSJNNTQgMjZDNDYgMjIgMzggMjIgMzIgMjZWNTBDMzggNDYgNDYgNDYgNTQgNTBaIiBmaWxsPSIjRERFM0VGIi8+CiAgPHJlY3QgeD0iMTQiIHk9IjMxIiB3aWR0aD0iMTQiIGhlaWdodD0iNSIgcng9IjIuNSIgZmlsbD0iI0ZGRTQ1QyIvPgogIDxyZWN0IHg9IjE0IiB5PSIzMSIgd2lkdGg9IjE0IiBoZWlnaHQ9IjUiIHJ4PSIyLjUiIGZpbGw9Im5vbmUiLz4KICA8cGF0aCBkPSJNMTQgNDBoMTNNMTQgNDRoOSIgc3Ryb2tlPSIjMEU3Qzg2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIDxwYXRoIGQ9Ik0zNyAzM2gxM00zNyAzN2gxM00zNyA0MWg4IiBzdHJva2U9IiM4RTlBQjMiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPHBhdGggZD0iTTQ2IDZsMi4zIDYuMkw1NC41IDE0LjUgNDguMyAxNi44IDQ2IDIzbC0yLjMtNi4yTDM3LjUgMTQuNWw2LjItMi4zWiIgZmlsbD0iI0ZGRTQ1QyIvPgo8L3N2Zz4K" width="38" height="38" alt=""><b>Research <span class="hl">Genius</span> Hub</b></a>
-  <nav class="nav" aria-label="Main"><a href="services.html" data-nav="services">Services</a><a href="coaching.html" data-nav="coaching">Coaching</a><a href="pricing.html" data-nav="pricing">Pricing</a><a href="guides.html" data-nav="guides">Guides</a><a href="samples.html" data-nav="samples">Samples</a><a href="faq.html" data-nav="faq">FAQ</a><a href="contact.html" data-nav="contact">Contact</a></nav>
+  <nav class="nav" aria-label="Main"><a href="services.html" data-nav="services">Services</a><a href="coaching.html" data-nav="coaching">Coaching</a><a href="pricing.html" data-nav="pricing">Pricing</a><a href="guides.html" data-nav="guides">Guides</a><a href="samples.html" data-nav="samples">Samples</a><a href="about.html" data-nav="about">About</a><a href="faq.html" data-nav="faq">FAQ</a><a href="contact.html" data-nav="contact">Contact</a></nav>
   <div class="hdr-actions"><a data-signin href="account.html" style="font-weight:600;color:var(--ink)">Sign in</a><a class="btn sm" href="account.html#new">Start an order</a></div>
   <button class="menu-toggle" aria-expanded="false">Menu</button>
 </div></header>
@@ -385,7 +400,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     <div><a class="brand" href="index.html"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCIgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlJlc2VhcmNoIEdlbml1cyBIdWIgbG9nbyI+CiAgPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTUiIGZpbGw9IiMwRjFCMzMiLz4KICA8cmVjdCB4PSIxIiB5PSIxIiB3aWR0aD0iNjIiIGhlaWdodD0iNjIiIHJ4PSIxNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utb3BhY2l0eT0iLjIyIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDxwYXRoIGQ9Ik0xMCAyNkMxOCAyMiAyNiAyMiAzMiAyNlY1MEMyNiA0NiAxOCA0NiAxMCA1MFoiIGZpbGw9IiNmZmYiLz4KICA8cGF0aCBkPSJNNTQgMjZDNDYgMjIgMzggMjIgMzIgMjZWNTBDMzggNDYgNDYgNDYgNTQgNTBaIiBmaWxsPSIjRERFM0VGIi8+CiAgPHJlY3QgeD0iMTQiIHk9IjMxIiB3aWR0aD0iMTQiIGhlaWdodD0iNSIgcng9IjIuNSIgZmlsbD0iI0ZGRTQ1QyIvPgogIDxyZWN0IHg9IjE0IiB5PSIzMSIgd2lkdGg9IjE0IiBoZWlnaHQ9IjUiIHJ4PSIyLjUiIGZpbGw9Im5vbmUiLz4KICA8cGF0aCBkPSJNMTQgNDBoMTNNMTQgNDRoOSIgc3Ryb2tlPSIjMEU3Qzg2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIDxwYXRoIGQ9Ik0zNyAzM2gxM00zNyAzN2gxM00zNyA0MWg4IiBzdHJva2U9IiM4RTlBQjMiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPHBhdGggZD0iTTQ2IDZsMi4zIDYuMkw1NC41IDE0LjUgNDguMyAxNi44IDQ2IDIzbC0yLjMtNi4yTDM3LjUgMTQuNWw2LjItMi4zWiIgZmlsbD0iI0ZGRTQ1QyIvPgo8L3N2Zz4K" width="38" height="38" alt=""><b>Research Genius Hub</b></a>
       <p class="small" style="margin-top:10px">Research support, assignment guides and editing for university students worldwide.</p><p class="small" style="font-family:var(--serif);font-style:italic;font-size:1.05rem">We transform your academic performance worries into exceptional outcomes.</p></div>
     <div><h4>Services</h4><ul><li><a href="services.html">What we do</a></li><li><a href="coaching.html">Online coaching</a></li><li><a href="pricing.html">Pricing</a></li><li><a href="samples.html">Samples</a></li></ul></div>
-    <div><h4>Learn</h4><ul><li><a href="guides.html">Assignment guides</a></li><li><a href="faq.html">FAQ</a></li><li><a href="terms.html">Terms and academic integrity</a></li></ul></div>
+    <div><h4>Learn</h4><ul><li><a href="guides.html">Assignment guides</a></li><li><a href="faq.html">FAQ</a></li><li><a href="about.html">About us</a></li><li><a href="review.html">Share your experience</a></li><li><a href="terms.html">Terms and academic integrity</a></li></ul></div>
     <div><h4>Contact</h4><ul><li><a data-email></a></li><li><a data-wa></a></li><li><a href="contact.html">Contact page</a></li><li><a href="payments.html">Payment support</a></li><li><a data-account-link href="account.html">Your account</a></li></ul></div>
   </div>
   <div class="legal">&copy; <span data-year></span> Research Genius Hub.<a href="admin.html" rel="nofollow">Admin</a></div>
@@ -669,7 +684,11 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     if (float) { float.href = url; float.classList.add("on"); }
     waLinks.forEach(a => { a.href = url; a.textContent = C.whatsappDisplay || "Chat on WhatsApp"; });
   } else {
-    waLinks.forEach(a => { a.removeAttribute("href"); a.textContent = "UK WhatsApp number coming soon"; });
+    // No WhatsApp number yet: remove the WhatsApp lines instead of showing a placeholder
+    waLinks.forEach(a => {
+      const blk = a.closest("[data-wa-block]") || a.closest("li");
+      if (blk) blk.remove(); else a.remove();
+    });
   }
 
   // Without an accounts service, ordering works by email, so hide sign-in links.
@@ -751,12 +770,16 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     });
   }
 
-  // Real student reviews (section stays hidden while the list is empty)
-  const rv = document.querySelector("[data-reviews]");
-  if (rv && C.testimonials && C.testimonials.length) {
-    rv.innerHTML = C.testimonials.map(t => `<figure><blockquote>${esc(t.text)}</blockquote><figcaption>${esc(t.name)}${t.country ? ", " + esc(t.country) : ""}${t.service ? " · " + esc(t.service) : ""}</figcaption></figure>`).join("");
-    document.getElementById("reviews").hidden = false;
-  }
+  // Real student reviews: the section is only built when real reviews exist
+  const slot = document.querySelector("[data-reviews-slot]");
+  const T = (window.RGH_TESTIMONIALS && window.RGH_TESTIMONIALS.length ? window.RGH_TESTIMONIALS : C.testimonials) || [];
+  if (slot && T.length) {
+    slot.outerHTML = `<section class="s tint" id="reviews"><div class="wrap">
+      <div class="sec-head"><h2>What students say</h2></div>
+      <div class="reviews">${T.map(t => `<figure><blockquote>${esc(t.text)}</blockquote><figcaption>${esc(t.name)}${t.country ? ", " + esc(t.country) : ""}${t.service ? " · " + esc(t.service) : ""}</figcaption></figure>`).join("")}</div>
+      <p style="margin-top:22px"><a class="btn alt" href="review.html">Share your experience</a></p>
+    </div></section>`;
+  } else if (slot) slot.remove();
 
   // Contact form: email app, Gmail in the browser, or copy
   const cf = document.querySelector("[data-contact]");
