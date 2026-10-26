@@ -28,8 +28,22 @@ details{margin-top:10px}summary{font-weight:600;cursor:pointer}
 ol{padding-left:20px}
 </style>
 </head>
-<body><main>
-<h1>Admin: samples and reviews</h1>
+<body><div id="gate" style="max-width:420px;margin:12vh auto 0;padding:0 4px"><h1>Owner login</h1><p class="hint">Enter your password to add or remove samples and reviews.</p>
+<label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off">
+<button id="pwgo" type="button">Unlock</button><p id="pwmsg" class="err" role="alert"></p><p class="hint"><a href="index.html">Back to the website</a></p></div>
+<script>
+(function(){var H="755c76e5171d8fc2073c53df28ce73c26f4d4b6fd6bd47ee28618be544eda007",S="rgh-admin-v1",K="rgh_admin_ok",st=document.createElement("style");st.textContent="main{display:none}";document.head.appendChild(st);
+function show(){document.getElementById("gate").hidden=true;st.remove()}
+try{if(sessionStorage.getItem(K)===H){show();return}}catch(e){}
+async function chk(){var p=document.getElementById("pw").value,o=document.getElementById("pwmsg");o.textContent="";
+try{var k=await crypto.subtle.importKey("raw",new TextEncoder().encode(p),"PBKDF2",false,["deriveBits"]);
+var b=await crypto.subtle.deriveBits({name:"PBKDF2",salt:new TextEncoder().encode(S),iterations:150000,hash:"SHA-256"},k,256);
+var x=Array.from(new Uint8Array(b)).map(function(c){return c.toString(16).padStart(2,"0")}).join("");
+if(x===H){try{sessionStorage.setItem(K,H)}catch(e){}show()}else o.textContent="Wrong password."}catch(e){o.textContent="Your browser could not check the password. Open this page over https."}}
+document.getElementById("pwgo").onclick=chk;document.getElementById("pw").onkeydown=function(e){if(e.key==="Enter")chk()};})();
+</script>
+<main>
+<h1>Add samples and reviews</h1>
 <p class="hint">For you only. Add or remove samples from your phone. Choose a Word or text file, tap one button, and the Samples page updates.</p>
 
 <section class="box" id="connect">
