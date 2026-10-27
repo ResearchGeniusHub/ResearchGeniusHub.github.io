@@ -443,7 +443,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     });
   }
   let svc = "all";
-  const fnErr = async e => { try { const j = await e.context.json(); return j.error || e.message; } catch (x) { return e.message; } };
+  const fnErr = async e => { try { const j = await e.context.json(); return j.error || e.message; } catch (x) { return /Failed to send|Failed to fetch/i.test(e.message || "") ? "Supabase function not reachable. Deploy it in Supabase > Edge Functions (see UPDATE-STEPS.md), then try again." : e.message; } };
   let orders = [], pays = [], evs = [];
   const label = { awaiting_quote: "Quote requested", awaiting_payment: "Awaiting payment", payment_reported: "Payment reported", in_progress: "In progress", delivered: "Delivered", revision_requested: "Revision requested" };
 
@@ -610,7 +610,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
   /* ---------- samples (admin) and sample access codes (admin + staff) ---------- */
   const LEVELS = ["Undergraduate", "Masters", "PhD"];
   const loadOnce = {}; const lib = src => loadOnce[src] || (loadOnce[src] = load(src));
-  const pdfjs = async () => { await lib("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"); window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"; return window.pdfjsLib; };
+  const pdfjs = async () => { try { await lib("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"); window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"; } catch (e) { await lib("https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"); window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js"; } return window.pdfjsLib; };
   const lvDerive = s => { if (s.all_levels || /all levels/i.test(s.level || "")) return { all_levels: true, levels: [] }; const x = ((s.levels || []).join(" ") + " " + (s.level || "")).toLowerCase(), l = []; if (/undergrad|bachelor|bsc|year/.test(x)) l.push("Undergraduate"); if (/master|postgrad|msc|mba/.test(x)) l.push("Masters"); if (/phd|doctor/.test(x)) l.push("PhD"); return { all_levels: false, levels: l }; };
   const lvBoxes = (s0, p) => { const s = (s0 && (s0.id || s0.level || (s0.levels || []).length || s0.all_levels)) ? Object.assign({}, s0, lvDerive(s0)) : (s0 || {}); return lvBoxesRaw(s, p); };
   const lvBoxesRaw = (s, p) => LEVELS.map(l => `<label style="display:inline-block;margin-right:12px;font-weight:400"><input type="checkbox" name="${p}lv" value="${l}"${(s.levels || []).includes(l) ? " checked" : ""}> ${l}</label>`).join("") + `<label style="display:inline-block;font-weight:700"><input type="checkbox" name="${p}all"${s.all_levels ? " checked" : ""}> Fits all levels</label>`;
@@ -686,7 +686,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
         const ins = await sb.from("samples").insert(row).select().single(); if (ins.error) { if (row.file_path) await sb.storage.from("samples").remove([row.file_path]); throw ins.error; }
         if (pending.kind === "text") { const r2 = await sb.from("sample_full").insert({ sample_id: ins.data.id, body: pending.text }); if (r2.error) { await sb.from("samples").delete().eq("id", ins.data.id); throw r2.error; } }
         loadSamples();
-      } catch (x) { err.textContent = x.message || String(x); btn.disabled = false; btn.textContent = "Upload sample"; }
+      } catch (x) { const m = x.message || String(x); err.textContent = /schema cache|column/i.test(m) ? "The database needs its sample update. In Supabase > SQL Editor, run supabase-update.sql, then try again. Detail: " + m : m; btn.disabled = false; btn.textContent = "Upload sample"; }
     });
     $("#bulk").addEventListener("submit", async e => { e.preventDefault(); const v = Number(e.target.querySelector("input").value); if (!(v >= 2)) return; if (!confirm("Set EVERY sample to £" + v + " per page?")) return; const r = await sb.from("samples").update({ price_per_page: v }).gte("created_at", "1970-01-01"); e.target.querySelector("[data-m]").textContent = r.error ? r.error.message : "Done."; if (!r.error) loadSamples(); });
     const { data, error } = await sb.from("samples").select("*").order("created_at", { ascending: false }), L = $("#slist");
