@@ -27,6 +27,7 @@ button:disabled{opacity:.5}
 details{margin-top:10px}summary{font-weight:600;cursor:pointer}
 ol{padding-left:20px}
 </style>
+<script src="site-config.js"></script>
 </head>
 <body><div id="gate" style="max-width:420px;margin:12vh auto 0;padding:0 4px"><h1>Owner login</h1><p class="hint">Enter your password to add or remove samples and reviews.</p>
 <label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off">
@@ -45,6 +46,22 @@ document.getElementById("pwgo").onclick=chk;document.getElementById("pw").onkeyd
 <main>
 <h1>Add samples and reviews</h1>
 <p class="hint">For you only. Add or remove samples from your phone. Choose a Word or text file, tap one button, and the Samples page updates.</p>
+
+<section class="box" id="sbbox" hidden>
+  <h2>Owner sign-in</h2>
+  <div id="sbin">
+    <label for="sbe">Email</label><input id="sbe" type="email" autocapitalize="none" autocorrect="off">
+    <label for="sbp">Account password</label><input id="sbp" type="password" autocomplete="current-password">
+    <button id="sbgo" type="button">Sign in</button>
+  </div>
+  <p id="sbmsg" role="status"></p>
+  <div id="sbwork" hidden>
+    <h2 style="margin-top:6px">Sample requests</h2>
+    <p class="hint">When a student has paid, tap <b>Allow access</b>. They then open their pages with their email and code. You do not have to upload or email anything.</p>
+    <div id="reqs"><p class="hint">Loading...</p></div>
+    <button class="alt" id="sbout" type="button">Sign out</button>
+  </div>
+</section>
 
 <section class="box" id="connect">
   <h2>Optional: one-tap publishing</h2><p class="hint">Without this, the page makes a small file for you to upload to GitHub (like you already do). Connect a token only if you want samples to publish by themselves.</p>
@@ -86,7 +103,7 @@ document.getElementById("pwgo").onclick=chk;document.getElementById("pw").onkeyd
   <input id="fl" type="file" accept=".docx,.txt">
   <p class="hint" id="fmsg">Or paste the text below. PDF files are not supported: open the PDF, copy the text and paste it.</p>
   <label for="tx">Full sample text</label>
-  <textarea id="tx" placeholder="The whole document text. Only the free introduction is published on the website. The rest is never uploaded."></textarea>
+  <textarea id="tx" placeholder="The whole document text. Visitors see only the free introduction. The rest stays private until you allow access."></textarea>
   <p class="hint" id="sum"></p>
   <button id="pub">Make samples file</button>
   <p id="pmsg" role="status"></p>
@@ -181,6 +198,7 @@ async function explain(r) {
 }
 
 async function refreshList() {
+  if (SBLIVE) return SBT ? sbRefreshSamples() : undefined;
   const box = $("list");
   try {
     const { list } = await readList();
@@ -313,6 +331,7 @@ $("pub").onclick = async () => {
   if (c.pages < 2) return show($("pmsg"), "The text is too short. It needs more than one page so students have pages to unlock.", "err");
   $("pub").disabled = true; show($("pmsg"), "Publishing...", "hint");
   try {
+    if (SBLIVE) { await sbPublish(c, title); show($("pmsg"), "Published. It is on the Samples page now.", "ok"); $("t").value = ""; $("sb").value = ""; $("tx").value = ""; $("fl").value = ""; preview(); await sbRefreshSamples(); $("pub").disabled = false; return; }
     const cur = await readList();
     cur.list.push({ title, subject: $("sb").value.trim(), level: $("lv").value, pages: c.pages, style: $("st").value.trim() || "Harvard", introFile: "", introText: c.w.slice(0, c.iw).join(" ") });
     await writeList(cur.list, cur.sha, "Add sample: " + title);
@@ -322,6 +341,77 @@ $("pub").onclick = async () => {
   } catch (e) { show($("pmsg"), e.message, "err"); }
   $("pub").disabled = false;
 };
+
+
+/* ---- Supabase mode (no GitHub needed) ---- */
+const SBC = (window.RGH && window.RGH.supabase) || {}, SBLIVE = !!(SBC.url && SBC.anonKey);
+let SBT = ""; try { SBT = sessionStorage.getItem("rgh_sb_tok") || ""; } catch (e) {}
+const sbq = async (path, opt = {}) => {
+  const r = await fetch(SBC.url + path, Object.assign({}, opt, { headers: Object.assign({ apikey: SBC.anonKey, Authorization: "Bearer " + (SBT || SBC.anonKey), "Content-Type": "application/json" }, opt.headers || {}) }));
+  if (r.status === 401 || (r.status === 403 && SBT)) { SBT = ""; try { sessionStorage.removeItem("rgh_sb_tok"); } catch (e) {} $("sbwork").hidden = true; $("sbin").hidden = false; throw new Error("Please sign in again."); }
+  if (!r.ok) { let m = "Something went wrong."; try { const j = await r.json(); m = j.message || j.msg || m; } catch (e) {} throw new Error(m); }
+  return r.status === 204 ? null : r.json().catch(() => null);
+};
+const priceOf = n => "£" + (n * ((window.RGH && window.RGH.samplePerPage) || 2)).toFixed(2);
+async function sbRefreshReqs() {
+  const box = $("reqs");
+  try {
+    const rows = await sbq("/rest/v1/sample_access?select=*,samples(title)&order=created_at.desc");
+    if (!rows.length) { box.innerHTML = '<p class="hint">No requests yet.</p>'; return; }
+    box.innerHTML = "";
+    rows.forEach(q => {
+      const d = document.createElement("div"); d.className = "item"; d.style.alignItems = "flex-start";
+      const a = document.createElement("div");
+      a.innerHTML = "<b></b><br><span class='hint'></span>";
+      a.querySelector("b").textContent = q.email + " · " + q.status.toUpperCase();
+      a.querySelector("span").textContent = (q.samples && q.samples.title || "") + " · " + q.pages + " page(s) · " + priceOf(q.pages) + " · " + (q.format || "") + " · code " + q.code + " · " + new Date(q.created_at).toLocaleDateString();
+      const wrap = document.createElement("div"); wrap.style.cssText = "display:flex;gap:6px;flex-wrap:wrap";
+      const mk = (label, cls, fn) => { const b = document.createElement("button"); b.className = cls; b.textContent = label; b.style.margin = "0"; b.onclick = async () => { b.disabled = true; try { await fn(); await sbRefreshReqs(); } catch (e) { alert(e.message); b.disabled = false; } }; return b; };
+      if (q.status !== "granted") wrap.append(mk("Allow access", "", () => sbq("/rest/v1/sample_access?id=eq." + q.id, { method: "PATCH", body: JSON.stringify({ status: "granted" }) })));
+      else wrap.append(mk("Revoke", "alt", () => sbq("/rest/v1/sample_access?id=eq." + q.id, { method: "PATCH", body: JSON.stringify({ status: "requested" }) })));
+      wrap.append(mk("Delete", "del", () => confirm("Delete this request?") ? sbq("/rest/v1/sample_access?id=eq." + q.id, { method: "DELETE" }) : Promise.reject(new Error("Cancelled"))));
+      d.append(a, wrap); box.append(d);
+    });
+  } catch (e) { box.innerHTML = ""; const p = document.createElement("p"); p.className = "err"; p.textContent = e.message; box.append(p); }
+}
+async function sbRefreshSamples() {
+  const box = $("list");
+  try {
+    const rows = await sbq("/rest/v1/samples?select=id,title,subject,level,pages,style&order=created_at.desc");
+    if (!rows.length) { box.innerHTML = '<p class="hint">No samples yet.</p>'; return; }
+    box.innerHTML = "";
+    rows.forEach(sm => {
+      const d = document.createElement("div"); d.className = "item";
+      const a = document.createElement("div"); a.innerHTML = "<b></b><br><span class='hint'></span>";
+      a.querySelector("b").textContent = sm.title;
+      a.querySelector("span").textContent = [sm.subject, sm.level, sm.pages + " pages", sm.style].filter(Boolean).join(" · ");
+      const b = document.createElement("button"); b.className = "del"; b.textContent = "Delete";
+      b.onclick = async () => { if (!confirm("Delete this sample?\n" + sm.title)) return; b.disabled = true; try { await sbq("/rest/v1/samples?id=eq." + sm.id, { method: "DELETE" }); await sbRefreshSamples(); } catch (e) { alert(e.message); b.disabled = false; } };
+      d.append(a, b); box.append(d);
+    });
+  } catch (e) { box.innerHTML = ""; const p = document.createElement("p"); p.className = "err"; p.textContent = e.message; box.append(p); }
+}
+function sbSignedIn() { $("sbin").hidden = true; $("sbwork").hidden = false; show($("sbmsg"), "Signed in.", "ok"); $("pub").textContent = "Publish sample"; sbRefreshReqs(); sbRefreshSamples(); }
+async function sbPublish(c, title) {
+  if (!SBT) throw new Error("Sign in first (Owner sign-in above).");
+  const intro = c.w.slice(0, c.iw).join(" ");
+  const row = await sbq("/rest/v1/samples", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({ title, subject: $("sb").value.trim(), level: $("lv").value, style: $("st").value.trim() || "Harvard", pages: c.pages, words_per_page: c.wp, intro }) });
+  await sbq("/rest/v1/sample_full", { method: "POST", body: JSON.stringify({ sample_id: row[0].id, body: $("tx").value.trim() }) }).catch(async e => { await sbq("/rest/v1/samples?id=eq." + row[0].id, { method: "DELETE" }); throw e; });
+}
+if (SBLIVE) {
+  $("sbbox").hidden = false; $("connect").hidden = true; $("sbe").value = (window.RGH && window.RGH.email) || "";
+  $("sbgo").onclick = async () => {
+    show($("sbmsg"), "Signing in...", "hint");
+    try {
+      const r = await fetch(SBC.url + "/auth/v1/token?grant_type=password", { method: "POST", headers: { apikey: SBC.anonKey, "Content-Type": "application/json" }, body: JSON.stringify({ email: $("sbe").value.trim(), password: $("sbp").value }) });
+      const j = await r.json(); if (!r.ok) throw new Error(j.error_description || j.msg || "Wrong email or password.");
+      SBT = j.access_token; try { sessionStorage.setItem("rgh_sb_tok", SBT); } catch (e) {}
+      $("sbp").value = ""; sbSignedIn();
+    } catch (e) { show($("sbmsg"), e.message, "err"); }
+  };
+  $("sbout").onclick = () => { SBT = ""; try { sessionStorage.removeItem("rgh_sb_tok"); } catch (e) {} $("sbwork").hidden = true; $("sbin").hidden = false; show($("sbmsg"), "Signed out.", "hint"); };
+  if (SBT) sbSignedIn();
+}
 
 refreshList(); refreshReviews();
 if (TOKEN && REPO) { show($("cstate"), "Checking saved token...", "hint"); api("/repos/" + REPO).then(async r => { if (r.ok) { show($("cstate"), "Connected: " + REPO, "ok"); connected(); } else show($("cstate"), "Saved token no longer works. Make a new one below.", "err"); }).catch(() => show($("cstate"), "Could not reach GitHub. Check your connection.", "err")); }

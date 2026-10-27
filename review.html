@@ -734,7 +734,91 @@ document.addEventListener("DOMContentLoaded", function () {
     sc.src = "https://www.paypal.com/sdk/js?client-id=" + encodeURIComponent(C.paypalClientId) + "&currency=GBP";
     sc.onload = cb; document.head.appendChild(sc);
   }
-  if (grid) {
+
+  // ---- Samples with real access control (Supabase): free intro, email request, owner ticks "allow" after payment ----
+  const SB = C.supabase || {}, SBLIVE = !!(SB.url && SB.anonKey);
+  const sbFetch = (path, opt = {}) => fetch(SB.url + path, Object.assign({}, opt, { headers: Object.assign({ apikey: SB.anonKey, Authorization: "Bearer " + SB.anonKey, "Content-Type": "application/json" }, opt.headers || {}) }));
+  const sbErr = async r => { try { const j = await r.json(); return j.message || j.error_description || "Something went wrong. Try again."; } catch (e) { return "Something went wrong. Try again."; } };
+  const getMine = () => { try { return JSON.parse(localStorage.getItem("rgh_requests") || "{}"); } catch (e) { return {}; } };
+  const setMine = (id, v) => { try { const m = getMine(); m[id] = v; localStorage.setItem("rgh_requests", JSON.stringify(m)); } catch (e) {} };
+  function download(fmt, title, text) {
+    const paras = String(text).split(/\n+/).filter(Boolean);
+    const safe = title.replace(/[^\w\- ]+/g, "").trim() || "sample";
+    if (fmt === "txt") { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([title + "\n\n" + text], { type: "text/plain" })); a.download = safe + ".txt"; a.click(); return; }
+    const html = "<html><head><meta charset='utf-8'><title>" + esc(title) + "</title><style>body{font-family:'Times New Roman',serif;font-size:12pt;line-height:1.5;max-width:700px;margin:30px auto;padding:0 16px}</style></head><body><h1>" + esc(title) + "</h1>" + paras.map(p => "<p>" + esc(p) + "</p>").join("") + "</body></html>";
+    if (fmt === "doc") { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["﻿" + html], { type: "application/msword" })); a.download = safe + ".doc"; a.click(); return; }
+    const w = window.open("", "_blank"); if (!w) { alert("Allow pop-ups, then try again."); return; }
+    w.document.write(html + "<p style='font-family:sans-serif;color:#555'>Choose Print, then Save as PDF.</p>"); w.document.close(); w.focus(); setTimeout(() => w.print(), 400);
+  }
+  const FMT = '<option value="doc">Word (.doc)</option><option value="pdf">PDF</option><option value="txt">Plain text (.txt)</option>';
+  async function renderLive() {
+    grid.innerHTML = '<p class="muted">Loading samples...</p>';
+    let list = [];
+    try {
+      const r = await sbFetch("/rest/v1/samples?select=id,title,subject,level,style,pages,intro&order=created_at.desc");
+      if (!r.ok) throw new Error(await sbErr(r)); list = await r.json();
+    } catch (e) { grid.innerHTML = '<p class="muted">Samples could not load. Refresh, or email <a href="mailto:' + C.email + '">' + C.email + '</a>.</p>'; return; }
+    if (!list.length) { grid.innerHTML = '<p class="muted">Samples are being added. Email <a href="mailto:' + C.email + '">' + C.email + '</a> to ask for an introduction in your subject.</p>'; return; }
+    const pay = (C.manualPay || []).map(m => "<li><b>" + esc(m.label) + ":</b> " + m.lines.map(l => esc(l[0]) + " " + esc(l[1])).join(", ") + "</li>").join("");
+    grid.innerHTML = list.map(s => {
+      const paid = Math.max(1, s.pages - 1), mine = getMine()[s.id] || {};
+      return `<article class="sample" data-id="${s.id}">
+        <h3>${esc(s.title)}</h3>
+        <div class="meta">${esc(s.subject || "")} · ${esc(s.level || "")}<br>${s.pages} pages · ${esc(s.style || "")} referencing</div>
+        <details class="intro"><summary>Read the introduction (free)</summary><p>${esc(s.intro)}</p></details>
+        <div class="locked">
+          <strong>Get more pages</strong>
+          <span class="small muted">${money(C.samplePerPage)} per page. You choose how many (1 to ${paid}).</span>
+          <label class="small" for="e-${s.id}">Your email</label><input type="email" id="e-${s.id}" data-e autocomplete="email" placeholder="you@example.com" value="${esc(mine.email || "")}">
+          <label class="small" for="n-${s.id}">Pages</label><input type="number" id="n-${s.id}" data-n min="1" max="${paid}" value="${Math.min(2, paid)}" style="max-width:110px">
+          <label class="small" for="f-${s.id}">Download as</label><select id="f-${s.id}" data-f>${FMT}</select>
+          <strong data-price>${money(Math.min(2, paid) * C.samplePerPage)}</strong>
+          <button class="btn sm" data-req>Request these pages</button>
+          <div data-out role="status"></div>
+        </div>
+        <details class="intro" ${mine.code ? "open" : ""}><summary>Already paid? Open your pages</summary>
+          <label class="small" for="c-${s.id}">Access code</label><input id="c-${s.id}" data-c autocapitalize="characters" value="${esc(mine.code || "")}" style="max-width:160px">
+          <button class="btn sm alt" data-open>Open my pages</button>
+          <div data-pages></div>
+        </details>
+      </article>`;
+    }).join("");
+    grid.querySelectorAll("article").forEach(card => {
+      const id = card.dataset.id, s = list.find(x => x.id === id), paid = Math.max(1, s.pages - 1);
+      const n = () => Math.min(paid, Math.max(1, Math.floor(Number(card.querySelector("[data-n]").value) || 1)));
+      card.querySelector("[data-n]").addEventListener("input", () => { card.querySelector("[data-price]").textContent = money(n() * C.samplePerPage); });
+      card.querySelector("[data-req]").onclick = async () => {
+        const out = card.querySelector("[data-out]"), email = card.querySelector("[data-e]").value.trim(), fmt = card.querySelector("[data-f]").value;
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { out.innerHTML = '<p class="err">Enter a valid email address.</p>'; return; }
+        out.textContent = "Sending...";
+        try {
+          const r = await sbFetch("/rest/v1/rpc/request_sample", { method: "POST", body: JSON.stringify({ p_sample: id, p_email: email, p_pages: n(), p_format: fmt }) });
+          if (!r.ok) throw new Error(await sbErr(r));
+          const code = await r.json(); setMine(id, { email, code, fmt });
+          card.querySelector("[data-c]").value = code;
+          out.innerHTML = `<p><b>Request received.</b> Your access code is <b>${esc(code)}</b>. Pay <b>${money(n() * C.samplePerPage)}</b> using one of these, and write the code as the reference:</p><ul>${pay}</ul><p>When we confirm your payment, return to this page, tap <b>Already paid?</b> and open your pages with your email and code. We also email <b>${esc(email)}</b>.</p>`;
+          card.querySelector("details:last-of-type").open = true;
+        } catch (e) { out.innerHTML = '<p class="err">' + esc(e.message) + "</p>"; }
+      };
+      card.querySelector("[data-open]").onclick = async () => {
+        const box = card.querySelector("[data-pages]"), email = card.querySelector("[data-e]").value.trim(), code = card.querySelector("[data-c]").value.trim();
+        if (!email || !code) { box.innerHTML = '<p class="err">Enter your email above and your access code.</p>'; return; }
+        box.textContent = "Checking...";
+        try {
+          const r = await sbFetch("/rest/v1/rpc/get_sample_pages", { method: "POST", body: JSON.stringify({ p_sample: id, p_email: email, p_code: code }) });
+          if (!r.ok) throw new Error(await sbErr(r)); const rows = await r.json();
+          if (!rows.length) { box.innerHTML = "<p>Access is not open yet. We open it as soon as your payment is confirmed. Try again in a little while.</p>"; return; }
+          const row = rows[0], fmt = (getMine()[id] || {}).fmt || "doc";
+          box.innerHTML = `<p class="ok"><b>Access open</b> (${row.pages} paid page${row.pages > 1 ? "s" : ""}).</p><label class="small">Download as</label><select data-df>${FMT}</select> <button class="btn sm" data-dl>Download</button><div class="unlocked" style="margin-top:12px"></div>`;
+          box.querySelector("[data-df]").value = fmt;
+          box.querySelector(".unlocked").innerHTML = row.body.split(/\n+/).filter(Boolean).map(p => "<p>" + esc(p) + "</p>").join("");
+          box.querySelector("[data-dl]").onclick = () => download(box.querySelector("[data-df]").value, row.title, row.body);
+        } catch (e) { box.innerHTML = '<p class="err">' + esc(e.message) + "</p>"; }
+      };
+    });
+  }
+  if (grid && SBLIVE) { renderLive(); }
+  else if (grid) {
     if (Array.isArray(window.RGH_SAMPLES)) C.samples = window.RGH_SAMPLES;
     const ready = C.samples.map((s, i) => ({ s, i })).filter(x => x.s.introFile || x.s.introText);
     if (!ready.length) { grid.innerHTML = '<p class="muted">Samples are being added. Email <a href="mailto:' + C.email + '">' + C.email + '</a> to ask for an introduction in your subject.</p>'; }
