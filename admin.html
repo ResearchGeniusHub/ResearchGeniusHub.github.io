@@ -46,7 +46,7 @@ ol{padding-left:20px}
     <p class="hint">When a student has paid, tap <b>Allow access</b>. They then open their pages with their email and code. You do not have to upload or email anything.</p>
     <div id="reqs"><p class="hint">Loading...</p></div>
     <h2 style="margin-top:22px">Assignment and coaching orders</h2>
-    <p class="hint">When a student reports payment, check it in PayPal or M-Pesa, then tap <b>Confirm payment</b>. When the work is ready, choose the finished file and tap <b>Upload and deliver</b>. The student sees it in their account.</p>
+    <p class="hint">For a quote request, reply to the student by email, type the agreed price and tap <b>Send quote</b>: the student then sees the price in their account and can pay. When a student reports payment, check it in PayPal or M-Pesa, then tap <b>Confirm payment</b>. When the work is ready, choose the finished file and tap <b>Upload and deliver</b>. The student sees it in their account.</p>
     <div id="ords"><p class="hint">Loading...</p></div>
     <button class="alt" id="sbout" type="button">Sign out</button>
   </div>
@@ -403,6 +403,13 @@ async function sbRefreshOrders() {
       const row = document.createElement("div"); row.style.cssText = "display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center";
       const mk = (label, cls, fn) => { const b = document.createElement("button"); b.className = cls; b.textContent = label; b.style.margin = "0"; b.onclick = async () => { b.disabled = true; try { await fn(); await sbRefreshOrders(); } catch (e) { alert(e.message); b.disabled = false; } }; return b; };
       const setSt = st => sbq("/rest/v1/orders?id=eq." + o.id, { method: "PATCH", body: JSON.stringify({ status: st }) });
+      if (o.status === "awaiting_quote") {
+        const qi = document.createElement("input"); qi.type = "number"; qi.min = "1"; qi.step = "0.01"; qi.placeholder = "Quote in GBP"; qi.style.cssText = "max-width:140px;padding:8px";
+        row.append(qi, mk("Send quote", "", async () => {
+          const v = Number(qi.value); if (!(v > 0)) throw new Error("Enter the quote amount in GBP.");
+          await sbq("/rest/v1/orders?id=eq." + o.id, { method: "PATCH", body: JSON.stringify({ total: v, status: "awaiting_payment", data: Object.assign({}, o.data, { total: v }) }) });
+        }));
+      } else
       if (o.status !== "in_progress" && o.status !== "delivered") row.append(mk("Confirm payment", "", () => setSt("in_progress")));
       const fi = document.createElement("input"); fi.type = "file"; fi.style.cssText = "max-width:200px;padding:6px";
       row.append(fi);
