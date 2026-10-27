@@ -22,5 +22,11 @@ window.RGH_TESTIMONIALS = [
     "country": "Australia",
     "service": "Mental Health Report",
     "text": "I had a mental health report with too much data to deal with. I had like 100 copies of qualitative and quantitative data I wanted reports produced in 4 days. They delivered and also addressed the feedback that was provided by the head of the department\nThe responses could be faster, but delivery is great"
+  },
+  {
+    "name": "@Mike",
+    "country": "Wales",
+    "service": "Dissertation",
+    "text": "The logistics masters was easier with this support; I remember starting with guidance on the research question, outline and everyting. Were it not for the feedback process by my supervisor, we would have completed everyting in a week. They are very keen to feedback and you know how Masters are, you can get as many, so you need people who are willing to address them"
   }
 ];
