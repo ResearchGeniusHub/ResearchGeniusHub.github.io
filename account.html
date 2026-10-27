@@ -462,7 +462,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       <p class="small" style="margin-top:10px">Research support, assignment guides and editing for university students worldwide.</p><p class="small" style="font-family:var(--serif);font-style:italic;font-size:1.05rem">We transform your academic performance worries into exceptional outcomes.</p></div>
     <div><h4>Services</h4><ul><li><a href="services.html">What we do</a></li><li><a href="coaching.html">Online coaching</a></li><li><a href="pricing.html">Pricing</a></li><li><a href="samples.html">Samples</a></li></ul></div>
     <div><h4>Learn</h4><ul><li><a href="guides.html">Assignment guides</a></li><li><a href="faq.html">FAQ</a></li><li><a href="about.html">About us</a></li><li><a href="review.html">Share your experience</a></li><li><a href="terms.html">Terms and academic integrity</a></li></ul></div>
-    <div><h4>Contact</h4><ul><li><a data-email></a></li><li><a data-wa></a></li><li><a href="contact.html">Contact page</a></li><li><a href="payments.html">Payment support</a></li><li><a data-account-link href="account.html">Your account</a></li></ul></div>
+    <div><h4>Contact</h4><ul><li><a data-email></a></li><li><a data-wa></a></li><li data-chat-hours class="small"></li><li><a href="contact.html">Contact page</a></li><li><a href="payments.html">Payment support</a></li><li><a data-account-link href="account.html">Your account</a></li></ul></div>
   </div>
   <div class="legal">&copy; <span data-year></span> Research Genius Hub.<a href="account.html?staff=1" rel="nofollow">Staff sign-in</a></div>
 </div></footer>
@@ -737,6 +737,22 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       await sb.from("orders").update({ status: "payment_reported" }).eq("id", id);
     }
   };
+  const notify = (subject, message) => { try { fetch("https://formsubmit.co/ajax/" + C.email, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ _subject: subject, _captcha: "false", _template: "box", message }) }).catch(() => {}); } catch (e) {} };
+  const STAFF_URL = "https://researchgeniushub.github.io/account.html?staff=1";
+  let lastOrders = [];
+  if (LIVE) {
+    const rp = live.reportPayment.bind(live), co = live.createOrder.bind(live);
+    live.reportPayment = async (user, id, method, ref) => {
+      await rp(user, id, method, ref);
+      const o = lastOrders.find(x => x.id === id) || {};
+      notify("Payment reported: " + user.email, user.name + " (" + user.email + ") has requested and paid for " + (o.coaching ? "coaching" : (o.service || "an order")) + ", please confirm payment.\n\nOrder: " + id + "\nService: " + (o.service || "") + "\nAmount: " + (o.total != null ? "£" + Number(o.total).toFixed(2) : "") + "\nMethod: " + method + "\nPayment reference: " + (ref || "none") + "\n\nSign in as staff to confirm: " + STAFF_URL);
+    };
+    live.createOrder = async (user, order, files) => {
+      const r = await co(user, order, files);
+      notify("New order: " + user.email, user.name + " (" + user.email + ") has placed a new order, awaiting payment.\n\nService: " + (order.service || "") + "\nAmount: " + (order.total != null ? "£" + Number(order.total).toFixed(2) : "") + "\nOrder: " + r.id + "\n\nSign in as staff to view: " + STAFF_URL);
+      return r;
+    };
+  }
   const api = LIVE ? live : emailApi;
 
   /* ---------- UI ---------- */
@@ -756,7 +772,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     $("#orders").innerHTML = `<ol class="steps">
       <li><h3>Fill in the form</h3><p>The price updates as you choose. Nothing is sent yet.</p></li>
       <li><h3>Send the order by email</h3><p>Tap Place order and your email opens with everything filled in. Attach your brief and files, then send.</p></li>
-      <li><h3>Get your invoice</h3><p>We reply within ${esc(C.chat.replyWithin || "1 hour")} with the payment options and confirm your deadline.</p></li>
+      <li><h3>Get your invoice</h3><p>We reply by email with the payment options and confirm your deadline.</p></li>
       <li><h3>Receive your work</h3><p>We email it by your deadline, and you can ask for changes within 7 days.</p></li></ol>`;
     prefill(); updatePrice();
   }
@@ -969,7 +985,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     const paying = o.status !== "awaiting_quote" && o.total > 0 && methods().length;
     box.innerHTML = `<div class="panel">
       <h3 style="margin-top:0">Order ${esc(o.id)} is ready</h3>
-      <p><strong>It has not been sent yet.</strong> Tap <b>Send order</b> below, or send it by email and attach your files there. We reply within ${esc(C.chat.replyWithin || "1 hour")}.</p>
+      <p><strong>It has not been sent yet.</strong> Tap <b>Send order</b> below, or send it by email and attach your files there. We reply by email.</p>
       <p style="font-family:var(--serif);font-size:1.4rem;margin:8px 0">${o.status === "awaiting_quote" ? "Quote pending" : esc(Q.money(o.total))}</p>
       ${C.formSubmit !== false ? `<p><button type="button" class="btn block" id="send-form">Send order${fileIn.files.length ? " with " + fileIn.files.length + " file" + (fileIn.files.length > 1 ? "s" : "") : ""}</button></p><p class="small muted">Or send it by email instead:</p>` : ""}
       <p><a class="btn block${C.formSubmit !== false ? " alt" : ""}" target="_blank" rel="noopener" href="${esc(gm)}">Send with Gmail</a></p>
@@ -999,7 +1015,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
   async function renderOrders(openId) {
     if (!LIVE) return;
     const box = $("#orders"); let list = [];
-    try { list = await api.orders(me); } catch (x) { box.innerHTML = `<p class="err">Could not load your orders: ${esc(x.message)}</p>`; return; }
+    try { list = await api.orders(me); lastOrders = list; } catch (x) { box.innerHTML = `<p class="err">Could not load your orders: ${esc(x.message)}</p>`; return; }
     if (!list.length) { box.innerHTML = `<p class="muted">No orders yet. Fill in the form to place your first one.</p>`; return; }
     box.innerHTML = list.map(o => {
       const st = statusText[o.status] || [o.status, ""];
@@ -1225,6 +1241,12 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     });
   }
 
+  // Live chat hours (UK time)
+  try {
+    const h = +new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", hour: "numeric", hour12: false }).format(new Date()) % 24;
+    const open = h >= 10;
+    document.querySelectorAll("[data-chat-hours]").forEach(e => { e.textContent = "Live chat: 10:00 to midnight UK time (" + (open ? "open now" : "opens at 10:00") + "). Email replies can take longer."; });
+  } catch (e) {}
   // Signed-in visitors see "My account" in the header.
   try { if (C.supabase && C.supabase.url) { const k = "sb-" + C.supabase.url.replace("https://", "").split(".")[0] + "-auth-token"; if (localStorage.getItem(k)) document.querySelectorAll("[data-signin]").forEach(a => { a.textContent = "My account"; }); } } catch (e) {}
   // Without an accounts service, ordering works by email, so hide sign-in links.
@@ -1259,6 +1281,8 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     sc.onload = cb; document.head.appendChild(sc);
   }
 
+  const notify = (subject, message) => { try { fetch("https://formsubmit.co/ajax/" + C.email, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ _subject: subject, _captcha: "false", _template: "box", message }) }).catch(() => {}); } catch (e) {} };
+  const STAFF_URL = "https://researchgeniushub.github.io/account.html?staff=1";
   const paras = t => String(t || "").split(/\n+/).map(x => x.trim()).filter(Boolean).map(x => "<p>" + esc(x) + "</p>").join("");
   // ---- Samples with real access control (Supabase): free intro, email request, owner ticks "allow" after payment ----
   const SB = C.supabase || {}, SBLIVE = !!(SB.url && SB.anonKey);
@@ -1324,6 +1348,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
           const r = await sbFetch("/rest/v1/rpc/request_sample", { method: "POST", body: JSON.stringify({ p_sample: id, p_email: email, p_pages: n(), p_format: fmt, p_reference: card.querySelector("[data-r]").value.trim() }) });
           if (!r.ok) throw new Error(await sbErr(r));
           const code = await r.json(); setMine(id, { email, code, fmt });
+          notify("Sample request: " + email, email + " has requested and paid for a sample, please confirm or allow access.\n\nSample: " + s.title + "\nPages: " + n() + " (" + money(n() * C.samplePerPage) + ")\nFormat: " + fmt + "\nPayment reference: " + card.querySelector("[data-r]").value.trim() + "\nAccess code: " + code + "\n\nSign in as staff to confirm: " + STAFF_URL);
           card.querySelector("[data-c]").value = code;
           out.innerHTML = `<p class="ok"><b>Received.</b> We will check your payment and open your sample. Your access code is <b>${esc(code)}</b>. Keep it. Come back to this page, tap <b>Already paid?</b>, and your pages will open once we confirm.</p>`;
           card.querySelector("[data-pages]").closest("details").open = true;

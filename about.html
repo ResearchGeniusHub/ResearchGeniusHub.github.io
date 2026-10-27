@@ -413,7 +413,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       <p class="small" style="margin-top:10px">Research support, assignment guides and editing for university students worldwide.</p><p class="small" style="font-family:var(--serif);font-style:italic;font-size:1.05rem">We transform your academic performance worries into exceptional outcomes.</p></div>
     <div><h4>Services</h4><ul><li><a href="services.html">What we do</a></li><li><a href="coaching.html">Online coaching</a></li><li><a href="pricing.html">Pricing</a></li><li><a href="samples.html">Samples</a></li></ul></div>
     <div><h4>Learn</h4><ul><li><a href="guides.html">Assignment guides</a></li><li><a href="faq.html">FAQ</a></li><li><a href="about.html">About us</a></li><li><a href="review.html">Share your experience</a></li><li><a href="terms.html">Terms and academic integrity</a></li></ul></div>
-    <div><h4>Contact</h4><ul><li><a data-email></a></li><li><a data-wa></a></li><li><a href="contact.html">Contact page</a></li><li><a href="payments.html">Payment support</a></li><li><a data-account-link href="account.html">Your account</a></li></ul></div>
+    <div><h4>Contact</h4><ul><li><a data-email></a></li><li><a data-wa></a></li><li data-chat-hours class="small"></li><li><a href="contact.html">Contact page</a></li><li><a href="payments.html">Payment support</a></li><li><a data-account-link href="account.html">Your account</a></li></ul></div>
   </div>
   <div class="legal">&copy; <span data-year></span> Research Genius Hub.<a href="account.html?staff=1" rel="nofollow">Staff sign-in</a></div>
 </div></footer>
@@ -703,6 +703,12 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     });
   }
 
+  // Live chat hours (UK time)
+  try {
+    const h = +new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", hour: "numeric", hour12: false }).format(new Date()) % 24;
+    const open = h >= 10;
+    document.querySelectorAll("[data-chat-hours]").forEach(e => { e.textContent = "Live chat: 10:00 to midnight UK time (" + (open ? "open now" : "opens at 10:00") + "). Email replies can take longer."; });
+  } catch (e) {}
   // Signed-in visitors see "My account" in the header.
   try { if (C.supabase && C.supabase.url) { const k = "sb-" + C.supabase.url.replace("https://", "").split(".")[0] + "-auth-token"; if (localStorage.getItem(k)) document.querySelectorAll("[data-signin]").forEach(a => { a.textContent = "My account"; }); } } catch (e) {}
   // Without an accounts service, ordering works by email, so hide sign-in links.
@@ -737,6 +743,8 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     sc.onload = cb; document.head.appendChild(sc);
   }
 
+  const notify = (subject, message) => { try { fetch("https://formsubmit.co/ajax/" + C.email, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ _subject: subject, _captcha: "false", _template: "box", message }) }).catch(() => {}); } catch (e) {} };
+  const STAFF_URL = "https://researchgeniushub.github.io/account.html?staff=1";
   const paras = t => String(t || "").split(/\n+/).map(x => x.trim()).filter(Boolean).map(x => "<p>" + esc(x) + "</p>").join("");
   // ---- Samples with real access control (Supabase): free intro, email request, owner ticks "allow" after payment ----
   const SB = C.supabase || {}, SBLIVE = !!(SB.url && SB.anonKey);
@@ -802,6 +810,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
           const r = await sbFetch("/rest/v1/rpc/request_sample", { method: "POST", body: JSON.stringify({ p_sample: id, p_email: email, p_pages: n(), p_format: fmt, p_reference: card.querySelector("[data-r]").value.trim() }) });
           if (!r.ok) throw new Error(await sbErr(r));
           const code = await r.json(); setMine(id, { email, code, fmt });
+          notify("Sample request: " + email, email + " has requested and paid for a sample, please confirm or allow access.\n\nSample: " + s.title + "\nPages: " + n() + " (" + money(n() * C.samplePerPage) + ")\nFormat: " + fmt + "\nPayment reference: " + card.querySelector("[data-r]").value.trim() + "\nAccess code: " + code + "\n\nSign in as staff to confirm: " + STAFF_URL);
           card.querySelector("[data-c]").value = code;
           out.innerHTML = `<p class="ok"><b>Received.</b> We will check your payment and open your sample. Your access code is <b>${esc(code)}</b>. Keep it. Come back to this page, tap <b>Already paid?</b>, and your pages will open once we confirm.</p>`;
           card.querySelector("[data-pages]").closest("details").open = true;
