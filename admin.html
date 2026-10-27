@@ -373,21 +373,32 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media (max-width:600px){.field-row{grid-template-columns:1fr}}
 
+
+/* v5: mobile floating buttons must never cover the footer; testimonials more visible */
+@media (max-width:700px){.site-footer{padding-bottom:150px}.site-footer .legal{line-height:1.9}.site-footer .legal a{display:inline-block;margin-left:0}.wa{padding:8px 13px;font-size:.82rem;bottom:max(12px,env(safe-area-inset-bottom,0px))}.chat-launch{padding:8px 13px;font-size:.88rem}}
+.reviews{gap:20px}
+.reviews figure{background:#fff;border:1px solid var(--line,#d9dee8);border-left:5px solid var(--hi);border-radius:10px;padding:20px 20px 16px;box-shadow:0 6px 18px rgba(15,27,51,.08)}
+.reviews blockquote{font-size:1.12rem}
+.reviews figcaption{font-weight:700;color:var(--ink)}
+#reviews .sec-head h2{font-size:2rem}
 </style>
 </head>
 <body>
 <main class="wrap" style="max-width:980px;margin:0 auto;padding:20px 16px">
 <div class="topbar"><strong id="who">Staff</strong><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm alt" id="reload">Refresh</button><button class="btn sm alt" id="out">Sign out</button></span></div>
-<div class="tabs" id="tabs-wrap" hidden role="tablist"><button type="button" aria-selected="true" data-view="orders">Orders</button><button type="button" aria-selected="false" data-view="staff">Staff</button></div>
+<div class="tabs" id="tabs-wrap" hidden role="tablist"><button type="button" aria-selected="true" data-view="orders">Orders</button><button type="button" aria-selected="false" data-view="access">Sample access</button><button type="button" aria-selected="false" data-view="samples" data-admin>Samples</button><button type="button" aria-selected="false" data-view="staff" data-admin>Staff</button></div>
 <section id="v-orders"><h1 style="font-size:2rem">Orders by service</h1>
 <div id="chips" style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px"></div>
 <div class="two"><div class="f"><label>Show</label><select id="flt"><option value="attn">Needs attention</option><option value="all">All orders</option><option value="awaiting_quote">Quote requests</option><option value="awaiting_payment">Awaiting payment</option><option value="payment_reported">Payment reported</option><option value="in_progress">In progress</option><option value="revision_requested">Revision requested</option><option value="delivered">Delivered</option></select></div>
 <div class="f"><label>Search</label><input id="q" placeholder="Order number, name, email or title"></div></div>
 <p class="err" id="top-err" role="alert"></p>
 <div id="list"><p class="muted">Loading...</p></div></section>
+<section id="v-access" hidden></section>
+<section id="v-samples" hidden></section>
 <section id="v-staff" hidden></section>
 </main>
 <script src="site-config.js"></script>
+<script src="site-auth.js"></script>
 <script>
 (async function () {
   const C = window.RGH, $ = (s, r) => (r || document).querySelector(s), money = n => "£" + Number(n || 0).toFixed(2);
@@ -434,7 +445,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     const [o, p, e] = await Promise.all([sb.from("orders").select("*").order("created_at", { ascending: false }), sb.from("payments").select("*"), sb.from("order_events").select("*").order("created_at")]);
     if (o.error) { $("#top-err").textContent = o.error.message; return; }
     orders = o.data; pays = p.data || []; evs = e.data || []; render();
-    if (isAdmin) $("#tabs-wrap").hidden = false;
+    $("#tabs-wrap").hidden = false; if (!isAdmin) document.querySelectorAll("[data-admin]").forEach(x => x.remove());
   }
   const needsAttn = o => {
     const mine = evs.filter(e => e.order_id === o.id), last = mine[mine.length - 1];
@@ -567,9 +578,142 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
   /* ---------- staff management (admin only) ---------- */
   document.querySelectorAll("[data-view]").forEach(b => b.addEventListener("click", () => {
     document.querySelectorAll("[data-view]").forEach(x => x.setAttribute("aria-selected", x === b));
-    $("#v-orders").hidden = b.dataset.view !== "orders"; $("#v-staff").hidden = b.dataset.view !== "staff";
-    if (b.dataset.view === "staff") loadStaff();
+    ["orders", "access", "samples", "staff"].forEach(v => { $("#v-" + v).hidden = b.dataset.view !== v; });
+    if (b.dataset.view === "staff") loadStaff(); if (b.dataset.view === "samples") loadSamples(); if (b.dataset.view === "access") loadAccess();
   }));
+  /* ---------- samples (admin) and sample access codes (admin + staff) ---------- */
+  const LEVELS = ["Undergraduate", "Masters", "PhD"];
+  const loadOnce = {}; const lib = src => loadOnce[src] || (loadOnce[src] = load(src));
+  const pdfjs = async () => { await lib("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"); window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"; return window.pdfjsLib; };
+  const lvBoxes = (s, p) => LEVELS.map(l => `<label style="display:inline-block;margin-right:12px;font-weight:400"><input type="checkbox" name="${p}lv" value="${l}"${(s.levels || []).includes(l) ? " checked" : ""}> ${l}</label>`).join("") + `<label style="display:inline-block;font-weight:700"><input type="checkbox" name="${p}all"${s.all_levels ? " checked" : ""}> Fits all levels</label>`;
+  const readLv = (f, p) => { const all = f.querySelector(`[name=${p}all]`).checked, lv = Array.from(f.querySelectorAll(`[name=${p}lv]:checked`)).map(x => x.value); return { all_levels: all, levels: all ? [] : lv, level: all ? "All levels" : lv.join(", ") }; };
+  const wc = t => t.replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
+  async function renderPdf(doc, host, scale) {   // draws every page so images, diagrams and tables can be checked
+    host.innerHTML = ""; for (let i = 1; i <= doc.numPages; i++) {
+      const pg = await doc.getPage(i), vp = pg.getViewport({ scale }), cv = document.createElement("canvas"); cv.width = vp.width; cv.height = vp.height; cv.style.cssText = "max-width:100%;border:1px solid #ccc;margin:6px 0;display:block";
+      const lab = document.createElement("div"); lab.className = "small muted"; lab.textContent = "Page " + i; host.append(lab, cv); await pg.render({ canvasContext: cv.getContext("2d"), viewport: vp }).promise;
+    }
+  }
+  function modal(title, inner) {
+    const m = document.createElement("div"); m.style.cssText = "position:fixed;inset:0;background:rgba(10,18,36,.75);z-index:300;display:flex;align-items:center;justify-content:center;padding:10px";
+    m.innerHTML = `<div style="background:#fff;border-radius:12px;width:min(900px,100%);height:min(92vh,100%);display:flex;flex-direction:column"><div style="display:flex;justify-content:space-between;gap:8px;padding:10px 14px;border-bottom:1px solid #ddd"><strong></strong><button class="btn sm">Close</button></div><div class="mbody" style="overflow:auto;padding:14px;flex:1"></div></div>`;
+    m.querySelector("strong").textContent = title; m.querySelector("button").onclick = () => m.remove(); m.querySelector(".mbody").append(inner); document.body.appendChild(m); return m;
+  }
+  async function previewSample(sm) {
+    const host = document.createElement("div"); host.innerHTML = '<p class="muted">Loading preview...</p>'; modal("Preview: " + sm.title + " (what a student gets after paying for all pages)", host);
+    try {
+      if (sm.file_path) {
+        const { data, error } = await sb.storage.from("samples").createSignedUrl(sm.file_path, 600); if (error) throw error;
+        const lib2 = await pdfjs(), doc = await lib2.getDocument(data.signedUrl).promise; host.innerHTML = `<p class="small">${doc.numPages} pages. Page 1${sm.free_pages > 1 ? " to " + sm.free_pages : ""} is free; the rest is sold at ${money(sm.price_per_page)} per page.</p><div></div>`; await renderPdf(doc, host.lastElementChild, 1.1);
+      } else {
+        const { data } = await sb.from("sample_full").select("body").eq("sample_id", sm.id).maybeSingle(); host.innerHTML = ""; const d = document.createElement("div"); d.style.whiteSpace = "pre-wrap"; d.textContent = (data && data.body) || sm.intro || "(no text)"; host.append(d);
+      }
+    } catch (e) { host.innerHTML = `<p class="err">${esc(e.message || e)}</p>`; }
+  }
+  let pending = null;   // the file being prepared for upload
+  async function loadSamples() {
+    const box = $("#v-samples");
+    box.innerHTML = `<h1 style="font-size:2rem">Samples</h1>
+      <form id="addsample" class="panel" novalidate><h3 style="margin-top:0">Add a sample</h3>
+        <div class="f"><label>Document (PDF keeps images, figures and tables. Word or .txt keeps text only)</label><input type="file" name="file" accept=".pdf,.docx,.txt"></div>
+        <p class="small muted" data-fmsg>Choose a file to see a preview here before you publish.</p><div data-prev style="max-height:420px;overflow:auto;margin-bottom:10px"></div>
+        <div class="two"><div class="f"><label>Name</label><input name="title"></div><div class="f"><label>Field / subject</label><input name="subject" placeholder="e.g. Nursing"></div></div>
+        <div class="f"><label>Level</label>${lvBoxes({}, "a")}</div>
+        <div class="two"><div class="f"><label>Referencing style</label><input name="style" value="Harvard"></div><div class="f"><label>Charge per page (GBP, from £2)</label><input name="rate" type="number" min="2" step="0.5" value="2"></div></div>
+        <div class="two"><div class="f"><label>Free pages (introduction)</label><input name="free" type="number" min="1" value="1"></div><div class="f"><label>Total pages (filled from the file, you can correct)</label><input name="pages" type="number" min="2" value=""></div></div>
+        <div class="f"><label>Free introduction text (filled from the file, you can edit)</label><textarea name="intro" rows="4"></textarea></div>
+        <label style="font-weight:400"><input type="checkbox" name="pub" checked> Publish on the Samples page now</label>
+        <p class="err" data-err></p><button class="btn sm">Upload sample</button></form>
+      <form id="bulk" class="panel" style="padding:12px"><strong>Change the rate for ALL samples already uploaded:</strong> £<input type="number" min="2" step="0.5" value="2" style="max-width:90px"> per page <button class="btn sm alt">Apply to all</button> <span class="small muted" data-m></span></form>
+      <h3>Uploaded samples</h3><div id="slist"><p class="muted">Loading...</p></div>`;
+    const f = $("#addsample"); pending = null;
+    f.file.onchange = async () => {
+      const fl = f.file.files[0], msg = f.querySelector("[data-fmsg]"), prev = f.querySelector("[data-prev]"); pending = null; prev.innerHTML = ""; if (!fl) return;
+      msg.textContent = "Reading " + fl.name + "..."; if (!f.title.value) f.title.value = fl.name.replace(/\.[^.]+$/, "");
+      try {
+        if (/\.pdf$/i.test(fl.name)) {
+          const L = await pdfjs(), doc = await L.getDocument({ data: await fl.arrayBuffer() }).promise; let txt = "";
+          const nfree = Math.max(1, +f.free.value || 1); for (let i = 1; i <= Math.min(nfree, doc.numPages); i++) { const c = await (await doc.getPage(i)).getTextContent(); txt += c.items.map(x => x.str).join(" ") + "\n"; }
+          f.pages.value = doc.numPages; if (!f.intro.value) f.intro.value = txt.replace(/[ \t]+/g, " ").trim(); pending = { kind: "pdf", file: fl };
+          msg.textContent = doc.numPages + " pages read. Images and figures are kept for students. Preview below:"; await renderPdf(doc, prev, 0.6);
+        } else if (/\.docx$/i.test(fl.name)) {
+          await lib("https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js");
+          const ab = await fl.arrayBuffer(), h = await window.mammoth.convertToHtml({ arrayBuffer: ab }), t = await window.mammoth.extractRawText({ arrayBuffer: ab }); pending = { kind: "text", text: t.value.trim() };
+          f.pages.value = Math.max(2, Math.ceil(wc(t.value).length / 275)); if (!f.intro.value) f.intro.value = wc(t.value).slice(0, 275).join(" "); prev.innerHTML = h.value;
+          msg.textContent = "Word file read. Students will receive the TEXT only (no images or diagrams). To keep figures, save the Word file as PDF and upload that. Preview of what was read:";
+        } else { const t = (await fl.text()).trim(); pending = { kind: "text", text: t }; f.pages.value = Math.max(2, Math.ceil(wc(t).length / 275)); if (!f.intro.value) f.intro.value = wc(t).slice(0, 275).join(" "); prev.textContent = t.slice(0, 3000); msg.textContent = "Text file read (text only)."; }
+      } catch (e) { msg.textContent = "Could not read the file: " + (e.message || e); }
+    };
+    f.addEventListener("submit", async e => {
+      e.preventDefault(); const err = f.querySelector("[data-err]"), btn = f.querySelector("button"); err.textContent = "";
+      const lv = readLv(f, "a"), rate = Number(f.rate.value), pages = Math.floor(+f.pages.value);
+      if (!f.title.value.trim()) { err.textContent = "Add a name."; return; } if (!pending) { err.textContent = "Choose a PDF, Word or text file first."; return; }
+      if (!lv.all_levels && !lv.levels.length) { err.textContent = "Choose a level, or tick Fits all levels."; return; }
+      if (!(rate >= 2)) { err.textContent = "The charge per page starts from £2."; return; } if (!(pages >= 2)) { err.textContent = "Total pages must be 2 or more."; return; }
+      btn.disabled = true; btn.textContent = "Uploading...";
+      try {
+        const row = { title: f.title.value.trim(), subject: f.subject.value.trim(), style: f.style.value.trim() || "Harvard", pages, intro: f.intro.value.trim(), price_per_page: rate, free_pages: Math.max(1, +f.free.value || 1), published: f.pub.checked, ...lv };
+        if (pending.kind === "pdf") { const path = (crypto.randomUUID ? crypto.randomUUID() : Date.now()) + ".pdf"; const up = await sb.storage.from("samples").upload(path, pending.file, { contentType: "application/pdf" }); if (up.error) throw up.error; row.file_path = path; row.file_name = pending.file.name; }
+        const ins = await sb.from("samples").insert(row).select().single(); if (ins.error) { if (row.file_path) await sb.storage.from("samples").remove([row.file_path]); throw ins.error; }
+        if (pending.kind === "text") { const r2 = await sb.from("sample_full").insert({ sample_id: ins.data.id, body: pending.text }); if (r2.error) { await sb.from("samples").delete().eq("id", ins.data.id); throw r2.error; } }
+        loadSamples();
+      } catch (x) { err.textContent = x.message || String(x); btn.disabled = false; btn.textContent = "Upload sample"; }
+    });
+    $("#bulk").addEventListener("submit", async e => { e.preventDefault(); const v = Number(e.target.querySelector("input").value); if (!(v >= 2)) return; if (!confirm("Set EVERY sample to £" + v + " per page?")) return; const r = await sb.from("samples").update({ price_per_page: v }).gte("created_at", "1970-01-01"); e.target.querySelector("[data-m]").textContent = r.error ? r.error.message : "Done."; if (!r.error) loadSamples(); });
+    const { data, error } = await sb.from("samples").select("*").order("created_at", { ascending: false }), L = $("#slist");
+    if (error) { L.innerHTML = `<p class="err">${esc(error.message)} (Did you run the SQL in supabase-setup.sql?)</p>`; return; }
+    if (!data.length) { L.innerHTML = '<p class="muted">No samples yet.</p>'; return; }
+    L.innerHTML = ""; data.forEach(sm => {
+      const a = document.createElement("article"); a.className = "order";
+      a.innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><strong>${esc(sm.title)}</strong><div class="small muted">${esc(sm.subject || "")} · ${esc(sm.all_levels ? "All levels" : sm.level || "")} · ${sm.pages} pages · ${esc(sm.style || "")} · ${money(sm.price_per_page)}/page · ${sm.file_path ? "PDF" : "text only"}</div></div><span class="badge ${sm.published ? "paid" : "due"}">${sm.published ? "Published" : "Hidden"}</span></div>
+        <p style="margin:10px 0 0"><button class="btn sm" data-pv>Preview</button> <button class="btn sm alt" data-ed>Edit details and rate</button> <button class="btn sm alt" data-del>Delete</button></p><div data-edit></div><p class="err"></p>`;
+      a.querySelector("[data-pv]").onclick = () => previewSample(sm);
+      a.querySelector("[data-del]").onclick = async () => { if (!confirm("Delete this sample and its file?\n" + sm.title)) return; if (sm.file_path) await sb.storage.from("samples").remove([sm.file_path]); const r = await sb.from("samples").delete().eq("id", sm.id); if (r.error) a.querySelector(".err").textContent = r.error.message; else loadSamples(); };
+      a.querySelector("[data-ed]").onclick = () => {
+        const h = a.querySelector("[data-edit]"); if (h.innerHTML) { h.innerHTML = ""; return; }
+        h.innerHTML = `<form class="panel" style="margin-top:10px"><div class="two"><div class="f"><label>Name</label><input name="title" value="${esc(sm.title)}"></div><div class="f"><label>Field</label><input name="subject" value="${esc(sm.subject || "")}"></div></div>
+          <div class="f"><label>Level</label>${lvBoxes(sm, "e")}</div><div class="two"><div class="f"><label>Style</label><input name="style" value="${esc(sm.style || "")}"></div><div class="f"><label>Charge per page (from £2)</label><input name="rate" type="number" min="2" step="0.5" value="${sm.price_per_page}"></div></div>
+          <div class="two"><div class="f"><label>Free pages</label><input name="free" type="number" min="1" value="${sm.free_pages || 1}"></div><div class="f"><label>Total pages</label><input name="pages" type="number" min="2" value="${sm.pages}"></div></div>
+          <div class="f"><label>Free introduction text</label><textarea name="intro" rows="3">${esc(sm.intro || "")}</textarea></div>
+          ${sm.file_path ? `<div class="f"><label>Replace the PDF (optional)</label><input type="file" name="file" accept=".pdf"></div>` : ""}
+          <label style="font-weight:400"><input type="checkbox" name="pub"${sm.published ? " checked" : ""}> Published</label><p class="err"></p><button class="btn sm">Save changes</button></form>`;
+        const ef = h.querySelector("form"); ef.addEventListener("submit", async e => {
+          e.preventDefault(); const er = ef.querySelector(".err"), lv = readLv(ef, "e"), rate = Number(ef.rate.value); er.textContent = "";
+          if (!(rate >= 2)) { er.textContent = "The charge per page starts from £2."; return; } if (!lv.all_levels && !lv.levels.length) { er.textContent = "Choose a level or Fits all levels."; return; }
+          const upd = { title: ef.title.value.trim(), subject: ef.subject.value.trim(), style: ef.style.value.trim(), price_per_page: rate, free_pages: Math.max(1, +ef.free.value || 1), pages: Math.floor(+ef.pages.value) || sm.pages, intro: ef.intro.value.trim(), published: ef.pub.checked, ...lv };
+          try {
+            const nf = ef.file && ef.file.files[0]; if (nf) { const p = (crypto.randomUUID ? crypto.randomUUID() : Date.now()) + ".pdf", up = await sb.storage.from("samples").upload(p, nf, { contentType: "application/pdf" }); if (up.error) throw up.error; await sb.storage.from("samples").remove([sm.file_path]); upd.file_path = p; upd.file_name = nf.name; }
+            const r = await sb.from("samples").update(upd).eq("id", sm.id); if (r.error) throw r.error; loadSamples();
+          } catch (x) { er.textContent = x.message || String(x); }
+        });
+      };
+      L.append(a);
+    });
+  }
+  let accFilter = "requested";
+  async function loadAccess() {
+    const box = $("#v-access"); box.innerHTML = '<p class="muted">Loading...</p>';
+    const { data, error } = await sb.from("sample_access").select("*, samples(title,price_per_page)").order("created_at", { ascending: false }); if (error) { box.innerHTML = `<p class="err">${esc(error.message)}</p>`; return; }
+    const rows = data.filter(r => accFilter === "all" || r.status === accFilter);
+    box.innerHTML = `<h1 style="font-size:2rem">Sample access</h1><p class="small muted">After you confirm a payment, the access code is created and emailed to the student, and shows in their account. Read online: 2 sessions. Download: once.</p>
+      <div class="f"><label>Show</label><select id="accf"><option value="requested">Waiting for payment confirmation</option><option value="approved">Approved (code sent)</option><option value="closed">Finished (downloaded)</option><option value="all">All</option></select></div><div id="acc"></div>`;
+    $("#accf").value = accFilter; $("#accf").onchange = e => { accFilter = e.target.value; loadAccess(); };
+    const L = $("#acc"); if (!rows.length) { L.innerHTML = '<p class="muted">Nothing here.</p>'; return; }
+    rows.forEach(r => {
+      const a = document.createElement("article"), amt = r.amount != null ? r.amount : r.pages * ((r.samples && r.samples.price_per_page) || 2); a.className = "order";
+      a.innerHTML = `<strong>${esc(r.email)}</strong> <span class="badge ${r.status === "approved" ? "paid" : "due"}">${esc(r.status)}</span><div class="small">${esc((r.samples && r.samples.title) || "")} · ${r.pages} page(s) · <b>${money(amt)}</b> · ${esc(r.format || "")} · reference: <b>${esc(r.reference || "none")}</b> · ${new Date(r.created_at).toLocaleDateString()}</div>
+        ${r.code ? `<div class="small">Code <b style="letter-spacing:2px">${esc(r.code)}</b> · readings used ${r.opens_used}/${r.open_limit} · downloads ${r.download_used}/${r.download_limit}</div>` : ""}
+        <p style="margin:10px 0 0">${r.status === "requested" ? '<button class="btn sm" data-ap>Confirm payment and send code</button> ' : ""}${r.status !== "requested" ? '<button class="btn sm alt" data-rs>Resend code</button> <button class="btn sm alt" data-rst>Reset uses</button> ' : ""}${r.status === "approved" ? '<button class="btn sm alt" data-rv>Revoke</button> ' : ""}<button class="btn sm alt" data-dl>Delete</button></p><p class="err"></p>`;
+      const er = a.querySelector(".err"), run = async fn => { er.textContent = ""; try { await fn(); } catch (x) { er.textContent = x.message || String(x); } };
+      const send = action => run(async () => { const res = await sb.functions.invoke("rgh-sample", { body: { action, access_id: r.id } }); if (res.error) throw new Error(await fnErr(res.error)); alert(res.data.emailed ? "Code " + res.data.code + " emailed to " + r.email + " and shown in their account." : "Code " + res.data.code + " created and shown in their account, but the email failed: " + res.data.why + ". Send it to the student yourself."); loadAccess(); });
+      const ap = a.querySelector("[data-ap]"); if (ap) ap.onclick = () => { if (confirm("Confirm you received " + money(amt) + " from " + r.email + " (reference " + (r.reference || "none") + ")?")) send("approve"); };
+      const rs = a.querySelector("[data-rs]"); if (rs) rs.onclick = () => send("resend");
+      const rst = a.querySelector("[data-rst]"); if (rst) rst.onclick = () => run(async () => { const x = await sb.from("sample_access").update({ opens_used: 0, download_used: 0, last_session: null, status: "approved" }).eq("id", r.id); if (x.error) throw x.error; loadAccess(); });
+      const rv = a.querySelector("[data-rv]"); if (rv) rv.onclick = () => run(async () => { const x = await sb.from("sample_access").update({ status: "closed" }).eq("id", r.id); if (x.error) throw x.error; loadAccess(); });
+      a.querySelector("[data-dl]").onclick = () => { if (confirm("Delete this request?")) run(async () => { const x = await sb.from("sample_access").delete().eq("id", r.id); if (x.error) throw x.error; loadAccess(); }); };
+      L.append(a);
+    });
+  }
   const svcBoxes = (sel, name) => (C.services || []).map(x => `<label style="display:block;font-weight:400"><input type="checkbox" name="${name}" value="${esc(x)}"${(sel || []).includes(x) ? " checked" : ""}> ${esc(x)}</label>`).join("");
   async function loadStaff() {
     const box = $("#v-staff"); box.innerHTML = `<p class="muted">Loading staff...</p>`;

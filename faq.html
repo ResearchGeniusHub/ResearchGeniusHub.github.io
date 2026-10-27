@@ -373,6 +373,14 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media (max-width:600px){.field-row{grid-template-columns:1fr}}
 
+
+/* v5: mobile floating buttons must never cover the footer; testimonials more visible */
+@media (max-width:700px){.site-footer{padding-bottom:150px}.site-footer .legal{line-height:1.9}.site-footer .legal a{display:inline-block;margin-left:0}.wa{padding:8px 13px;font-size:.82rem;bottom:max(12px,env(safe-area-inset-bottom,0px))}.chat-launch{padding:8px 13px;font-size:.88rem}}
+.reviews{gap:20px}
+.reviews figure{background:#fff;border:1px solid var(--line,#d9dee8);border-left:5px solid var(--hi);border-radius:10px;padding:20px 20px 16px;box-shadow:0 6px 18px rgba(15,27,51,.08)}
+.reviews blockquote{font-size:1.12rem}
+.reviews figcaption{font-weight:700;color:var(--ink)}
+#reviews .sec-head h2{font-size:2rem}
 </style>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Which students do you work with?", "acceptedAnswer": {"@type": "Answer", "text": "Students from Australia, the United States, China, the United Kingdom and Canada, at undergraduate, Masters and PhD level. We follow the referencing and spelling conventions of your country."}}, {"@type": "Question", "name": "How is a page counted?", "acceptedAnswer": {"@type": "Answer", "text": "One page is about 275 words. Part pages round up, so 1.2 pages is charged as 2."}}, {"@type": "Question", "name": "How much does it cost?", "acceptedAnswer": {"@type": "Answer", "text": "For undergraduate and Masters work it is £15 per page for deadlines under 24 hours, £13 for 1 to 2 days, £12 for 2 to 4 days and £10 for 5 days or more. For PhD work it is £20, £17, £15 and £13. AI content removal is £7 per page, and you pay only for the pages or words that need AI removed, not the whole document. Use the calculator for an exact total."}}, {"@type": "Question", "name": "How does online coaching work?", "acceptedAnswer": {"@type": "Answer", "text": "You book a one-to-one live session for undergraduate, postgraduate or PhD level, including thesis and viva defence preparation. Order at least 3 hours before the lesson. It costs £15 for 1 hour, or £13 per hour when you book more than 1 hour. After your payment is confirmed, we email you the video link. See coaching."}}, {"@type": "Question", "name": "Can I read a full sample?", "acceptedAnswer": {"@type": "Answer", "text": "Every sample introduction is free to read. Choose how many extra pages to unlock, at £2 per page. They open on the Samples page after PayPal payment where available, or we email them once your payment is confirmed."}}, {"@type": "Question", "name": "How do I pay?", "acceptedAnswer": {"@type": "Answer", "text": "From your account after you place an order. You can pay by PayPal, by card or Wise, or by bank transfer in GBP, USD, CAD, AUD or EUR, depending on what is available at checkout. See Payment support for help."}}, {"@type": "Question", "name": "What is AI content removal?", "acceptedAnswer": {"@type": "Answer", "text": "It is a separate service for work you already have. You are charged only for the pages or words that need AI content removed, not the whole document. We rewrite passages that read as machine-generated so they sound like natural human writing, keeping your meaning, structure and citations. We cannot guarantee a particular detector score, because detectors disagree and change."}}, {"@type": "Question", "name": "Can I upload my brief and files?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Create an account, then attach your brief, marking rubric, readings and any draft when you place the order."}}, {"@type": "Question", "name": "Can I ask for changes?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Send revision notes within 7 days of delivery and we will update the work against your original brief."}}, {"@type": "Question", "name": "Is my information private?", "acceptedAnswer": {"@type": "Answer", "text": "We use your details and files only to complete your order and never share them with other students or third parties."}}, {"@type": "Question", "name": "How should I use the work I receive?", "acceptedAnswer": {"@type": "Answer", "text": "As a study aid, model and reference. Follow your institution's academic integrity rules about what you submit. See our terms."}}]}</script>
 </head>
@@ -401,6 +409,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 </div></section>
 </section>
 </main>
+<div data-reviews-slot></div>
 <section class="ctaband"><div class="wrap"><h2>Ready to turn your worry into results?</h2><div><a class="btn yellow" href="account.html#new">Order now</a> <a class="btn alt" href="contact.html">Ask a question</a></div></div></section><section class="related"><div class="wrap"><h2>Related</h2><ul><li><a href="services.html">See our services</a></li><li><a href="pricing.html">Check prices</a></li><li><a href="contact.html">Contact us</a></li></ul></div></section>
 <footer class="site-footer"><div class="wrap">
   <div class="grid">
@@ -410,10 +419,12 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     <div><h4>Learn</h4><ul><li><a href="guides.html">Assignment guides</a></li><li><a href="faq.html">FAQ</a></li><li><a href="about.html">About us</a></li><li><a href="review.html">Share your experience</a></li><li><a href="terms.html">Terms and academic integrity</a></li></ul></div>
     <div><h4>Contact</h4><ul><li><a data-email></a></li><li><a data-wa></a></li><li data-chat-hours class="small"></li><li><a href="contact.html">Contact page</a></li><li><a href="payments.html">Payment support</a></li><li><a data-account-link href="account.html">Your account</a></li></ul></div>
   </div>
-  <div class="legal">&copy; <span data-year></span> Research Genius Hub.<a href="account.html?staff=1" rel="nofollow">Staff sign-in</a></div>
+  <div class="legal">&copy; <span data-year></span> Research Genius Hub.</div>
 </div></footer>
 <a class="wa" href="#" target="_blank" rel="noopener">WhatsApp us</a>
 <script src="site-config.js"></script>
+<script src="site-auth.js"></script>
+<script src="testimonials-data.js"></script>
 <script>
 /* Pricing engine + the instant quote calculator. */
 (function () {

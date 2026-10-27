@@ -373,6 +373,14 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media (max-width:600px){.field-row{grid-template-columns:1fr}}
 
+
+/* v5: mobile floating buttons must never cover the footer; testimonials more visible */
+@media (max-width:700px){.site-footer{padding-bottom:150px}.site-footer .legal{line-height:1.9}.site-footer .legal a{display:inline-block;margin-left:0}.wa{padding:8px 13px;font-size:.82rem;bottom:max(12px,env(safe-area-inset-bottom,0px))}.chat-launch{padding:8px 13px;font-size:.88rem}}
+.reviews{gap:20px}
+.reviews figure{background:#fff;border:1px solid var(--line,#d9dee8);border-left:5px solid var(--hi);border-radius:10px;padding:20px 20px 16px;box-shadow:0 6px 18px rgba(15,27,51,.08)}
+.reviews blockquote{font-size:1.12rem}
+.reviews figcaption{font-weight:700;color:var(--ink)}
+#reviews .sec-head h2{font-size:2rem}
 </style>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
@@ -485,6 +493,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       <div>
         <div class="panel" id="ref-panel" data-live-only hidden style="margin-bottom:22px"><h3 style="margin:0 0 6px;font-size:1.25rem">Refer a friend</h3><p class="small" style="margin:0">Share your Referral ID. A friend who quotes it on their first order can negotiate up to <span data-refpct>20</span>% off.</p><p style="font-family:var(--serif);font-size:1.6rem;margin:8px 0" id="ref-code">...</p><button class="btn sm" id="ref-copy" type="button">Copy my referral link</button> <span class="small muted" id="ref-msg" role="status"></span></div>
         <h2 id="orders-h" style="font-size:1.8rem">Your orders</h2>
+        <div id="mycodes"></div>
         <div id="orders"></div>
       </div>
     </div>
@@ -501,7 +510,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     <div><h4>Learn</h4><ul><li><a href="guides.html">Assignment guides</a></li><li><a href="faq.html">FAQ</a></li><li><a href="about.html">About us</a></li><li><a href="review.html">Share your experience</a></li><li><a href="terms.html">Terms and academic integrity</a></li></ul></div>
     <div><h4>Contact</h4><ul><li><a data-email></a></li><li><a data-wa></a></li><li data-chat-hours class="small"></li><li><a href="contact.html">Contact page</a></li><li><a href="payments.html">Payment support</a></li><li><a data-account-link href="account.html">Your account</a></li></ul></div>
   </div>
-  <div class="legal">&copy; <span data-year></span> Research Genius Hub.<a href="account.html?staff=1" rel="nofollow">Staff sign-in</a></div>
+  <div class="legal">&copy; <span data-year></span> Research Genius Hub.</div>
 </div></footer>
 <a class="wa" href="#" target="_blank" rel="noopener">WhatsApp us</a>
 <script src="site-config.js"></script>
@@ -1191,8 +1200,25 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     if (location.hash === "#new") form.scrollIntoView();
   }
 
+  /* sample access codes (shown here after we confirm payment, and also emailed) */
+  async function loadMyCodes() {
+    const box = $("#mycodes"); if (!box || !LIVE || !sb) return;
+    try {
+      const { data, error } = await sb.from("sample_access").select("*, samples(title)").order("created_at", { ascending: false });
+      if (error || !data || !data.length) { box.innerHTML = ""; return; }
+      box.innerHTML = `<h3 style="margin:18px 0 8px">My sample access</h3>` + data.map(a => {
+        const t = (a.samples && a.samples.title) || "Sample", st = a.status;
+        const left = Math.max(0, (a.open_limit || 2) - (a.opens_used || 0));
+        return `<article class="order"><strong>${esc(t)}</strong> <span class="small muted">· ${a.pages} extra page${a.pages > 1 ? "s" : ""}</span><br>` +
+          (st === "approved" ? `<span class="badge paid">Payment confirmed</span> Your access code: <b style="font-size:1.3rem;letter-spacing:3px">${esc(a.code || "")}</b><br><span class="small muted">Online readings left: ${left} of ${a.open_limit || 2} · Download: ${a.download_used ? "used" : "1 available"}. Open it on the <a href="samples.html#open=${esc(a.sample_id)}">Samples page</a> with this code and your email.</span>`
+          : st === "closed" ? `<span class="badge">Finished</span> <span class="small muted">The document was downloaded, so this code has ended.</span>`
+          : `<span class="badge due">Waiting for payment confirmation</span> <span class="small muted">Your code appears here and is emailed to you once we confirm.</span>`) + `</article>`;
+      }).join("");
+    } catch (e) { box.innerHTML = ""; }
+  }
   async function renderOrders(openId) {
     if (!LIVE) return;
+    loadMyCodes();
     const box = $("#orders"); let list = [], pays = [], evs = [];
     try { list = await api.orders(me); lastOrders = list; pays = await api.payments(); evs = await api.events(list.map(o => o.id)); }
     catch (x) { box.innerHTML = `<p class="err">Could not load your orders: ${esc(x.message)}</p>`; return; }
@@ -1247,7 +1273,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     });
     box.querySelectorAll("[data-topay]").forEach(b => b.addEventListener("click", () => {
       const id = b.dataset.topay, pb = box.querySelector(`[data-pay="${id}"]`), o = list.find(x => x.id === id);
-      pb.hidden = !pb.hidden; b.textContent = pb.hidden ? (o.paid > 0 ? "Pay the balance " + money(o.total - o.paid) : "Pay for this order") : "Hide payment options";
+      pb.hidden = !pb.hidden; b.textContent = pb.hidden ? (o.paid > 0 ? "Complete payment: pay the balance " + money(o.total - o.paid) : "Pay now (full or part payment)") : "Hide payment options";
       if (!pb.hidden && !pb.dataset.ready) { buildPay(pb, o); pb.dataset.ready = 1; }
     }));
     box.querySelectorAll("[data-del]").forEach(b => b.addEventListener("click", async () => {
@@ -1268,16 +1294,39 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     if (openId) { const pb = box.querySelector(`[data-pay="${openId}"]`); if (pb) { buildPay(pb, list.find(x => x.id === openId)); pb.dataset.ready = 1; } }
   }
 
-  /* payment plan: pay in full, or part now and the rest before download */
+  /* payment plan: pay in full, part now (50% or your own amount), or the balance after a part payment */
   function buildPay(el, o) {
-    const pct = C.partPayPercent || 50, owing = Math.max(0, o.total - (o.paid || 0));
-    const canPart = LIVE && o.status === "awaiting_payment" && !o.paid && !o.coaching && !o.sample && o.total >= (C.partPayMin || 20) && pct > 0 && pct < 100;
-    if (!canPart) { buildMethods(el, Object.assign({}, o, { total: owing || o.total, _portion: o.paid ? "balance" : "full" }), o.paid ? "balance" : "full"); return; }
-    const part = Math.round(o.total * pct) / 100;
-    el.innerHTML = `<div class="f"><label><input type="radio" name="plan-${esc(o.id)}" value="full" checked> Pay in full ${money(o.total)}: guarantees full access to view online and download when delivered</label>
-      <label><input type="radio" name="plan-${esc(o.id)}" value="part"> Pay ${pct}% now (${money(part)}): this starts your work and lets you preview half of it online. The balance ${money(o.total - part)} unlocks the full document and download. Full payment guarantees full access</label></div><div data-methods></div>`;
-    const go = () => { const v = el.querySelector("input:checked").value; buildMethods(el.querySelector("[data-methods]"), Object.assign({}, o, { total: v === "part" ? part : o.total }), v === "part" ? "part" : "full"); };
-    el.querySelectorAll("input[type=radio]").forEach(r => r.addEventListener("change", go)); go();
+    const paid = o.paid || 0, owing = Math.max(0, Math.round((o.total - paid) * 100) / 100);
+    const pct = C.partPayPercent || 50, minPart = Math.max(1, C.partPayMin || 20);
+    if (!LIVE || owing <= 0) { el.innerHTML = '<p class="small">Nothing left to pay on this order.</p>'; return; }
+    if (paid > 0) {   // part already paid: only the balance is left
+      el.innerHTML = `<p class="small"><strong>Paid so far ${money(paid)}.</strong> Complete payment of the balance ${money(owing)} to unlock the full document and download.</p><div data-methods></div>`;
+      buildMethods(el.querySelector("[data-methods]"), Object.assign({}, o, { total: owing }), "balance"); return;
+    }
+    const canPart = o.status === "awaiting_payment" && !o.coaching && !o.sample && o.total >= minPart * 2;
+    const half = Math.round(o.total * pct) / 100, id = esc(o.id);
+    el.innerHTML = `<div class="f" style="display:grid;gap:8px"><strong>How would you like to pay?</strong>
+      <label><input type="radio" name="plan-${id}" value="full" checked> <b>Pay in full ${money(o.total)}</b>: full access to view online and download when delivered</label>
+      ${canPart ? `<label><input type="radio" name="plan-${id}" value="half"> <b>Pay ${pct}% now (${money(half)})</b>: starts your work and lets you preview half online. Pay the balance later to unlock everything</label>
+      <label><input type="radio" name="plan-${id}" value="custom"> <b>Pay another part amount</b> (${money(minPart)} to ${money(o.total - 1)})</label>
+      <div data-cwrap hidden><input type="number" data-custom min="${minPart}" max="${Math.floor(o.total - 1)}" step="1" value="${Math.round(half)}" style="max-width:160px"> <span class="small muted" data-cnote></span></div>` : ""}
+      </div><div data-methods></div>`;
+    const go = () => {
+      const v = el.querySelector("input[type=radio]:checked").value, cw = el.querySelector("[data-cwrap]");
+      if (cw) cw.hidden = v !== "custom";
+      let amt = o.total, portion = "full";
+      if (v === "half") { amt = half; portion = "part"; }
+      if (v === "custom") {
+        amt = Math.round(Number(el.querySelector("[data-custom]").value) * 100) / 100; portion = "part";
+        const note = el.querySelector("[data-cnote]");
+        if (!(amt >= minPart && amt < o.total)) { note.textContent = "Enter an amount from " + money(minPart) + " to " + money(o.total - 1) + "."; el.querySelector("[data-methods]").innerHTML = ""; return; }
+        note.textContent = "Balance later: " + money(o.total - amt);
+      }
+      buildMethods(el.querySelector("[data-methods]"), Object.assign({}, o, { total: amt }), portion);
+    };
+    el.querySelectorAll("input[type=radio]").forEach(r => r.addEventListener("change", go));
+    const cu = el.querySelector("[data-custom]"); if (cu) cu.addEventListener("input", go);
+    go();
   }
 
   /* payments */

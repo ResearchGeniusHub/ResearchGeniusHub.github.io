@@ -91,7 +91,7 @@ window.RGH = {
   services: ["Research support", "Essay guidance and model answer", "Report or business plan", "Assignment guide", "Editing and proofreading", "Dissertation or proposal support", "Data analysis guidance (Excel, SPSS, NVivo)", "PowerPoint presentation", "AI content removal", "Full sample access", "Online coaching", "Journal publication guidance"],
 
   // ---- Sample access ----
-  samplePerPage: 2,               // GBP per page to unlock a full sample
+  samplePerPage: 2,               // minimum GBP per page. Each sample now has its own rate, set in Admin > Samples (from £2)
 
   // ---- Accounts and file uploads ----
   // Leave blank to run in demo mode (data saved in the visitor's own browser only).
