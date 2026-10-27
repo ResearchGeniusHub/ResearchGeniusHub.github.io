@@ -10,5 +10,11 @@ window.RGH_TESTIMONIALS = [
     "country": "Canada",
     "service": "Business Plan",
     "text": "The way they helped me come up with best idea, how to do market research justify idea and even how to launch it and everyting is too interesting. While I feel they should respond on email faster, I really wish this business plan was not for academics, I would easily start my business with this"
+  },
+  {
+    "name": "Sheryl",
+    "country": "Australia",
+    "service": "Business Plan",
+    "text": "I would rate Research Hub highly. They helped me with the business idea from the start to the end, business planning has never been this easy, being guided from idea, write up and final editing. I think I should start a business already with this idea, it’s too professional to be academic. It scored very high by the way"
   }
 ];
