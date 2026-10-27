@@ -101,6 +101,7 @@
         <details class="intro"><summary>Payment details</summary><ul class="small" style="margin:8px 0">${pay}</ul></details>
         <label class="small">Pages to unlock</label><input type="number" data-n min="1" max="${paid}" value="${def}" style="max-width:110px"> <strong data-price>${money(def * rate)}</strong>
         <label class="small">I will mostly</label><select data-f><option value="read">Read online (2 sessions)</option><option value="download">Download (once)</option></select>
+        <label class="small">Payment now</label><select data-pay><option value="full">Pay full amount</option><option value="part">Pay half now (50%), balance later</option></select>
         <label class="small">Your email (the code is sent here)</label><input type="email" data-e autocomplete="email" placeholder="you@example.com" value="${esc(mine.email || "")}" style="width:100%">
         <label class="small">Payment reference</label><input data-r placeholder="PayPal or M-Pesa transaction ID" autocomplete="off" style="width:100%">
         <p><button class="btn sm" data-req>Send for confirmation</button></p><div data-out role="status"></div></div>
@@ -109,14 +110,15 @@
         <label class="small">Your email</label><input type="email" data-e2 value="${esc(mine.email || "")}" style="width:100%"><label class="small">Access code</label><input data-c autocapitalize="characters" autocomplete="off" style="max-width:220px;text-transform:uppercase">
         <p><button class="btn sm" data-read>Read online</button> <button class="btn sm alt" data-dl>Download</button></p><div data-msg role="status"></div></details>`;
     const q = x => det.querySelector(x), n = () => Math.min(paid, Math.max(1, Math.floor(Number(q("[data-n]").value) || 1)));
-    q("[data-n]").oninput = () => { q("[data-price]").textContent = money(n() * rate); };
+    const payNow = () => q("[data-pay]").value, upd = () => { const t = n() * rate; q("[data-price]").textContent = payNow() === "part" ? money(t / 2) + " now (of " + money(t) + ")" : money(t); };
+    q("[data-n]").oninput = upd; q("[data-pay]").onchange = upd;
     q("[data-req]").onclick = async () => {
       const out = q("[data-out]"), email = q("[data-e]").value.trim(), ref = q("[data-r]").value.trim();
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { out.innerHTML = '<p class="err">Enter a valid email address.</p>'; return; }
       if (!ref) { out.innerHTML = '<p class="err">Enter your payment reference.</p>'; return; }
       out.textContent = "Sending...";
       try {
-        const r = await fetch(SB.url + "/rest/v1/rpc/request_sample", { method: "POST", headers: H, body: JSON.stringify({ p_sample: s.id, p_email: email, p_pages: n(), p_format: q("[data-f]").value, p_reference: ref }) });
+        const r = await fetch(SB.url + "/rest/v1/rpc/request_sample", { method: "POST", headers: H, body: JSON.stringify({ p_sample: s.id, p_email: email, p_pages: n(), p_format: q("[data-f]").value, p_reference: ref, p_pay: payNow() }) });
         if (!r.ok) { let m = "Could not send. Try again."; try { m = (await r.json()).message || m; } catch (e) {} throw new Error(m); }
         mineSet(s.id, { email }); q("[data-e2]").value = email;
         try { fetch("https://formsubmit.co/ajax/" + C.email, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ _subject: "Sample request: " + email, _captcha: "false", _template: "box", message: email + " paid for a sample. Confirm in Admin > Sample access.\n\nSample: " + s.title + "\nPages: " + n() + " (" + money(n() * rate) + ")\nReference: " + ref }) }).catch(() => {}); } catch (e) {}
