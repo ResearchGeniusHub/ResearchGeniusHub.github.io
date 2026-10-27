@@ -16,5 +16,11 @@ window.RGH_TESTIMONIALS = [
     "country": "Australia",
     "service": "Business Plan",
     "text": "I would rate Research Hub highly. They helped me with the business idea from the start to the end, business planning has never been this easy, being guided from idea, write up and final editing. I think I should start a business already with this idea, it’s too professional to be academic. It scored very high by the way"
+  },
+  {
+    "name": "Coach Bayor",
+    "country": "Australia",
+    "service": "Mental Health Report",
+    "text": "I had a mental health report with too much data to deal with. I had like 100 copies of qualitative and quantitative data I wanted reports produced in 4 days. They delivered and also addressed the feedback that was provided by the head of the department\nThe responses could be faster, but delivery is great"
   }
 ];
