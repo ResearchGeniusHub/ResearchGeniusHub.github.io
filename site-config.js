@@ -7,10 +7,9 @@ window.RGH = {
   email: "researchgeniushub@gmail.com",
   formSubmit: true,               // lets students attach files and send orders to your email (free FormSubmit service); set false to use email buttons only
 
-  // UK WhatsApp number, digits only with country code, no "+" or spaces.
-  // Example: "447700900123". Leave "" to hide the WhatsApp button.
-  whatsapp: "",
-  whatsappDisplay: "",            // e.g. "+44 7700 900123"
+  // WhatsApp Business number, digits only with country code, no "+" or spaces. Leave "" to hide the WhatsApp button.
+  whatsapp: "254106858200",
+  whatsappDisplay: "+254 106 858 200",
 
   // ---- Pricing (GBP) ----
   wordsPerPage: 275,

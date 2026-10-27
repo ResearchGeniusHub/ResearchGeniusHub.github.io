@@ -18,7 +18,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&display=swap" rel="stylesheet">
-<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCIgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlJlc2VhcmNoIEdlbml1cyBIdWIgbG9nbyI+CiAgPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTUiIGZpbGw9IiMwRjFCMzMiLz4KICA8cmVjdCB4PSIxIiB5PSIxIiB3aWR0aD0iNjIiIGhlaWdodD0iNjIiIHJ4PSIxNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utb3BhY2l0eT0iLjIyIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDxwYXRoIGQ9Ik0xMCAyNkMxOCAyMiAyNiAyMiAzMiAyNlY1MEMyNiA0NiAxOCA0NiAxMCA1MFoiIGZpbGw9IiNmZmYiLz4KICA8cGF0aCBkPSJNNTQgMjZDNDYgMjIgMzggMjIgMzIgMjZWNTBDMzggNDYgNDYgNDYgNTQgNTBaIiBmaWxsPSIjRERFM0VGIi8+CiAgPHJlY3QgeD0iMTQiIHk9IjMxIiB3aWR0aD0iMTQiIGhlaWdodD0iNSIgcng9IjIuNSIgZmlsbD0iI0ZGRTQ1QyIvPgogIDxyZWN0IHg9IjE0IiB5PSIzMSIgd2lkdGg9IjE0IiBoZWlnaHQ9IjUiIHJ4PSIyLjUiIGZpbGw9Im5vbmUiLz4KICA8cGF0aCBkPSJNMTQgNDBoMTNNMTQgNDRoOSIgc3Ryb2tlPSIjMEU3Qzg2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIDxwYXRoIGQ9Ik0zNyAzM2gxM00zNyAzN2gxM00zNyA0MWg4IiBzdHJva2U9IiM4RTlBQjMiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPHBhdGggZD0iTTQ2IDZsMi4zIDYuMkw1NC41IDE0LjUgNDguMyAxNi44IDQ2IDIzbC0yLjMtNi4yTDM3LjUgMTQuNWw2LjItMi4zWiIgZmlsbD0iI0ZGRTQ1QyIvPgo8L3N2Zz4K" type="image/svg+xml">
+<link rel="icon" href="favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://embed.tawk.to" crossorigin>
 <style>
 :root{
   --paper:#F6F7FA; --white:#FFFFFF; --ink:#0F1B33; --ink2:#46526B; --line:#D8DDE8;
@@ -313,6 +315,11 @@ body{background:var(--paper)}
 .msg.me{background:var(--ink);color:#fff;align-self:flex-end}
 .msg.small{font-size:.85rem;color:var(--ink2)}
 .chat-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.chat{transition:bottom .2s}.chat.lifted{bottom:calc(max(16px,env(safe-area-inset-bottom,0px)) + 80px)}
+.chat-actions .wa-btn{background:#1FA855;border-color:#1FA855;color:#fff}.chat-actions .wa-btn:hover{background:#178a45;border-color:#178a45;color:#fff}
+.brand-mark{height:42px;width:auto;background:#fff;border-radius:10px;padding:2px 4px;object-fit:contain;flex:none}
+.site-footer .brand-mark{height:48px}
+@media (max-width:560px){.brand-mark{height:34px}.brand{font-size:1.1rem}}
 .chat-chips{display:flex;gap:6px;flex-wrap:wrap;padding:0 14px 10px}
 .chat-chips button{border:1.5px solid var(--ink);background:#fff;border-radius:999px;padding:4px 11px;font:500 .85rem var(--sans);cursor:pointer;color:var(--ink)}
 .chat-chips button:hover{background:var(--hi)}
@@ -370,7 +377,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 </head>
 <body>
 <header class="site-header"><div class="wrap">
-  <a class="brand" href="index.html"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCIgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlJlc2VhcmNoIEdlbml1cyBIdWIgbG9nbyI+CiAgPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTUiIGZpbGw9IiMwRjFCMzMiLz4KICA8cmVjdCB4PSIxIiB5PSIxIiB3aWR0aD0iNjIiIGhlaWdodD0iNjIiIHJ4PSIxNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utb3BhY2l0eT0iLjIyIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDxwYXRoIGQ9Ik0xMCAyNkMxOCAyMiAyNiAyMiAzMiAyNlY1MEMyNiA0NiAxOCA0NiAxMCA1MFoiIGZpbGw9IiNmZmYiLz4KICA8cGF0aCBkPSJNNTQgMjZDNDYgMjIgMzggMjIgMzIgMjZWNTBDMzggNDYgNDYgNDYgNTQgNTBaIiBmaWxsPSIjRERFM0VGIi8+CiAgPHJlY3QgeD0iMTQiIHk9IjMxIiB3aWR0aD0iMTQiIGhlaWdodD0iNSIgcng9IjIuNSIgZmlsbD0iI0ZGRTQ1QyIvPgogIDxyZWN0IHg9IjE0IiB5PSIzMSIgd2lkdGg9IjE0IiBoZWlnaHQ9IjUiIHJ4PSIyLjUiIGZpbGw9Im5vbmUiLz4KICA8cGF0aCBkPSJNMTQgNDBoMTNNMTQgNDRoOSIgc3Ryb2tlPSIjMEU3Qzg2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIDxwYXRoIGQ9Ik0zNyAzM2gxM00zNyAzN2gxM00zNyA0MWg4IiBzdHJva2U9IiM4RTlBQjMiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPHBhdGggZD0iTTQ2IDZsMi4zIDYuMkw1NC41IDE0LjUgNDguMyAxNi44IDQ2IDIzbC0yLjMtNi4yTDM3LjUgMTQuNWw2LjItMi4zWiIgZmlsbD0iI0ZGRTQ1QyIvPgo8L3N2Zz4K" width="38" height="38" alt=""><b>Research <span class="hl">Genius</span> Hub</b></a>
+  <a class="brand" href="index.html"><img class="brand-mark" src="logo-mark.png" width="68" height="42" alt="Research Genius Hub logo"><b>Research <span class="hl">Genius</span> Hub</b></a>
   <nav class="nav" aria-label="Main"><a href="services.html" data-nav="services">Services</a><a href="coaching.html" data-nav="coaching">Coaching</a><a href="pricing.html" data-nav="pricing">Pricing</a><a href="guides.html" data-nav="guides">Guides</a><a href="samples.html" data-nav="samples">Samples</a><a href="about.html" data-nav="about">About</a><a href="faq.html" data-nav="faq">FAQ</a><a href="contact.html" data-nav="contact">Contact</a></nav>
   <div class="hdr-actions"><a data-signin href="account.html" style="font-weight:600;color:var(--ink)">Sign in</a><a class="btn sm" href="account.html#new">Start an order</a></div>
   <button class="menu-toggle" aria-expanded="false">Menu</button>
@@ -409,8 +416,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
 <footer class="site-footer"><div class="wrap">
   <div class="grid">
-    <div><a class="brand" href="index.html"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCIgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlJlc2VhcmNoIEdlbml1cyBIdWIgbG9nbyI+CiAgPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTUiIGZpbGw9IiMwRjFCMzMiLz4KICA8cmVjdCB4PSIxIiB5PSIxIiB3aWR0aD0iNjIiIGhlaWdodD0iNjIiIHJ4PSIxNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utb3BhY2l0eT0iLjIyIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDxwYXRoIGQ9Ik0xMCAyNkMxOCAyMiAyNiAyMiAzMiAyNlY1MEMyNiA0NiAxOCA0NiAxMCA1MFoiIGZpbGw9IiNmZmYiLz4KICA8cGF0aCBkPSJNNTQgMjZDNDYgMjIgMzggMjIgMzIgMjZWNTBDMzggNDYgNDYgNDYgNTQgNTBaIiBmaWxsPSIjRERFM0VGIi8+CiAgPHJlY3QgeD0iMTQiIHk9IjMxIiB3aWR0aD0iMTQiIGhlaWdodD0iNSIgcng9IjIuNSIgZmlsbD0iI0ZGRTQ1QyIvPgogIDxyZWN0IHg9IjE0IiB5PSIzMSIgd2lkdGg9IjE0IiBoZWlnaHQ9IjUiIHJ4PSIyLjUiIGZpbGw9Im5vbmUiLz4KICA8cGF0aCBkPSJNMTQgNDBoMTNNMTQgNDRoOSIgc3Ryb2tlPSIjMEU3Qzg2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIDxwYXRoIGQ9Ik0zNyAzM2gxM00zNyAzN2gxM00zNyA0MWg4IiBzdHJva2U9IiM4RTlBQjMiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPHBhdGggZD0iTTQ2IDZsMi4zIDYuMkw1NC41IDE0LjUgNDguMyAxNi44IDQ2IDIzbC0yLjMtNi4yTDM3LjUgMTQuNWw2LjItMi4zWiIgZmlsbD0iI0ZGRTQ1QyIvPgo8L3N2Zz4K" width="38" height="38" alt=""><b>Research Genius Hub</b></a>
-      <p class="small" style="margin-top:10px">Research support, assignment guides and editing for university students worldwide.</p><p class="small" style="font-family:var(--serif);font-style:italic;font-size:1.05rem">We transform your academic performance worries into exceptional outcomes.</p></div>
+    <div><a class="brand" href="index.html"><img class="brand-mark" src="logo-mark.png" width="68" height="42" alt="Research Genius Hub logo"><b>Research Genius Hub</b></a>
+      <p class="small" style="margin-top:10px">Research support, assignment guides and editing for university students worldwide.</p><p class="small" style="font-family:var(--serif);font-style:italic;font-size:1.05rem">Turning your research worries into academic results</p></div>
     <div><h4>Services</h4><ul><li><a href="services.html">What we do</a></li><li><a href="coaching.html">Online coaching</a></li><li><a href="pricing.html">Pricing</a></li><li><a href="samples.html">Samples</a></li></ul></div>
     <div><h4>Learn</h4><ul><li><a href="guides.html">Assignment guides</a></li><li><a href="faq.html">FAQ</a></li><li><a href="about.html">About us</a></li><li><a href="review.html">Share your experience</a></li><li><a href="terms.html">Terms and academic integrity</a></li></ul></div>
     <div><h4>Contact</h4><ul><li><a data-email></a></li><li><a data-wa></a></li><li data-chat-hours class="small"></li><li><a href="contact.html">Contact page</a></li><li><a href="payments.html">Payment support</a></li><li><a data-account-link href="account.html">Your account</a></li></ul></div>
@@ -595,12 +602,26 @@ document.addEventListener("DOMContentLoaded", function () {
 /* Chat assistant: quick answers from the site's own prices, then hands over to the team. */
 (function () {
   const C = window.RGH, Q = window.RGHQuote;
-  let tawk = false;
+  let tawk = false, wantLive = false, bubbleOn = false, ident = null, waitTimer = null;
+  const signedIn = () => { try { const u = C.supabase && C.supabase.url; return !!(u && localStorage.getItem("sb-" + u.replace("https://", "").split(".")[0] + "-auth-token")); } catch (e) { return false; } };
+  const shouldShow = () => wantLive || signedIn();
+  function sync() {
+    if (!tawk) return;
+    const on = shouldShow();
+    try { on ? window.Tawk_API.showWidget() : window.Tawk_API.hideWidget(); } catch (e) {}
+    bubbleOn = on;
+    const r = document.querySelector(".chat"); if (r) r.classList.toggle("lifted", on);
+  }
   if (C.chat && C.chat.tawkSrc) {
-    // Live chat (Tawk.to) stays hidden until the visitor asks for a person. The automated assistant answers first.
+    // Live chat (Tawk.to) starts loading as soon as the page opens, so the chat icon can appear straight away when a person is requested.
     window.Tawk_API = window.Tawk_API || {}; window.Tawk_LoadStart = new Date();
-    window.Tawk_API.onLoad = function () { try { window.Tawk_API.hideWidget(); tawk = true; } catch (e) {} };
-    window.Tawk_API.onChatMinimized = function () { try { window.Tawk_API.hideWidget(); } catch (e) {} };
+    window.Tawk_API.onLoad = function () {
+      tawk = true;
+      if (ident) { try { window.Tawk_API.setAttributes(ident, function () {}); } catch (e) {} }
+      sync();
+      if (waitTimer) { clearTimeout(waitTimer); waitTimer = null; if (typeof say === "function") say(`Live chat is ready. <strong>Tap the green chat icon</strong> at the bottom right of your screen.`, "bot"); }
+    };
+    window.Tawk_API.onChatMinimized = function () { if (!signedIn()) { wantLive = false; } sync(); };
     const ts = document.createElement("script"); ts.async = true; ts.src = C.chat.tawkSrc; ts.charset = "UTF-8"; ts.setAttribute("crossorigin", "*");
     document.head.appendChild(ts);
   }
@@ -647,11 +668,28 @@ document.addEventListener("DOMContentLoaded", function () {
     const d = document.createElement("div"); d.className = "msg " + who; d.innerHTML = html; log.appendChild(d); log.scrollTop = log.scrollHeight;
   }
   function handoff(q) {
-    const wa = C.whatsapp ? `<a class="btn sm alt" target="_blank" rel="noopener" href="https://wa.me/${C.whatsapp}?text=${encodeURIComponent(q || "Hi Research Genius Hub")}">WhatsApp</a>` : "";
-    const live = tawk ? `<button type="button" class="btn sm" data-live>Chat with a person</button>` : "";
-    say(`${tawk ? `A person can chat live from <strong>${esc(within)}</strong> (${ukOpen() ? "open now" : "opens at 10:00 UK time"}). Outside those hours, leave a message and we reply by email.` : `Thanks. Send your message and any files or brief to <strong>${esc(C.email)}</strong>. Email replies can take longer.`}
-      <div class="chat-actions">${live}<a class="btn sm alt" target="_blank" rel="noopener" href="${gmail("Question from the website", q)}">Email us (Gmail)</a>
-      <a class="btn sm alt" href="mailto:${esc(C.email)}?subject=${encodeURIComponent("Question from the website")}&body=${encodeURIComponent(q || "")}">Email app</a>${wa}</div>`, "bot");
+    const subj = "Question from the website";
+    const wa = C.whatsapp ? `<a class="btn sm wa-btn" target="_blank" rel="noopener" href="https://wa.me/${C.whatsapp}?text=${encodeURIComponent(q || "Hi Research Genius Hub, I need help.")}">WhatsApp${C.whatsappDisplay ? " " + esc(C.whatsappDisplay) : ""}</a>` : "";
+    const mail = `<a class="btn sm alt" target="_blank" rel="noopener" href="${gmail(subj, q)}">Email us (Gmail)</a><a class="btn sm alt" href="mailto:${esc(C.email)}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(q || "")}">Email app</a>`;
+    const open = ukOpen();
+    const hours = open ? `Our team is online now.` : `Our team is away until 10:00 UK time, but you can still leave a message and we will reply.`;
+    let lead, live = "";
+    if (C.chat && C.chat.tawkSrc) {
+      wantLive = true;
+      if (tawk) {
+        sync();
+        lead = `<strong>Tap the green chat icon</strong> at the bottom right of your screen. It is showing now. ${hours}`;
+        live = `<button type="button" class="btn sm" data-live>Open live chat now</button>`;
+      } else {
+        lead = `Connecting you to live chat. The <strong>green chat icon</strong> will appear at the bottom right in a few seconds. ${hours}`;
+        if (waitTimer) clearTimeout(waitTimer);
+        waitTimer = setTimeout(() => { if (!tawk) { waitTimer = null; say(`Live chat is taking longer than usual to load. Use WhatsApp or email below, which work straight away.`, "bot"); } }, 12000);
+      }
+      lead += ` You can also reach us now by WhatsApp or email:`;
+    } else {
+      lead = `Send your message and any files or brief to <strong>${esc(C.email)}</strong>${C.whatsapp ? ", or message us on WhatsApp" : ""}. Email replies can take longer.`;
+    }
+    say(`${lead}<div class="chat-actions">${live}${wa}${mail}</div>`, "bot");
     const lb = log.querySelector(".msg:last-child [data-live]");
     if (lb) lb.addEventListener("click", () => { try { window.Tawk_API.showWidget(); window.Tawk_API.maximize(); toggle(false); } catch (e) {} });
   }
@@ -672,13 +710,28 @@ document.addEventListener("DOMContentLoaded", function () {
   function toggle(open) {
     $(".chat-panel").hidden = !open; $(".chat-launch").setAttribute("aria-expanded", open); $(".chat-launch").hidden = open;
     if (open) {
-      if (!started) { started = true; say(`Hi! I am the automated assistant. I can answer questions about prices, coaching and payments. For anything else, choose <strong>Talk to a person</strong>. Live chat is open <strong>${esc(within)}</strong>.`, "bot"); }
+      if (!started) { started = true; say(`Hi! I am the automated assistant. I can answer questions about prices, coaching and payments.${signedIn() ? " You are signed in, so the live chat icon is available at the bottom right if you have an issue with your account or order." : ""} To reach a person, choose <strong>Talk to a person</strong>. You can also use WhatsApp or email. Live chat is open <strong>${esc(within)}</strong>.`, "bot"); }
       input.focus();
     }
   }
   $(".chat-launch").addEventListener("click", () => toggle(true));
   $(".chat-x").addEventListener("click", () => { toggle(false); $(".chat-launch").focus(); });
   root.addEventListener("keydown", e => { if (e.key === "Escape") toggle(false); });
+  // Used by the account page: open live chat for signed-in students and pass their name and email to the chat team.
+  window.RGHChat = {
+    live() {
+      wantLive = true;
+      if (tawk) { sync(); try { window.Tawk_API.maximize(); } catch (e) {} }
+      else { toggle(true); handoff("I need help with my account"); }
+    },
+    refresh() { sync(); },
+    identify(name, email) {
+      ident = { name: name || "", email: email || "" };
+      try { window.Tawk_API.visitor = ident; } catch (e) {}
+      if (tawk) { try { window.Tawk_API.setAttributes(ident, function () {}); } catch (e) {} }
+    }
+  };
+  if (signedIn() && root) { const r = document.querySelector(".chat"); if (r) r.classList.add("lifted"); }
 })();
 
 </script>
