@@ -381,6 +381,16 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 .reviews blockquote{font-size:1.12rem}
 .reviews figcaption{font-weight:700;color:var(--ink)}
 #reviews .sec-head h2{font-size:2rem}
+
+/* v6: order rows */
+.orow{padding:0!important;overflow:hidden}
+.orow-head,.orow-cols{display:grid;grid-template-columns:2.2fr 1.5fr 1.1fr .9fr .9fr 1.2fr 1.1fr 84px;gap:8px;align-items:center;width:100%;text-align:left;font:inherit;color:inherit;padding:10px 12px}
+.orow-head{background:none;border:0;cursor:pointer}.orow-head:hover,.orow.open .orow-head{background:#f4f6fb}
+.orow-cols{font-weight:700;font-size:.82rem;text-transform:uppercase;letter-spacing:.03em;border-bottom:2px solid var(--ink);margin-top:10px}
+.orow-head span{font-size:.9rem;overflow-wrap:anywhere}.orow-head .pv{font-weight:700;text-decoration:underline}
+.orow-body{display:none;padding:6px 18px 18px;border-top:1px solid #d9dee8}.orow.open .orow-body{display:block}
+.orow-head .lab{display:none}
+@media(max-width:820px){.orow-cols{display:none}.orow-head{grid-template-columns:1fr 1fr}.orow-head .lab{display:inline;font-size:.72rem;color:#555;text-transform:uppercase;display:block}}
 </style>
 </head>
 <body>
@@ -462,18 +472,34 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       `<button type="button" class="btn sm ${svc === c[0] ? "" : "alt"}" data-svc="${esc(c[0])}">${esc(c[1])} (${c[2]})</button>`).join("");
     $("#chips").querySelectorAll("[data-svc]").forEach(b => b.addEventListener("click", () => { svc = b.dataset.svc; render(); }));
     const rows = svc === "all" ? base : base.filter(o => ((o.data && o.data.service) || "Other") === svc);
-    let html = "";
-    (svc === "all" ? names : [svc]).forEach(n => {
-      const grp = rows.filter(o => ((o.data && o.data.service) || "Other") === n); if (!grp.length) return;
-      html += `<h3 style="margin:22px 0 8px;font-size:1.25rem;border-bottom:2px solid var(--ink)">${esc(n)} (${grp.length})</h3>` + grp.map(card).join("");
-    });
-    $("#list").innerHTML = html || `<p class="muted">Nothing here.</p>`;
+    const html = rows.length ? rowsHeader + rows.map(card).join("") : "";
+    $("#list").innerHTML = html || `<p class="muted">Nothing here.</p>`; wireRows($("#list"));
     $("#list").querySelectorAll("article").forEach(wire);
   }
+
+  /* shared: derive the order status and payment status shown in the rows */
+  const rowStatus = (o, evs, paid, total, pendingPay) => {
+    const st = o.status, DAYS = (C.completeAfterDays || 7);
+    let phase;
+    if (st === "awaiting_quote") phase = "Awaiting quote";
+    else if (st === "awaiting_payment" || st === "payment_reported") phase = "Awaiting payment";
+    else if (st === "delivered") {
+      const mine = (evs || []).filter(e => e.order_id === o.id), last = mine.length ? new Date(mine[mine.length - 1].created_at) : new Date(o.created || o.created_at);
+      phase = (Date.now() - last.getTime()) > DAYS * 864e5 && !(mine.length && mine[mine.length - 1].author_role === "student") ? "Complete" : "Reviewing";
+    } else phase = "In progress";
+    const pay = total > 0 && paid >= total ? "Paid in full" : paid > 0 ? "Part paid " + money(paid) + " of " + money(total) : (pendingPay ? "Reported, checking" : "Unpaid");
+    return { phase, pay: pendingPay && paid < total && paid > 0 ? pay + " (more reported)" : pay };
+  };
+  const rowHead = (cols, label) => `<button type="button" class="orow-head" aria-expanded="false">` + cols.map((c, i) => `<span><span class="lab">${esc(label[i])}</span>${i === cols.length - 1 ? '<b class="pv">Preview</b>' : c}</span>`).join("") + `</button>`;
+  const rowHeaderLabels = ["Student email", "Order type", "Order number", "Order date", "Due date", "Payment status", "Order status", "Open"];
+  const rowsHeader = `<div class="orow-cols">` + rowHeaderLabels.map(x => `<span>${x}</span>`).join("") + `</div>`;
+  const wireRows = box => box.querySelectorAll(".orow-head").forEach(h => h.addEventListener("click", () => { const r = h.closest(".orow"), open = !r.classList.contains("open"); r.classList.toggle("open", open); h.setAttribute("aria-expanded", open); }));
   function card(o) {
     const d = o.data || {}, op = pays.filter(p => p.order_id === o.id), my = evs.filter(e => e.order_id === o.id), owing = Math.max(0, o.total - o.paid_amount);
     const pendingPay = op.filter(p => !p.confirmed), defAmt = pendingPay.length && pendingPay[0].portion === "part" ? pendingPay[0].amount : Math.round(o.total * (C.partPayPercent || 50)) / 100;
-    return `<article class="order" data-id="${esc(o.id)}" data-user="${esc(o.user_id)}">
+    const rs = rowStatus(Object.assign({}, o, { created: o.created_at }), evs, Number(o.paid_amount || 0), Number(o.total || 0), pendingPay.length > 0), dueTxt = d.due ? String(d.due).replace("T", " ") : (d.tier || "");
+    const head = rowHead([esc(d.customerEmail || ""), esc(d.service || ""), esc(o.id), new Date(o.created_at).toLocaleDateString(), esc(dueTxt || "-"), esc(rs.pay), esc(rs.phase), ""], rowHeaderLabels);
+    return `<article class="order orow" data-id="${esc(o.id)}" data-user="${esc(o.user_id)}">${head}<div class="orow-body">
       <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
         <div><h4>${esc(d.title || d.service)}</h4><div class="muted small">${esc(o.id)} · ${esc(d.service)} · ${esc(d.level)} · ${d.coaching ? d.pages + " h" : d.pages + " pages"}${d.due ? " · due " + esc(String(d.due).replace("T", " ")) : ""}</div>
           <div class="small"><strong>${esc(d.customer)}</strong> · <a href="mailto:${esc(d.customerEmail)}">${esc(d.customerEmail)}</a>${d.phone ? " · " + esc(d.phone) : ""}</div></div>
@@ -502,7 +528,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
         ${o.paid_amount < o.total ? `<div class="f"><label>Preview PDF (only if a final file is not a PDF)</label><input type="file" name="prev" accept=".pdf" multiple></div>` : ""}
         <div class="f"><label>Message to student (required)</label><textarea name="msg" placeholder="What is attached and anything they should check."></textarea></div><p class="err"></p><button class="btn sm">Upload and email student</button></form>` : ""}
       ${isAdmin ? `<p style="margin:12px 0 0"><button class="btn sm alt" data-del>Delete order (admin only)</button></p>` : ""}
-    </article>`;
+    </div></article>`;
   }
   function wire(a) {
     a.querySelectorAll("[data-refowner]").forEach(async sp => { const r = await sb.rpc("referral_owner", { p_code: sp.dataset.refowner }); sp.textContent = r.data || "no matching ID (check it)"; });
@@ -585,7 +611,9 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
   const LEVELS = ["Undergraduate", "Masters", "PhD"];
   const loadOnce = {}; const lib = src => loadOnce[src] || (loadOnce[src] = load(src));
   const pdfjs = async () => { await lib("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"); window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"; return window.pdfjsLib; };
-  const lvBoxes = (s, p) => LEVELS.map(l => `<label style="display:inline-block;margin-right:12px;font-weight:400"><input type="checkbox" name="${p}lv" value="${l}"${(s.levels || []).includes(l) ? " checked" : ""}> ${l}</label>`).join("") + `<label style="display:inline-block;font-weight:700"><input type="checkbox" name="${p}all"${s.all_levels ? " checked" : ""}> Fits all levels</label>`;
+  const lvDerive = s => { if (s.all_levels || /all levels/i.test(s.level || "")) return { all_levels: true, levels: [] }; const x = ((s.levels || []).join(" ") + " " + (s.level || "")).toLowerCase(), l = []; if (/undergrad|bachelor|bsc|year/.test(x)) l.push("Undergraduate"); if (/master|postgrad|msc|mba/.test(x)) l.push("Masters"); if (/phd|doctor/.test(x)) l.push("PhD"); return { all_levels: false, levels: l }; };
+  const lvBoxes = (s0, p) => { const s = (s0 && (s0.id || s0.level || (s0.levels || []).length || s0.all_levels)) ? Object.assign({}, s0, lvDerive(s0)) : (s0 || {}); return lvBoxesRaw(s, p); };
+  const lvBoxesRaw = (s, p) => LEVELS.map(l => `<label style="display:inline-block;margin-right:12px;font-weight:400"><input type="checkbox" name="${p}lv" value="${l}"${(s.levels || []).includes(l) ? " checked" : ""}> ${l}</label>`).join("") + `<label style="display:inline-block;font-weight:700"><input type="checkbox" name="${p}all"${s.all_levels ? " checked" : ""}> Fits all levels</label>`;
   const readLv = (f, p) => { const all = f.querySelector(`[name=${p}all]`).checked, lv = Array.from(f.querySelectorAll(`[name=${p}lv]:checked`)).map(x => x.value); return { all_levels: all, levels: all ? [] : lv, level: all ? "All levels" : lv.join(", ") }; };
   const wc = t => t.replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
   async function renderPdf(doc, host, scale) {   // draws every page so images, diagrams and tables can be checked
@@ -625,6 +653,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
         <label style="font-weight:400"><input type="checkbox" name="pub" checked> Publish on the Samples page now</label>
         <p class="err" data-err></p><button class="btn sm">Upload sample</button></form>
       <form id="bulk" class="panel" style="padding:12px"><strong>Change the rate for ALL samples already uploaded:</strong> £<input type="number" min="2" step="0.5" value="2" style="max-width:90px"> per page <button class="btn sm alt">Apply to all</button> <span class="small muted" data-m></span></form>
+      <form id="bulklv" class="panel" style="padding:12px"><strong>Set the level for several samples at once</strong><div class="small muted">Tick samples in the list below, choose the level, then apply. Works for samples uploaded earlier too.</div><div style="margin:8px 0">${lvBoxesRaw({}, "b")}</div><button class="btn sm alt">Apply level to ticked samples</button> <button type="button" class="btn sm alt" data-all>Tick all</button> <span class="small muted" data-m></span></form>
       <h3>Uploaded samples</h3><div id="slist"><p class="muted">Loading...</p></div>`;
     const f = $("#addsample"); pending = null;
     f.file.onchange = async () => {
@@ -665,7 +694,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     if (!data.length) { L.innerHTML = '<p class="muted">No samples yet.</p>'; return; }
     L.innerHTML = ""; data.forEach(sm => {
       const a = document.createElement("article"); a.className = "order";
-      a.innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><strong>${esc(sm.title)}</strong><div class="small muted">${esc(sm.subject || "")} · ${esc(sm.all_levels ? "All levels" : sm.level || "")} · ${sm.pages} pages · ${esc(sm.style || "")} · ${money(sm.price_per_page)}/page · ${sm.file_path ? "PDF" : "text only"}</div></div><span class="badge ${sm.published ? "paid" : "due"}">${sm.published ? "Published" : "Hidden"}</span></div>
+      a.innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><label style="font-weight:400"><input type="checkbox" data-pick> </label><strong>${esc(sm.title)}</strong><div class="small muted">${esc(sm.subject || "")} · ${esc(sm.all_levels ? "All levels" : (sm.levels && sm.levels.length ? sm.levels.join(", ") : sm.level) || "")} · ${sm.pages} pages · ${esc(sm.style || "")} · ${money(sm.price_per_page)}/page · ${sm.file_path ? "PDF" : "text only"}</div></div><span class="badge ${sm.published ? "paid" : "due"}">${sm.published ? "Published" : "Hidden"}</span></div>
         <p style="margin:10px 0 0"><button class="btn sm" data-pv>Preview</button> <button class="btn sm alt" data-ed>Edit details and rate</button> <button class="btn sm alt" data-del>Delete</button></p><div data-edit></div><p class="err"></p>`;
       a.querySelector("[data-pv]").onclick = () => previewSample(sm);
       a.querySelector("[data-del]").onclick = async () => { if (!confirm("Delete this sample and its file?\n" + sm.title)) return; if (sm.file_path) await sb.storage.from("samples").remove([sm.file_path]); const r = await sb.from("samples").delete().eq("id", sm.id); if (r.error) a.querySelector(".err").textContent = r.error.message; else loadSamples(); };
@@ -687,7 +716,13 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
           } catch (x) { er.textContent = x.message || String(x); }
         });
       };
-      L.append(a);
+      a.dataset.sid = sm.id; L.append(a);
+    });
+    const bf = $("#bulklv"); bf.querySelector("[data-all]").onclick = () => L.querySelectorAll("[data-pick]").forEach(c => { c.checked = true; });
+    bf.addEventListener("submit", async e => {
+      e.preventDefault(); const ids = Array.from(L.querySelectorAll("article")).filter(x => x.querySelector("[data-pick]").checked).map(x => x.dataset.sid), lv = readLv(bf, "b"), m = bf.querySelector("[data-m]");
+      if (!ids.length) { m.textContent = "Tick at least one sample."; return; } if (!lv.all_levels && !lv.levels.length) { m.textContent = "Choose a level or Fits all levels."; return; }
+      const r = await sb.from("samples").update(lv).in("id", ids); m.textContent = r.error ? r.error.message : "Updated " + ids.length + " sample(s)."; if (!r.error) setTimeout(loadSamples, 700);
     });
   }
   let accFilter = "requested";

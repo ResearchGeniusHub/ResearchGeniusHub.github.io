@@ -381,6 +381,16 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 .reviews blockquote{font-size:1.12rem}
 .reviews figcaption{font-weight:700;color:var(--ink)}
 #reviews .sec-head h2{font-size:2rem}
+
+/* v6: order rows */
+.orow{padding:0!important;overflow:hidden}
+.orow-head,.orow-cols{display:grid;grid-template-columns:2.2fr 1.5fr 1.1fr .9fr .9fr 1.2fr 1.1fr 84px;gap:8px;align-items:center;width:100%;text-align:left;font:inherit;color:inherit;padding:10px 12px}
+.orow-head{background:none;border:0;cursor:pointer}.orow-head:hover,.orow.open .orow-head{background:#f4f6fb}
+.orow-cols{font-weight:700;font-size:.82rem;text-transform:uppercase;letter-spacing:.03em;border-bottom:2px solid var(--ink);margin-top:10px}
+.orow-head span{font-size:.9rem;overflow-wrap:anywhere}.orow-head .pv{font-weight:700;text-decoration:underline}
+.orow-body{display:none;padding:6px 18px 18px;border-top:1px solid #d9dee8}.orow.open .orow-body{display:block}
+.orow-head .lab{display:none}
+@media(max-width:820px){.orow-cols{display:none}.orow-head{grid-template-columns:1fr 1fr}.orow-head .lab{display:inline;font-size:.72rem;color:#555;text-transform:uppercase;display:block}}
 </style>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
@@ -822,8 +832,10 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     };
     live.reportPayment = async (user, id, method, ref, amount, portion) => {
       await live.init();
-      const { error } = await sb.from("payments").insert({ order_id: id, method, reference: ref, amount, portion: portion || "full" });
-      if (error) throw error;
+      let { error } = await sb.from("payments").insert({ order_id: id, method, reference: ref || "", amount, portion: portion || "full" });
+      if (error) { const r2 = await sb.from("payments").insert({ order_id: id, method, reference: ref || "" }); error = r2.error; }
+      if (error) throw new Error("Your payment report could not be saved (" + error.message + "). Please email " + C.email + " with your order number " + id + ".");
+      notifyFallback("PAYMENT REPORTED " + money(amount) + " (" + (portion || "full") + ") order " + id, user.name + " (" + user.email + ") reports paying " + money(amount) + " (" + (portion || "full") + ") by " + method + ", reference " + (ref || "none") + ", for order " + id + ". Please check and confirm in the admin page.");
       const o = lastOrders.find(x => x.id === id) || {};
       if (o.status === "awaiting_payment") await sb.from("orders").update({ status: "payment_reported" }).eq("id", id);
       fx("payment_reported", id, null, ["Payment reported: " + user.email, user.name + " (" + user.email + ") reported " + money(amount) + " (" + (portion || "full") + ") for order " + id + ". Please confirm."]);
@@ -1200,6 +1212,24 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     if (location.hash === "#new") form.scrollIntoView();
   }
 
+
+  /* shared: derive the order status and payment status shown in the rows */
+  const rowStatus = (o, evs, paid, total, pendingPay) => {
+    const st = o.status, DAYS = (C.completeAfterDays || 7);
+    let phase;
+    if (st === "awaiting_quote") phase = "Awaiting quote";
+    else if (st === "awaiting_payment" || st === "payment_reported") phase = "Awaiting payment";
+    else if (st === "delivered") {
+      const mine = (evs || []).filter(e => e.order_id === o.id), last = mine.length ? new Date(mine[mine.length - 1].created_at) : new Date(o.created || o.created_at);
+      phase = (Date.now() - last.getTime()) > DAYS * 864e5 && !(mine.length && mine[mine.length - 1].author_role === "student") ? "Complete" : "Reviewing";
+    } else phase = "In progress";
+    const pay = total > 0 && paid >= total ? "Paid in full" : paid > 0 ? "Part paid " + money(paid) + " of " + money(total) : (pendingPay ? "Reported, checking" : "Unpaid");
+    return { phase, pay: pendingPay && paid < total && paid > 0 ? pay + " (more reported)" : pay };
+  };
+  const rowHead = (cols, label) => `<button type="button" class="orow-head" aria-expanded="false">` + cols.map((c, i) => `<span><span class="lab">${esc(label[i])}</span>${i === cols.length - 1 ? '<b class="pv">Preview</b>' : c}</span>`).join("") + `</button>`;
+  const rowHeaderLabels = ["Student email", "Order type", "Order number", "Order date", "Due date", "Payment status", "Order status", "Open"];
+  const rowsHeader = `<div class="orow-cols">` + rowHeaderLabels.map(x => `<span>${x}</span>`).join("") + `</div>`;
+  const wireRows = box => box.querySelectorAll(".orow-head").forEach(h => h.addEventListener("click", () => { const r = h.closest(".orow"), open = !r.classList.contains("open"); r.classList.toggle("open", open); h.setAttribute("aria-expanded", open); }));
   /* sample access codes (shown here after we confirm payment, and also emailed) */
   async function loadMyCodes() {
     const box = $("#mycodes"); if (!box || !LIVE || !sb) return;
@@ -1226,7 +1256,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     const sig = o => [o.service, (o.title || "").toLowerCase(), o.pages, o.total].join("|"), cnt = {};
     list.forEach(o => { cnt[sig(o)] = (cnt[sig(o)] || 0) + 1; });
     const plural = (n, w) => n + " " + w + (n === 1 ? "" : "s");
-    box.innerHTML = list.map(o => {
+    box.innerHTML = rowsHeader + list.map(o => {
       const op = pays.filter(p => p.order_id === o.id), pending = op.some(p => !p.confirmed);
       const isQuote = o.status === "awaiting_quote", owing = Math.max(0, o.total - o.paid);
       const canDelete = ["awaiting_payment", "awaiting_quote"].includes(o.status) && !o.paid && !op.length;
@@ -1237,7 +1267,10 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       const myEvs = evs.filter(e => e.order_id === o.id);
       const delivered = ["delivered", "revision_requested"].includes(o.status);
       const payBadge = o.paid >= o.total && o.total > 0 ? `<span class="badge paid">Paid in full</span>` : o.paid > 0 ? `<span class="badge due">Part paid ${money(o.paid)}, balance ${money(owing)}</span>` : "";
-      return `<article class="order" data-id="${esc(o.id)}">
+      const rs = rowStatus(o, evs, o.paid, o.total, pending), dueTxt = o.due ? String(o.due).replace("T", " ") : (o.tier || "");
+      const head = rowHead([esc(me.email), esc(o.service), esc(o.id), new Date(o.created).toLocaleDateString(), esc(dueTxt || "-"), esc(rs.pay), esc(rs.phase), ""], rowHeaderLabels);
+      const reopen = ["Reviewing", "Complete"].includes(rs.phase) ? `<p style="margin:12px 0 0"><button class="btn sm" data-reactivate="${esc(o.id)}">Reactivate this order (I need changes)</button></p>` : "";
+      return `<article class="order orow" data-id="${esc(o.id)}">${head}<div class="orow-body">
         <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:start">
           <div><h4>${esc(o.title || o.service)}</h4>
           <div class="muted small">${esc(o.id)} · ${esc(o.service)} · ${o.coaching ? plural(o.pages, "hour") + (o.due ? ", lesson " + esc(o.due.replace("T", " ")) : "") : plural(o.pages, "page")} · ${plural((o.files || []).length, "file")}</div></div>
@@ -1248,7 +1281,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
         ${pending ? `<p class="small muted" style="margin:10px 0 0">Your payment report is with our team. We will email you when it is confirmed.</p>` : ""}
         ${showDl ? `<div class="paybox" data-dl="${esc(o.id)}" data-access="${o.access}"><p class="small muted">Loading your work...</p></div>` : (delivered ? `<div class="paybox"><p class="small muted">Your work is ready. Complete payment to unlock access. Email ${esc(C.email)} if you need help.</p></div>` : "")}
         ${needPay ? `<div class="paybox" data-pay="${esc(o.id)}"${o.id === openId ? "" : " hidden"}></div>
-        <button class="btn sm alt" style="margin-top:12px" data-topay="${esc(o.id)}">${o.id === openId ? "Hide payment options" : (o.paid > 0 ? "Pay the balance " + money(owing) : "Pay for this order")}</button>` : ""}
+        <button class="btn sm alt" style="margin-top:12px" data-topay="${esc(o.id)}">${o.id === openId ? "Hide payment options" : (o.paid > 0 ? "Complete payment: pay the balance " + money(owing) : "Pay now (full or part payment)")}</button>` : ""}
         ${canDelete ? `<button class="btn sm alt" style="margin-top:12px" data-del="${esc(o.id)}">Delete this order</button>` : (isQuote || o.status === "awaiting_payment" ? "" : `<p class="small muted" style="margin:10px 0 0">Orders with payment can only be removed by our team.</p>`)}
         ${myEvs.length ? `<details style="margin-top:12px"><summary>Messages and updates (${myEvs.length})</summary>${myEvs.map(e => `<div style="border-left:3px solid var(--ink);padding:2px 10px;margin:8px 0"><div class="small muted">${e.author_role === "staff" ? "Research Genius Hub" : "You"} · ${new Date(e.created_at).toLocaleString()}${e.kind === "confirmation" ? " · Confirmation" : ""}</div>${e.summary && e.author_role === "student" ? `<div><strong>Added: ${esc(e.summary)}</strong></div>` : ""}<div style="white-space:pre-wrap">${esc(e.message || "")}</div>${(e.files || []).length ? `<div class="small muted">Files: ${e.files.map(f => esc(f.name)).join(", ")}</div>` : ""}</div>`).join("")}</details>` : ""}
         ${isQuote ? "" : `<details style="margin-top:12px"><summary>${delivered ? "Not happy? Send feedback or request a revision" : "Add instructions, feedback or documents"}</summary>
@@ -1260,8 +1293,11 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
             <div class="f"><label>Upload documents (optional)</label><input type="file" name="files" multiple accept=".pdf,.doc,.docx,.txt,.rtf,.ppt,.pptx,.xls,.xlsx,.png,.jpg,.jpeg"></div>
             <p class="err" role="alert"></p><button class="btn sm" type="submit">Send to our team</button>
           </form></details>`}
-      </article>`;
+        ${reopen}
+      </div></article>`;
     }).join("");
+    wireRows(box);
+    box.querySelectorAll("[data-reactivate]").forEach(b => b.addEventListener("click", () => { const art = b.closest("article"), det = art.querySelector("form[data-add]").closest("details"); det.open = true; const f = art.querySelector("form[data-add]"); f.kind.value = "feedback"; if (!f.summary.value) f.summary.value = "Reactivating this order"; f.scrollIntoView({ behavior: "smooth", block: "center" }); f.message.focus(); }));
     box.querySelectorAll("[data-dl]").forEach(async el => {
       const acc = el.dataset.access, o = list.find(x => x.id === el.dataset.dl), owing = Math.max(0, o.total - o.paid);
       try {
@@ -1291,7 +1327,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       try { await api.addEvent(me, f.dataset.add, f.kind.value, summary, message, files); await renderOrders(); }
       catch (x) { err.textContent = "Not sent: " + x.message; btn.disabled = false; btn.textContent = "Send to our team"; }
     }));
-    if (openId) { const pb = box.querySelector(`[data-pay="${openId}"]`); if (pb) { buildPay(pb, list.find(x => x.id === openId)); pb.dataset.ready = 1; } }
+    if (openId) { const ar = box.querySelector(`article[data-id="${openId}"]`); if (ar) ar.classList.add("open"); const pb = box.querySelector(`[data-pay="${openId}"]`); if (pb) { buildPay(pb, list.find(x => x.id === openId)); pb.dataset.ready = 1; } }
   }
 
   /* payment plan: pay in full, part now (50% or your own amount), or the balance after a part payment */
@@ -1386,7 +1422,10 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       }
       const btn = host.querySelector("[data-reported]");
       if (btn) btn.addEventListener("click", async () => {
-        await api.reportPayment(me, o.id, m.id, host.querySelector("[data-ref]").value.trim(), o.total, portion); renderOrders();
+        btn.disabled = true; const old = btn.textContent; btn.textContent = "Sending...";
+        host.querySelectorAll(".err.pay").forEach(x => x.remove());
+        try { await api.reportPayment(me, o.id, m.id, host.querySelector("[data-ref]").value.trim(), o.total, portion); alert("Thank you. We have been told you paid " + Q.money(o.total) + ". We will confirm it and email you."); renderOrders(o.id); }
+        catch (x) { btn.disabled = false; btn.textContent = old; btn.insertAdjacentHTML("afterend", '<p class="err pay">' + esc(x.message) + "</p>"); }
       });
     });
   }
@@ -1396,7 +1435,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       host.innerHTML = `<div data-btn></div><p class="small muted">Pay by PayPal balance or by card.</p>`;
       const run = () => window.paypal.Buttons({
         createOrder: (d, a) => a.order.create({ purchase_units: [{ reference_id: o.id, description: "Research Genius Hub " + o.id, amount: { currency_code: "GBP", value: o.total.toFixed(2) } }] }),
-        onApprove: (d, a) => a.order.capture().then(async det => { await api.reportPayment(me, o.id, "paypal", det.id, o.total, o._portion); renderOrders(); }),
+        onApprove: (d, a) => a.order.capture().then(async det => { try { await api.reportPayment(me, o.id, "paypal", det.id, o.total, o._portion); renderOrders(); } catch (x) { host.insertAdjacentHTML("beforeend", '<p class="err">' + esc(x.message) + "</p>"); } }),
         onError: () => { host.insertAdjacentHTML("beforeend", `<p class="err">PayPal could not complete the payment. Try again or choose another method.</p>`); }
       }).render(host.querySelector("[data-btn]"));
       if (window.paypal) run(); else {
@@ -1407,7 +1446,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     } else {
       host.innerHTML = `<a class="btn" target="_blank" rel="noopener" href="https://paypal.me/${encodeURIComponent(C.paypalMe)}/${o.total.toFixed(2)}GBP">Pay ${Q.money(o.total)} with PayPal</a>
         ${reportBlock("I have paid by PayPal")}`;
-      host.querySelector("[data-reported]").addEventListener("click", async () => { await api.reportPayment(me, o.id, "paypal", host.querySelector("[data-ref]").value.trim(), o.total, portion); renderOrders(); });
+      host.querySelector("[data-reported]").addEventListener("click", async () => { try { await api.reportPayment(me, o.id, "paypal", host.querySelector("[data-ref]").value.trim(), o.total, o._portion); renderOrders(); } catch (x) { host.insertAdjacentHTML("beforeend", '<p class="err">' + esc(x.message) + "</p>"); } });
     }
   }
 

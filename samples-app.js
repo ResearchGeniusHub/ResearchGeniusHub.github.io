@@ -27,18 +27,19 @@
   document.head.appendChild(css);
 
   let all = [], st = { q: "", level: "", field: "", per: 50, page: 1 };
+  const lvSet = s => { if (s.all_levels || /all levels|any level/i.test(s.level || "")) return ["undergraduate", "master", "phd"]; const t = ((s.levels || []).join(" ") + " " + (s.level || "")).toLowerCase(), o = []; if (/undergrad|bachelor|bsc|year|college/.test(t)) o.push("undergraduate"); if (/master|postgrad|msc|mba/.test(t)) o.push("master"); if (/phd|doctor/.test(t)) o.push("phd"); return o; };
   const levelText = s => s.all_levels ? "All levels" : ((s.levels && s.levels.length) ? s.levels.join(", ") : (s.level || ""));
   const stem = w => w.replace(/'s?$/, "").replace(/s$/, "");
   function hay(s) {
     let h = [s.title, s.subject, levelText(s), s.level, s.style].join(" ").toLowerCase().replace(/['’]/g, "");
-    const lv = (s.all_levels ? "undergraduate masters phd" : levelText(s)).toLowerCase();
+    const lv = lvSet(s).join(" ") + " " + levelText(s).toLowerCase();
     if (/master|postgrad|msc|mba/.test(lv)) h += " masters master postgraduate msc";
     if (/phd|doctor/.test(lv)) h += " phd doctoral doctorate";
     if (/undergrad|bachelor|bsc|year/.test(lv)) h += " undergraduate bachelor bsc degree";
     if (s.all_levels) h += " all levels any level";
     return h;
   }
-  const levelOK = (s, v) => !v || s.all_levels || hay(s).includes(v);
+  const levelOK = (s, v) => !v || (s.all_levels || lvSet(s).includes(v) || !lvSet(s).length);
   function filtered() {
     const toks = st.q.toLowerCase().replace(/['’]/g, "").split(/[\s,]+/).filter(Boolean).map(stem);
     return all.filter(s => {
