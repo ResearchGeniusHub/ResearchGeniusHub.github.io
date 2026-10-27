@@ -59,6 +59,9 @@ document.getElementById("pwgo").onclick=chk;document.getElementById("pw").onkeyd
     <h2 style="margin-top:6px">Sample requests</h2>
     <p class="hint">When a student has paid, tap <b>Allow access</b>. They then open their pages with their email and code. You do not have to upload or email anything.</p>
     <div id="reqs"><p class="hint">Loading...</p></div>
+    <h2 style="margin-top:22px">Assignment and coaching orders</h2>
+    <p class="hint">When a student reports payment, check it in PayPal or M-Pesa, then tap <b>Confirm payment</b>. When the work is ready, choose the finished file and tap <b>Upload and deliver</b>. The student sees it in their account.</p>
+    <div id="ords"><p class="hint">Loading...</p></div>
     <button class="alt" id="sbout" type="button">Sign out</button>
   </div>
 </section>
@@ -365,7 +368,7 @@ async function sbRefreshReqs() {
       const a = document.createElement("div");
       a.innerHTML = "<b></b><br><span class='hint'></span>";
       a.querySelector("b").textContent = q.email + " · " + q.status.toUpperCase();
-      a.querySelector("span").textContent = (q.samples && q.samples.title || "") + " · " + q.pages + " page(s) · " + priceOf(q.pages) + " · " + (q.format || "") + " · code " + q.code + " · " + new Date(q.created_at).toLocaleDateString();
+      a.querySelector("span").textContent = (q.samples && q.samples.title || "") + " · " + q.pages + " page(s) · " + priceOf(q.pages) + " · " + (q.format || "") + " · reference: " + (q.reference || "none") + " · code " + q.code + " · " + new Date(q.created_at).toLocaleDateString();
       const wrap = document.createElement("div"); wrap.style.cssText = "display:flex;gap:6px;flex-wrap:wrap";
       const mk = (label, cls, fn) => { const b = document.createElement("button"); b.className = cls; b.textContent = label; b.style.margin = "0"; b.onclick = async () => { b.disabled = true; try { await fn(); await sbRefreshReqs(); } catch (e) { alert(e.message); b.disabled = false; } }; return b; };
       if (q.status !== "granted") wrap.append(mk("Allow access", "", () => sbq("/rest/v1/sample_access?id=eq." + q.id, { method: "PATCH", body: JSON.stringify({ status: "granted" }) })));
@@ -373,6 +376,49 @@ async function sbRefreshReqs() {
       wrap.append(mk("Delete", "del", () => confirm("Delete this request?") ? sbq("/rest/v1/sample_access?id=eq." + q.id, { method: "DELETE" }) : Promise.reject(new Error("Cancelled"))));
       d.append(a, wrap); box.append(d);
     });
+  } catch (e) { box.innerHTML = ""; const p = document.createElement("p"); p.className = "err"; p.textContent = e.message; box.append(p); }
+}
+
+const sbStore = (path, opt = {}) => fetch(SBC.url + "/storage/v1" + path, Object.assign({}, opt, { headers: Object.assign({ apikey: SBC.anonKey, Authorization: "Bearer " + SBT }, opt.headers || {}) }));
+async function sbFiles(bucket, prefix) {
+  const r = await sbStore("/object/list/" + bucket, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prefix, limit: 100 }) });
+  if (!r.ok) return []; const items = await r.json(); const out = [];
+  for (const it of items) { if (!it.name) continue; const sr = await sbStore("/object/sign/" + bucket + "/" + prefix + it.name, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ expiresIn: 3600 }) }); if (sr.ok) { const j = await sr.json(); out.push({ name: it.name.replace(/^\d+-/, ""), url: SBC.url + "/storage/v1" + j.signedURL }); } }
+  return out;
+}
+async function sbRefreshOrders() {
+  const box = $("ords");
+  try {
+    const rows = await sbq("/rest/v1/orders?select=*,payments(method,reference)&order=created_at.desc");
+    if (!rows.length) { box.innerHTML = '<p class="hint">No orders yet.</p>'; return; }
+    box.innerHTML = "";
+    for (const o of rows) {
+      const d = o.data || {}, pre = o.user_id + "/" + o.id + "/";
+      const wrap = document.createElement("div"); wrap.className = "item"; wrap.style.cssText = "display:block";
+      const head = document.createElement("div");
+      head.innerHTML = "<b></b><br><span class='hint'></span><br><span class='hint'></span><div class='lk'></div>";
+      head.querySelector("b").textContent = (d.service || "Order") + " · " + String(o.status).replace(/_/g, " ").toUpperCase();
+      const sp = head.querySelectorAll("span");
+      sp[0].textContent = (d.customer || "") + " · " + (d.customerEmail || "") + " · " + (d.pages || "") + (d.coaching ? " hour(s)" : " page(s)") + " · £" + Number(o.total || 0).toFixed(2) + " · due " + (d.due || d.tier || "") + " · " + new Date(o.created_at).toLocaleDateString();
+      sp[1].textContent = "Payment: " + ((o.payments || []).map(x => x.method + " ref " + (x.reference || "none")).join("; ") || "none reported") + (d.instructions ? " · Notes: " + String(d.instructions).slice(0, 200) : "");
+      const lk = head.querySelector(".lk");
+      sbFiles("requirements", pre).then(fs => fs.forEach(f => { const a = document.createElement("a"); a.href = f.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Brief: " + f.name; a.style.display = "block"; lk.append(a); }));
+      sbFiles("deliveries", pre).then(fs => fs.forEach(f => { const a = document.createElement("a"); a.href = f.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Delivered: " + f.name; a.style.display = "block"; lk.append(a); }));
+      const row = document.createElement("div"); row.style.cssText = "display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center";
+      const mk = (label, cls, fn) => { const b = document.createElement("button"); b.className = cls; b.textContent = label; b.style.margin = "0"; b.onclick = async () => { b.disabled = true; try { await fn(); await sbRefreshOrders(); } catch (e) { alert(e.message); b.disabled = false; } }; return b; };
+      const setSt = st => sbq("/rest/v1/orders?id=eq." + o.id, { method: "PATCH", body: JSON.stringify({ status: st }) });
+      if (o.status !== "in_progress" && o.status !== "delivered") row.append(mk("Confirm payment", "", () => setSt("in_progress")));
+      const fi = document.createElement("input"); fi.type = "file"; fi.style.cssText = "max-width:200px;padding:6px";
+      row.append(fi);
+      row.append(mk("Upload and deliver", "alt", async () => {
+        if (!fi.files[0]) throw new Error("Choose the finished file first.");
+        const f = fi.files[0], r = await sbStore("/object/deliveries/" + pre + Date.now() + "-" + f.name.replace(/[^\w.\-]+/g, "_"), { method: "POST", headers: { "Content-Type": f.type || "application/octet-stream", "x-upsert": "true" }, body: f });
+        if (!r.ok) { let m = "Upload failed."; try { m = (await r.json()).message || m; } catch (e) {} throw new Error(m); }
+        await setSt("delivered");
+      }));
+      if (o.status === "delivered") row.append(mk("Reopen", "alt", () => setSt("in_progress")));
+      wrap.append(head, row); box.append(wrap);
+    }
   } catch (e) { box.innerHTML = ""; const p = document.createElement("p"); p.className = "err"; p.textContent = e.message; box.append(p); }
 }
 async function sbRefreshSamples() {
@@ -392,7 +438,7 @@ async function sbRefreshSamples() {
     });
   } catch (e) { box.innerHTML = ""; const p = document.createElement("p"); p.className = "err"; p.textContent = e.message; box.append(p); }
 }
-function sbSignedIn() { $("sbin").hidden = true; $("sbwork").hidden = false; show($("sbmsg"), "Signed in.", "ok"); $("pub").textContent = "Publish sample"; sbRefreshReqs(); sbRefreshSamples(); }
+function sbSignedIn() { $("sbin").hidden = true; $("sbwork").hidden = false; show($("sbmsg"), "Signed in.", "ok"); $("pub").textContent = "Publish sample"; sbRefreshReqs(); sbRefreshOrders(); sbRefreshSamples(); }
 async function sbPublish(c, title) {
   if (!SBT) throw new Error("Sign in first (Owner sign-in above).");
   const intro = introOf($("tx").value, c.iw);

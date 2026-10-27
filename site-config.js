@@ -84,7 +84,7 @@ window.RGH = {
   // ---- Accounts and file uploads ----
   // Leave blank to run in demo mode (data saved in the visitor's own browser only).
   // To go live, create a free Supabase project and paste its URL and anon key (see README.md).
-  supabase: { url: "", anonKey: "" },
+  supabase: { url: "https://vgnyudtimuelfxjbcjvk.supabase.co", anonKey: "sb_publishable_-BMlXThhQ8aA3VmQBAJ1gQ_6ZmfsTLF" },
 
   // ---- Samples ----
   // Students read the introduction free. The full sample costs samplePerPage x pages.
