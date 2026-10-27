@@ -381,12 +381,19 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 <section class="s" style="border-top:0"><div class="wrap">
 
   <div id="auth" class="auth" hidden>
-    <div class="tabs" role="tablist"><button type="button" role="tab" aria-selected="true" data-tab="in">Sign in</button><button type="button" role="tab" aria-selected="false" data-tab="up">Create account</button></div>
+    <div class="tabs" role="tablist"><button type="button" role="tab" aria-selected="true" data-tab="in">Sign in</button><button type="button" role="tab" aria-selected="false" data-tab="up">Create account</button><button type="button" role="tab" aria-selected="false" data-tab="staff">Staff</button></div>
     <form id="form-in" novalidate>
       <div class="f"><label for="in-email">Email</label><input type="email" id="in-email" name="email" autocomplete="email" required></div>
       <div class="f"><label for="in-pw">Password</label><input type="password" id="in-pw" name="password" autocomplete="current-password" required></div>
       <p class="err" role="alert"></p>
       <button class="btn block">Sign in</button>
+    </form>
+    <form id="form-staff" hidden novalidate>
+      <p class="small muted" style="margin-top:0">For Research Genius Hub staff and admin only. Staff accounts are created by the admin. Students: use Sign in or Create account.</p>
+      <div class="f"><label for="st-name">Staff name or admin email</label><input type="text" id="st-name" name="uname" autocomplete="username" autocapitalize="none" required></div>
+      <div class="f"><label for="st-pw">Password</label><input type="password" id="st-pw" name="password" autocomplete="current-password" required></div>
+      <p class="err" role="alert"></p>
+      <button class="btn block">Sign in as staff</button>
     </form>
     <form id="form-up" hidden novalidate>
       <div class="f"><label for="up-name">Full name</label><input type="text" id="up-name" name="name" autocomplete="name" required></div>
@@ -399,6 +406,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 
   <div id="dash" hidden>
     <div class="topbar" data-live-only><strong id="hello"></strong><button class="btn sm alt" id="signout">Sign out</button></div>
+    <p class="small muted" data-live-only style="margin:0 0 14px">Browse the site: <a href="services.html">Services</a> · <a href="coaching.html">Coaching</a> · <a href="pricing.html">Pricing</a> · <a href="samples.html">Samples</a> · <a href="faq.html">FAQ</a> · <a href="contact.html">Contact</a></p>
     <div class="dash-grid">
       <div>
         <h2 id="new" style="font-size:1.8rem">New order</h2>
@@ -456,7 +464,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     <div><h4>Learn</h4><ul><li><a href="guides.html">Assignment guides</a></li><li><a href="faq.html">FAQ</a></li><li><a href="about.html">About us</a></li><li><a href="review.html">Share your experience</a></li><li><a href="terms.html">Terms and academic integrity</a></li></ul></div>
     <div><h4>Contact</h4><ul><li><a data-email></a></li><li><a data-wa></a></li><li><a href="contact.html">Contact page</a></li><li><a href="payments.html">Payment support</a></li><li><a data-account-link href="account.html">Your account</a></li></ul></div>
   </div>
-  <div class="legal">&copy; <span data-year></span> Research Genius Hub.<a href="admin.html" rel="nofollow">Owner login</a></div>
+  <div class="legal">&copy; <span data-year></span> Research Genius Hub.<a href="account.html?staff=1" rel="nofollow">Staff sign-in</a></div>
 </div></footer>
 <a class="wa" href="#" target="_blank" rel="noopener">WhatsApp us</a>
 <script src="site-config.js"></script>
@@ -688,7 +696,9 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
       if (error) throw error; return this.wrap(data.user);
     },
-    async signOut() { await this.init(); await sb.auth.signOut(); },
+    async signOut() { await this.init(); await sb.auth.signOut(); try { sessionStorage.removeItem("rgh_sb_tok"); } catch (e) {} },
+    async role() { await this.init(); const { data } = await sb.rpc("my_role"); return data || "student"; },
+    async token() { await this.init(); const { data } = await sb.auth.getSession(); return data.session ? data.session.access_token : ""; },
     async orders() {
       await this.init();
       const { data, error } = await sb.from("orders").select("*").order("created_at", { ascending: false });
@@ -751,10 +761,20 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     prefill(); updatePrice();
   }
 
+  async function goStaff() {
+    try { sessionStorage.setItem("rgh_sb_tok", await api.token()); } catch (e) {}
+    location.href = "admin.html";
+  }
+  async function afterSignIn() {
+    const r = await api.role();
+    if (r === "admin" || r === "staff") { await goStaff(); return; }
+    enterDash();
+  }
   async function boot() {
     if (!LIVE) { emailMode(); return; }
     try { me = await api.user(); } catch (e) { me = null; }
-    if (me) enterDash(); else show("auth");
+    if (me) { try { await afterSignIn(); } catch (e) { enterDash(); } } else show("auth");
+    if (!me && /[?&]staff=1/.test(location.search)) { const t = document.querySelector('[data-tab="staff"]'); if (t) t.click(); }
   }
 
   /* auth tabs */
@@ -763,18 +783,30 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     tabs.forEach(x => x.setAttribute("aria-selected", x === t));
     $("#form-in").hidden = t.dataset.tab !== "in";
     $("#form-up").hidden = t.dataset.tab !== "up";
+    $("#form-staff").hidden = t.dataset.tab !== "staff";
   }));
 
   $("#form-in").addEventListener("submit", async e => {
     e.preventDefault(); const f = e.target, err = $(".err", f); err.textContent = "";
-    try { me = await api.signIn(f.email.value.trim(), f.password.value); enterDash(); }
+    try { me = await api.signIn(f.email.value.trim(), f.password.value); await afterSignIn(); }
     catch (x) { err.textContent = x.message; }
   });
   $("#form-up").addEventListener("submit", async e => {
     e.preventDefault(); const f = e.target, err = $(".err", f); err.textContent = "";
     if (f.password.value.length < 8) { err.textContent = "Use a password with at least 8 characters."; return; }
+    if (/^researchgeniushub\+/i.test(f.email.value.trim())) { err.textContent = "Please use your own email address."; return; }
     try { me = await api.signUp(f.name.value.trim(), f.email.value.trim(), f.password.value); enterDash(); }
     catch (x) { err.textContent = x.message; }
+  });
+  $("#form-staff").addEventListener("submit", async e => {
+    e.preventDefault(); const f = e.target, err = $(".err", f); err.textContent = "";
+    const u = f.uname.value.trim().toLowerCase(), email = u.includes("@") ? u : "researchgeniushub+" + u.replace(/[^a-z0-9]/g, "") + "@gmail.com";
+    try {
+      me = await api.signIn(email, f.password.value);
+      const r = await api.role();
+      if (r === "admin" || r === "staff") { await goStaff(); return; }
+      await api.signOut(); me = null; err.textContent = "This is not a staff account. Students: use the Sign in tab.";
+    } catch (x) { err.textContent = /invalid/i.test(x.message) ? "Wrong name or password." : x.message; }
   });
   $("#signout").addEventListener("click", async () => { await api.signOut(); me = null; show("auth"); });
 
@@ -1193,6 +1225,8 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     });
   }
 
+  // Signed-in visitors see "My account" in the header.
+  try { if (C.supabase && C.supabase.url) { const k = "sb-" + C.supabase.url.replace("https://", "").split(".")[0] + "-auth-token"; if (localStorage.getItem(k)) document.querySelectorAll("[data-signin]").forEach(a => { a.textContent = "My account"; }); } } catch (e) {}
   // Without an accounts service, ordering works by email, so hide sign-in links.
   const LIVE = !!(C.supabase && C.supabase.url && C.supabase.anonKey);
   if (!LIVE) {

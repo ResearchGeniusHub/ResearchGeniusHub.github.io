@@ -390,22 +390,6 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 <section class="s tint"><div class="wrap">
   <div class="samples" data-samples></div>
   <p class="muted" style="margin-top:26px">Samples are for reference only and show how we structure, argue and reference. Want to see something in your subject? Email <a data-email></a> or <a href="contact.html">contact us</a>.</p>
-  <div style="margin-top:28px;padding:18px;border:1.5px solid #0F1B33;border-radius:10px;background:#fff" id="owner-add">
-    <h3 style="margin:0 0 6px">Add a sample</h3>
-    <p class="small muted" style="margin:0 0 10px">Owner only. Enter your password to add or remove samples.</p>
-    <input id="own-pw" type="password" placeholder="Password" autocomplete="current-password" autocapitalize="none" style="padding:11px;border:1.5px solid #0F1B33;border-radius:8px;max-width:260px;width:100%">
-    <button id="own-go" type="button" class="btn" style="margin-left:6px">Continue</button>
-    <p id="own-msg" class="small" style="color:#C0303C;margin:8px 0 0" role="alert"></p>
-  </div>
-  <script>
-  document.addEventListener("DOMContentLoaded",function(){var H="755c76e5171d8fc2073c53df28ce73c26f4d4b6fd6bd47ee28618be544eda007",S="rgh-admin-v1";
-  async function go(){var m=document.getElementById("own-msg");m.textContent="";try{
-  var k=await crypto.subtle.importKey("raw",new TextEncoder().encode(document.getElementById("own-pw").value),"PBKDF2",false,["deriveBits"]);
-  var b=await crypto.subtle.deriveBits({name:"PBKDF2",salt:new TextEncoder().encode(S),iterations:150000,hash:"SHA-256"},k,256);
-  var x=Array.from(new Uint8Array(b)).map(function(c){return c.toString(16).padStart(2,"0")}).join("");
-  if(x===H){try{sessionStorage.setItem("rgh_admin_ok",H)}catch(e){}location.href="admin.html"}else m.textContent="Wrong password."}catch(e){m.textContent="Could not check the password here."}}
-  document.getElementById("own-go").onclick=go;document.getElementById("own-pw").onkeydown=function(e){if(e.key==="Enter")go()}});
-  </script>
 </div></section>
 </section>
 </main>
@@ -418,7 +402,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     <div><h4>Learn</h4><ul><li><a href="guides.html">Assignment guides</a></li><li><a href="faq.html">FAQ</a></li><li><a href="about.html">About us</a></li><li><a href="review.html">Share your experience</a></li><li><a href="terms.html">Terms and academic integrity</a></li></ul></div>
     <div><h4>Contact</h4><ul><li><a data-email></a></li><li><a data-wa></a></li><li><a href="contact.html">Contact page</a></li><li><a href="payments.html">Payment support</a></li><li><a data-account-link href="account.html">Your account</a></li></ul></div>
   </div>
-  <div class="legal">&copy; <span data-year></span> Research Genius Hub.<a href="admin.html" rel="nofollow">Owner login</a></div>
+  <div class="legal">&copy; <span data-year></span> Research Genius Hub.<a href="account.html?staff=1" rel="nofollow">Staff sign-in</a></div>
 </div></footer>
 <a class="wa" href="#" target="_blank" rel="noopener">WhatsApp us</a>
 <script src="site-config.js"></script>
@@ -707,6 +691,8 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     });
   }
 
+  // Signed-in visitors see "My account" in the header.
+  try { if (C.supabase && C.supabase.url) { const k = "sb-" + C.supabase.url.replace("https://", "").split(".")[0] + "-auth-token"; if (localStorage.getItem(k)) document.querySelectorAll("[data-signin]").forEach(a => { a.textContent = "My account"; }); } } catch (e) {}
   // Without an accounts service, ordering works by email, so hide sign-in links.
   const LIVE = !!(C.supabase && C.supabase.url && C.supabase.anonKey);
   if (!LIVE) {
