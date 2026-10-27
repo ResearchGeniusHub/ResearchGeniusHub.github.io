@@ -744,21 +744,65 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       await sb.from("orders").update({ status: "payment_reported" }).eq("id", id);
     }
   };
-  const notify = (subject, message) => { try { fetch("https://formsubmit.co/ajax/" + C.email, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ _subject: subject, _captcha: "false", _template: "box", message }) }).catch(() => {}); } catch (e) {} };
-  const STAFF_URL = "https://researchgeniushub.github.io/account.html?staff=1";
+  const notifyFallback = (subject, message) => { try { fetch("https://formsubmit.co/ajax/" + C.email, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ _subject: subject, _captcha: "false", _template: "box", message }) }).catch(() => {}); } catch (e) {} };
   let lastOrders = [];
+  const money = n => "£" + Number(n || 0).toFixed(2);
   if (LIVE) {
-    const rp = live.reportPayment.bind(live), co = live.createOrder.bind(live);
-    live.reportPayment = async (user, id, method, ref) => {
-      await rp(user, id, method, ref);
-      const o = lastOrders.find(x => x.id === id) || {};
-      notify("Payment reported: " + user.email, user.name + " (" + user.email + ") has requested and paid for " + (o.coaching ? "coaching" : (o.service || "an order")) + ", please confirm payment.\n\nOrder: " + id + "\nService: " + (o.service || "") + "\nAmount: " + (o.total != null ? "£" + Number(o.total).toFixed(2) : "") + "\nMethod: " + method + "\nPayment reference: " + (ref || "none") + "\n\nSign in as staff to confirm: " + STAFF_URL);
+    // Emails go through the rgh-notify function (admin copy with attachments + student copy). If it is not deployed, a plain alert goes to the admin.
+    const fx = async (type, order_id, event_id, fb) => {
+      try { await live.init(); const { error } = await sb.functions.invoke("rgh-notify", { body: { type, order_id, event_id } }); if (error) throw error; }
+      catch (e) { if (fb) notifyFallback(fb[0], fb[1]); }
     };
+    live.orders = async () => {
+      await live.init();
+      const { data, error } = await sb.from("orders").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      return data.map(r => Object.assign({}, r.data, { id: r.id, status: r.status, created: r.created_at, total: Number(r.total), paid: Number(r.paid_amount || 0), access: r.access || "none" }));
+    };
+    live.payments = async () => { await live.init(); const { data } = await sb.from("payments").select("*"); return data || []; };
+    live.events = async ids => { if (!ids.length) return []; await live.init(); const { data } = await sb.from("order_events").select("*").in("order_id", ids).order("created_at"); return data || []; };
+    live.deleteOrder = async id => {
+      await live.init();
+      const { data, error } = await sb.from("orders").delete().eq("id", id).select();
+      if (error) throw error;
+      if (!data || !data.length) throw new Error("This order cannot be deleted because payment has been reported or confirmed. Our team can remove it for you.");
+    };
+    live.deliveries = async (user, id, access) => {
+      await live.init();
+      const bucket = access === "full" ? "deliveries" : "previews", pre = `${user.id}/${id}/`, out = [];
+      const { data } = await sb.storage.from(bucket).list(pre);
+      for (const f of data || []) {
+        if (!f.name || !f.id) continue;
+        const nm = f.name.replace(/^\d+-/, "");
+        const { data: u } = await sb.storage.from(bucket).createSignedUrl(pre + f.name, 3600);
+        const { data: d } = access === "full" ? await sb.storage.from(bucket).createSignedUrl(pre + f.name, 3600, { download: nm }) : { data: null };
+        if (u) out.push({ name: nm, url: u.signedUrl, dl: d ? d.signedUrl : "" });
+      }
+      return out;
+    };
+    live.reportPayment = async (user, id, method, ref, amount, portion) => {
+      await live.init();
+      const { error } = await sb.from("payments").insert({ order_id: id, method, reference: ref, amount, portion: portion || "full" });
+      if (error) throw error;
+      const o = lastOrders.find(x => x.id === id) || {};
+      if (o.status === "awaiting_payment") await sb.from("orders").update({ status: "payment_reported" }).eq("id", id);
+      fx("payment_reported", id, null, ["Payment reported: " + user.email, user.name + " (" + user.email + ") reported " + money(amount) + " (" + (portion || "full") + ") for order " + id + ". Please confirm."]);
+    };
+    const co = live.createOrder.bind(live);
     live.createOrder = async (user, order, files) => {
       const r = await co(user, order, files);
-      const isQ = order.status === "awaiting_quote";
-      notify((isQ ? "Quote request: " : "New order: ") + user.email, user.name + " (" + user.email + ") " + (isQ ? "has asked for a quote. Please reply with a price." : "has placed a new order, awaiting payment.") + "\n\nService: " + (order.service || "") + "\nAmount: " + (isQ ? "quote needed" : (order.total != null ? "£" + Number(order.total).toFixed(2) : "")) + "\nOrder: " + r.id + "\n\nSign in as staff to view: " + STAFF_URL);
+      fx("order_placed", r.id, null, [(order.status === "awaiting_quote" ? "Quote request: " : "New order: ") + user.email, user.name + " (" + user.email + ") placed order " + r.id + ": " + (order.service || "") + ", " + (order.title || "") + ". Files are in your staff page."]);
       return r;
+    };
+    live.addEvent = async (user, orderId, kind, summary, message, files) => {
+      await live.init(); const saved = [];
+      for (const f of files) {
+        const path = `${user.id}/${orderId}/events/${Date.now()}-${f.name.replace(/[^\w.\-]+/g, "_")}`;
+        const up = await sb.storage.from("requirements").upload(path, f); if (up.error) throw up.error; saved.push({ name: f.name, path });
+      }
+      const { data, error } = await sb.from("order_events").insert({ order_id: orderId, kind, summary, message, files: saved, author_role: "student" }).select().single();
+      if (error) throw error;
+      fx("student_update", orderId, data.id, ["Student update: " + user.email, user.name + " added to order " + orderId + ": " + summary + "\n\n" + message]);
     };
   }
   const api = LIVE ? live : emailApi;
@@ -769,7 +813,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 
   function show(view) { authView.hidden = view !== "auth"; dashView.hidden = view !== "dash"; }
 
-  const statusText = { awaiting_quote: ["Quote requested, we will email you", "due"], awaiting_payment: ["Awaiting payment", "due"], payment_reported: ["Payment reported, we are checking", "due"], in_progress: ["In progress", ""], delivered: ["Delivered", "paid"] };
+  const statusText = { awaiting_quote: ["Quote requested, we will email you", "due"], awaiting_payment: ["Awaiting payment", "due"], payment_reported: ["Payment reported, we are checking", "due"], in_progress: ["In progress", ""], delivered: ["Delivered", "paid"], revision_requested: ["Revision requested, we are working on it", ""] };
 
   function emailMode() {
     me = null; show("dash");
@@ -781,7 +825,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       <li><h3>Fill in the form</h3><p>The price updates as you choose. Nothing is sent yet.</p></li>
       <li><h3>Send the order by email</h3><p>Tap Place order and your email opens with everything filled in. Attach your brief and files, then send.</p></li>
       <li><h3>Get your invoice</h3><p>We reply by email with the payment options and confirm your deadline.</p></li>
-      <li><h3>Receive your work</h3><p>We email it by your deadline, and you can ask for changes within 7 days.</p></li></ol>`;
+      <li><h3>Receive your work</h3><p>We email it by your deadline, and you can send feedback and ask for changes from your account at any time.</p></li></ol>`;
     prefill(); updatePrice();
   }
 
@@ -940,6 +984,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       $("#o-submit").textContent = "Place order"; $("#o-submit").disabled = false;
       return;
     }
+    if (lastOrders.some(x => x.service === order.service && (x.title || "").toLowerCase() === order.title.toLowerCase() && x.pages === order.pages && ["awaiting_payment", "awaiting_quote"].includes(x.status)) && !confirm("You already have an unpaid order with the same details. Place another one anyway?")) { $("#o-submit").textContent = "Place order"; $("#o-submit").disabled = false; return; }
     try {
       const saved = await api.createOrder(me, order, Array.from(fileIn.files));
       form.reset(); updatePrice(); $("#file-msg").textContent = "";
@@ -1024,34 +1069,90 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 
   async function renderOrders(openId) {
     if (!LIVE) return;
-    const box = $("#orders"); let list = [];
-    try { list = await api.orders(me); lastOrders = list; } catch (x) { box.innerHTML = `<p class="err">Could not load your orders: ${esc(x.message)}</p>`; return; }
+    const box = $("#orders"); let list = [], pays = [], evs = [];
+    try { list = await api.orders(me); lastOrders = list; pays = await api.payments(); evs = await api.events(list.map(o => o.id)); }
+    catch (x) { box.innerHTML = `<p class="err">Could not load your orders: ${esc(x.message)}</p>`; return; }
     if (!list.length) { box.innerHTML = `<p class="muted">No orders yet. Fill in the form to place your first one.</p>`; return; }
+    const sig = o => [o.service, (o.title || "").toLowerCase(), o.pages, o.total].join("|"), cnt = {};
+    list.forEach(o => { cnt[sig(o)] = (cnt[sig(o)] || 0) + 1; });
+    const plural = (n, w) => n + " " + w + (n === 1 ? "" : "s");
     box.innerHTML = list.map(o => {
+      const op = pays.filter(p => p.order_id === o.id), pending = op.some(p => !p.confirmed);
+      const isQuote = o.status === "awaiting_quote", owing = Math.max(0, o.total - o.paid);
+      const canDelete = ["awaiting_payment", "awaiting_quote"].includes(o.status) && !o.paid && !op.length;
+      const dup = canDelete && cnt[sig(o)] > 1;
       const st = statusText[o.status] || [o.status, ""];
+      const showDl = o.access !== "none" && ["delivered", "revision_requested", "in_progress"].includes(o.status);
+      const needPay = o.status === "awaiting_payment" || (o.paid > 0 && owing > 0 && !pending && !isQuote);
+      const myEvs = evs.filter(e => e.order_id === o.id);
+      const delivered = ["delivered", "revision_requested"].includes(o.status);
+      const payBadge = o.paid >= o.total && o.total > 0 ? `<span class="badge paid">Paid in full</span>` : o.paid > 0 ? `<span class="badge due">Part paid ${money(o.paid)}, balance ${money(owing)}</span>` : "";
       return `<article class="order" data-id="${esc(o.id)}">
         <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:start">
           <div><h4>${esc(o.title || o.service)}</h4>
-          <div class="muted small">${esc(o.id)} · ${esc(o.service)} · ${o.coaching ? o.pages + " hour" + (o.pages > 1 ? "s" : "") + (o.due ? ", lesson " + esc(o.due.replace("T", " ")) : "") : o.pages + " page" + (o.pages > 1 ? "s" : "")} · ${(o.files || []).length} file${(o.files || []).length === 1 ? "" : "s"}</div></div>
-          <div style="text-align:right"><strong style="font-family:var(--serif);font-size:1.3rem">${o.status === "awaiting_quote" ? "Quote pending" : Q.money(o.total)}</strong><br><span class="badge ${st[1]}">${esc(st[0])}</span></div>
+          <div class="muted small">${esc(o.id)} · ${esc(o.service)} · ${o.coaching ? plural(o.pages, "hour") + (o.due ? ", lesson " + esc(o.due.replace("T", " ")) : "") : plural(o.pages, "page")} · ${plural((o.files || []).length, "file")}</div></div>
+          <div style="text-align:right"><strong style="font-family:var(--serif);font-size:1.3rem">${isQuote ? "Quote pending" : Q.money(o.total)}</strong><br><span class="badge ${st[1]}">${esc(st[0])}</span> ${payBadge}</div>
         </div>
-        ${o.status === "delivered" ? `<div class="paybox" data-dl="${esc(o.id)}"><p class="small muted">Loading your files...</p></div>` : ""}
-        ${o.status === "awaiting_payment" ? `<div class="paybox" data-pay="${esc(o.id)}"${o.id === openId ? "" : " hidden"}></div>
-        <button class="btn sm alt" style="margin-top:12px" data-topay="${esc(o.id)}">${o.id === openId ? "Hide payment options" : "Pay for this order"}</button>` : ""}
+        ${dup ? `<p class="small" style="margin:10px 0 0"><strong>Possible duplicate:</strong> you have another unpaid order with the same details. Delete the extra one if you placed it by mistake.</p>` : ""}
+        ${pending ? `<p class="small muted" style="margin:10px 0 0">Your payment report is with our team. We will email you when it is confirmed.</p>` : ""}
+        ${showDl ? `<div class="paybox" data-dl="${esc(o.id)}" data-access="${o.access}"><p class="small muted">Loading your work...</p></div>` : (delivered ? `<div class="paybox"><p class="small muted">Your work is ready. Complete payment to unlock access. Email ${esc(C.email)} if you need help.</p></div>` : "")}
+        ${needPay ? `<div class="paybox" data-pay="${esc(o.id)}"${o.id === openId ? "" : " hidden"}></div>
+        <button class="btn sm alt" style="margin-top:12px" data-topay="${esc(o.id)}">${o.id === openId ? "Hide payment options" : (o.paid > 0 ? "Pay the balance " + money(owing) : "Pay for this order")}</button>` : ""}
+        ${canDelete ? `<button class="btn sm alt" style="margin-top:12px" data-del="${esc(o.id)}">Delete this order</button>` : (isQuote || o.status === "awaiting_payment" ? "" : `<p class="small muted" style="margin:10px 0 0">Orders with payment can only be removed by our team.</p>`)}
+        ${myEvs.length ? `<details style="margin-top:12px"><summary>Messages and updates (${myEvs.length})</summary>${myEvs.map(e => `<div style="border-left:3px solid var(--ink);padding:2px 10px;margin:8px 0"><div class="small muted">${e.author_role === "staff" ? "Research Genius Hub" : "You"} · ${new Date(e.created_at).toLocaleString()}${e.kind === "confirmation" ? " · Confirmation" : ""}</div>${e.summary && e.author_role === "student" ? `<div><strong>Added: ${esc(e.summary)}</strong></div>` : ""}<div style="white-space:pre-wrap">${esc(e.message || "")}</div>${(e.files || []).length ? `<div class="small muted">Files: ${e.files.map(f => esc(f.name)).join(", ")}</div>` : ""}</div>`).join("")}</details>` : ""}
+        ${isQuote ? "" : `<details style="margin-top:12px"><summary>${delivered ? "Not happy? Send feedback or request a revision" : "Add instructions, feedback or documents"}</summary>
+          <form data-add="${esc(o.id)}" novalidate style="margin-top:10px">
+            <p class="small muted" style="margin:0 0 8px">This stays open for as long as you need it. Our team is emailed straight away.</p>
+            <div class="f"><label>Type</label><select name="kind"><option value="extra">Additional instructions or documents</option><option value="feedback"${delivered ? " selected" : ""}>Revision feedback on delivered work</option></select></div>
+            <div class="f"><label>What are you adding?</label><input type="text" name="summary" maxlength="120" placeholder="e.g. Lecturer comments, new marking rubric, fix chapter 3"></div>
+            <div class="f"><label>Details</label><textarea name="message" placeholder="Explain what should change or what the new document is for."></textarea></div>
+            <div class="f"><label>Upload documents (optional)</label><input type="file" name="files" multiple accept=".pdf,.doc,.docx,.txt,.rtf,.ppt,.pptx,.xls,.xlsx,.png,.jpg,.jpeg"></div>
+            <p class="err" role="alert"></p><button class="btn sm" type="submit">Send to our team</button>
+          </form></details>`}
       </article>`;
     }).join("");
     box.querySelectorAll("[data-dl]").forEach(async el => {
+      const acc = el.dataset.access, o = list.find(x => x.id === el.dataset.dl), owing = Math.max(0, o.total - o.paid);
       try {
-        const fs = await api.deliveries(me, el.dataset.dl);
-        el.innerHTML = fs.length ? `<h4 style="margin:0 0 6px">Your finished work</h4>` + fs.map(f => `<p style="margin:4px 0"><a class="btn sm" href="${esc(f.url)}" target="_blank" rel="noopener">Download ${esc(f.name)}</a></p>`).join("") : `<p class="small muted">Your work is marked delivered. If you do not see a file here, email ${esc(C.email)}.</p>`;
+        const fs = await api.deliveries(me, o.id, acc);
+        if (!fs.length) { el.innerHTML = `<p class="small muted">Your work is being prepared. We will email you when it is ready to view.</p>`; return; }
+        if (acc === "full") el.innerHTML = `<h4 style="margin:0 0 6px">Your finished work</h4>` + fs.map(f => `<p style="margin:4px 0"><a class="btn sm alt" href="${esc(f.url)}" target="_blank" rel="noopener">View ${esc(f.name)} online</a> <a class="btn sm" href="${esc(f.dl || f.url)}">Download</a></p>`).join("");
+        else el.innerHTML = `<h4 style="margin:0 0 6px">Preview of your work</h4><p class="small"><strong>You are seeing the first part only.</strong> Pay the balance of ${money(owing)} to unlock the full document and download it.</p>` + fs.map(f => `<p class="small" style="margin:4px 0">${esc(f.name)}</p><iframe src="${esc(f.url)}#toolbar=0&navpanes=0" title="Preview" style="width:100%;height:460px;border:1.5px solid var(--ink);border-radius:8px;background:#fff"></iframe><p class="small muted"><a href="${esc(f.url)}" target="_blank" rel="noopener">Open the preview in a new tab</a></p>`).join("");
       } catch (x) { el.innerHTML = `<p class="err">Could not load your files. Refresh the page.</p>`; }
     });
     box.querySelectorAll("[data-topay]").forEach(b => b.addEventListener("click", () => {
-      const id = b.dataset.topay, pb = box.querySelector(`[data-pay="${id}"]`);
-      pb.hidden = !pb.hidden; b.textContent = pb.hidden ? "Pay for this order" : "Hide payment options";
-      if (!pb.hidden && !pb.dataset.ready) { buildPay(pb, list.find(x => x.id === id)); pb.dataset.ready = 1; }
+      const id = b.dataset.topay, pb = box.querySelector(`[data-pay="${id}"]`), o = list.find(x => x.id === id);
+      pb.hidden = !pb.hidden; b.textContent = pb.hidden ? (o.paid > 0 ? "Pay the balance " + money(o.total - o.paid) : "Pay for this order") : "Hide payment options";
+      if (!pb.hidden && !pb.dataset.ready) { buildPay(pb, o); pb.dataset.ready = 1; }
+    }));
+    box.querySelectorAll("[data-del]").forEach(b => b.addEventListener("click", async () => {
+      if (!confirm("Delete this order? This cannot be undone.")) return;
+      b.disabled = true;
+      try { await api.deleteOrder(b.dataset.del); renderOrders(); } catch (x) { alert(x.message); b.disabled = false; }
+    }));
+    box.querySelectorAll("form[data-add]").forEach(f => f.addEventListener("submit", async e => {
+      e.preventDefault(); const err = f.querySelector(".err"), btn = f.querySelector("button"); err.textContent = "";
+      const files = Array.from(f.files.files), summary = f.summary.value.trim(), message = f.message.value.trim();
+      if (summary.length < 3) { err.textContent = "Please say what you are adding."; return; }
+      if (!message && !files.length) { err.textContent = "Add some details or upload a document."; return; }
+      if (files.length > MAX_FILES || files.some(x => x.size > MAX_MB * 1048576)) { err.textContent = `Up to ${MAX_FILES} files, ${MAX_MB} MB each.`; return; }
+      btn.disabled = true; btn.textContent = "Sending...";
+      try { await api.addEvent(me, f.dataset.add, f.kind.value, summary, message, files); await renderOrders(); }
+      catch (x) { err.textContent = "Not sent: " + x.message; btn.disabled = false; btn.textContent = "Send to our team"; }
     }));
     if (openId) { const pb = box.querySelector(`[data-pay="${openId}"]`); if (pb) { buildPay(pb, list.find(x => x.id === openId)); pb.dataset.ready = 1; } }
+  }
+
+  /* payment plan: pay in full, or part now and the rest before download */
+  function buildPay(el, o) {
+    const pct = C.partPayPercent || 50, owing = Math.max(0, o.total - (o.paid || 0));
+    const canPart = LIVE && o.status === "awaiting_payment" && !o.paid && !o.coaching && !o.sample && o.total >= (C.partPayMin || 20) && pct > 0 && pct < 100;
+    if (!canPart) { buildMethods(el, Object.assign({}, o, { total: owing || o.total, _portion: o.paid ? "balance" : "full" }), o.paid ? "balance" : "full"); return; }
+    const part = Math.round(o.total * pct) / 100;
+    el.innerHTML = `<div class="f"><label><input type="radio" name="plan-${esc(o.id)}" value="full" checked> Pay in full ${money(o.total)}: view online and download when delivered</label>
+      <label><input type="radio" name="plan-${esc(o.id)}" value="part"> Pay ${pct}% now (${money(part)}): we start the work, you preview it online, and download unlocks when you pay the balance ${money(o.total - part)}</label></div><div data-methods></div>`;
+    const go = () => { const v = el.querySelector("input:checked").value; buildMethods(el.querySelector("[data-methods]"), Object.assign({}, o, { total: v === "part" ? part : o.total }), v === "part" ? "part" : "full"); };
+    el.querySelectorAll("input[type=radio]").forEach(r => r.addEventListener("change", go)); go();
   }
 
   /* payments */
@@ -1068,7 +1169,8 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     return `<div class="f" style="margin-top:12px"><label>Payment reference or transaction ID</label><input type="text" data-ref></div>
       <button type="button" class="btn sm" data-reported>${label}</button>`;
   }
-  function buildPay(el, o) {
+  function buildMethods(el, o, portion) {
+    o._portion = portion;
     const ms = methods();
     if (!ms.length) {
       el.innerHTML = `<p class="small">Payment methods are being set up. Email <a href="mailto:${C.email}">${C.email}</a> with order number <strong>${esc(o.id)}</strong> and we will send payment details.</p>`;
@@ -1110,7 +1212,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       }
       const btn = host.querySelector("[data-reported]");
       if (btn) btn.addEventListener("click", async () => {
-        await api.reportPayment(me, o.id, m.id, host.querySelector("[data-ref]").value.trim()); renderOrders();
+        await api.reportPayment(me, o.id, m.id, host.querySelector("[data-ref]").value.trim(), o.total, portion); renderOrders();
       });
     });
   }
@@ -1120,7 +1222,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       host.innerHTML = `<div data-btn></div><p class="small muted">Pay by PayPal balance or by card.</p>`;
       const run = () => window.paypal.Buttons({
         createOrder: (d, a) => a.order.create({ purchase_units: [{ reference_id: o.id, description: "Research Genius Hub " + o.id, amount: { currency_code: "GBP", value: o.total.toFixed(2) } }] }),
-        onApprove: (d, a) => a.order.capture().then(async det => { await api.reportPayment(me, o.id, "paypal", det.id); renderOrders(); }),
+        onApprove: (d, a) => a.order.capture().then(async det => { await api.reportPayment(me, o.id, "paypal", det.id, o.total, o._portion); renderOrders(); }),
         onError: () => { host.insertAdjacentHTML("beforeend", `<p class="err">PayPal could not complete the payment. Try again or choose another method.</p>`); }
       }).render(host.querySelector("[data-btn]"));
       if (window.paypal) run(); else {
@@ -1131,7 +1233,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     } else {
       host.innerHTML = `<a class="btn" target="_blank" rel="noopener" href="https://paypal.me/${encodeURIComponent(C.paypalMe)}/${o.total.toFixed(2)}GBP">Pay ${Q.money(o.total)} with PayPal</a>
         ${reportBlock("I have paid by PayPal")}`;
-      host.querySelector("[data-reported]").addEventListener("click", async () => { await api.reportPayment(me, o.id, "paypal", host.querySelector("[data-ref]").value.trim()); renderOrders(); });
+      host.querySelector("[data-reported]").addEventListener("click", async () => { await api.reportPayment(me, o.id, "paypal", host.querySelector("[data-ref]").value.trim(), o.total, portion); renderOrders(); });
     }
   }
 
@@ -1185,7 +1287,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     { re: /journal|publish|publication|peer.?review|manuscript|article|scopus/i, a: () => `We coach Masters and PhD students on getting research published in peer-reviewed and non-peer-reviewed outlets, from choosing a journal to answering reviewers. We cannot promise acceptance. Price is by quote: <a href="services.html#journal-publication">see the service and enquire</a>` },
     { re: /subject|course|nursing|finance|accounting|business|hr\b|human resource|logistics|law|field|cover/i, a: () => `We cover Finance, Business, Accounting, Nursing, Healthcare, Human Resource, Logistics and many more fields. <a href="index.html#subjects">See the list</a>` },
     { re: /account|sign|upload|file|login|register|order/i, a: () => `Create a free account or sign in, then place your order and attach your brief and files. <a href="account.html#new">Start an order</a>` },
-    { re: /refund|revision|change|edit/i, a: () => `You can ask for revisions within 7 days of delivery. See our <a href="terms.html">terms</a> for refunds.` },
+    { re: /refund|revision|change|edit/i, a: () => `You can send revision feedback and extra documents from your account at any time after delivery. See our <a href="terms.html">terms</a> for refunds.` },
     { re: /country|uk|usa|us\b|canada|australia|china|where/i, a: () => `We work with students from Australia, the US, China, the UK and Canada.` }
   ];
   const HUMAN = /human|person|agent|someone|staff|call|whatsapp|email|talk|speak|contact/i;

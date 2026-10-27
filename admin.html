@@ -3,502 +3,529 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="noindex,nofollow">
-<title>Admin | Research Genius Hub</title>
+<title>Staff | Research Genius Hub</title>
+<meta name="description" content="Choose your service, see the price, send your requirements and pay by PayPal or M-Pesa.">
+<meta name="robots" content="noindex">
+<meta property="og:site_name" content="Research Genius Hub">
+<meta property="og:image" content="https://researchgeniushub.github.io/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0F1B33">
+
+<meta property="og:title" content="Place an Order | Research Genius Hub">
+<meta property="og:description" content="Choose your service, see the price, send your requirements and pay by PayPal or M-Pesa.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://researchgeniushub.github.io/account.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&display=swap" rel="stylesheet">
+<link rel="icon" href="favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://embed.tawk.to" crossorigin>
 <style>
-:root{--ink:#0F1B33;--teal:#0E7C86;--paper:#F6F7FA;--line:#cfd6e2;--pen:#C0303C;--ok:#1a7f4b}
+:root{
+  --paper:#F6F7FA; --white:#FFFFFF; --ink:#0F1B33; --ink2:#46526B; --line:#D8DDE8;
+  --teal:#0E7C86; --teal-d:#0A5B63; --hi:#FFE45C; --pen:#C0303C; --ok:#1E7B4A;
+  --serif:'Newsreader',Georgia,'Times New Roman',serif;
+  --sans:'Hanken Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --max:1120px;
+}
 *{box-sizing:border-box}
-body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:16px}
-main{max-width:660px;margin:0 auto}
-h1{font-size:1.6rem;margin:.2em 0}h2{font-size:1.2rem;margin:0 0 6px}
-label{display:block;font-weight:600;margin:14px 0 4px}
-input,select,textarea{width:100%;font:inherit;padding:11px;border:1.5px solid var(--ink);border-radius:8px;background:#fff;color:var(--ink)}
-textarea{min-height:180px}
-button,.btn{font:inherit;font-weight:700;background:var(--ink);color:#fff;border:0;border-radius:8px;padding:13px 18px;margin:12px 8px 0 0;cursor:pointer}
-button.alt{background:#fff;color:var(--ink);border:1.5px solid var(--ink)}
-button.del{background:#fff;color:var(--pen);border:1.5px solid var(--pen);padding:8px 12px;margin:0}
-button:disabled{opacity:.5}
-.hint{color:#51607a;font-size:.9rem}
-.box{background:#fff;border:1.5px solid var(--ink);border-radius:10px;padding:16px;margin-top:16px}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.ok{color:var(--ok);font-weight:600}.err{color:var(--pen);font-weight:600}
-.item{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
-.item:last-child{border:0}
-details{margin-top:10px}summary{font-weight:600;cursor:pointer}
-ol{padding-left:20px}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 1.0625rem/1.6 var(--sans);-webkit-font-smoothing:antialiased}
+img{max-width:100%;display:block}
+a{color:var(--teal-d);text-underline-offset:3px}
+a:hover{color:var(--ink)}
+:focus-visible{outline:3px solid var(--teal);outline-offset:2px;border-radius:3px}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 20px}
+.skip{position:absolute;left:-999px;top:0;background:var(--ink);color:#fff;padding:10px 14px;z-index:100}
+.skip:focus{left:8px;top:8px}
+
+h1,h2,h3{font-family:var(--serif);font-weight:500;letter-spacing:-.015em;line-height:1.12;margin:0 0 .5em}
+h1{font-size:clamp(2.4rem,5.2vw,4.1rem);letter-spacing:-.025em}
+h2{font-size:clamp(1.8rem,3.4vw,2.6rem)}
+h3{font-size:1.35rem}
+p{margin:0 0 1em;max-width:68ch}
+.lede{font-size:1.2rem;color:var(--ink2);max-width:56ch}
+.muted{color:var(--ink2)}
+.small{font-size:.92rem}
+
+/* header */
+.site-header{position:sticky;top:0;z-index:50;background:rgba(246,247,250,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.site-header .wrap{display:flex;align-items:center;gap:22px;min-height:66px}
+.brand{display:inline-flex;align-items:center;gap:10px;font-family:var(--serif);font-weight:600;font-size:1.3rem;color:var(--ink);text-decoration:none;letter-spacing:-.01em;white-space:nowrap}
+.brand b{font-weight:600}
+.brand .hl{background:linear-gradient(transparent 58%,var(--hi) 58%,var(--hi) 92%,transparent 92%);padding:0 2px}
+.nav{display:flex;gap:20px;margin-left:auto;align-items:center}
+.nav a{color:var(--ink);text-decoration:none;font-weight:500;font-size:.98rem;padding:6px 0;border-bottom:2px solid transparent}
+.nav a:hover,.nav a[aria-current="page"]{border-bottom-color:var(--teal)}
+.hdr-actions{display:flex;gap:12px;align-items:center}
+.menu-toggle{display:none;margin-left:auto;background:none;border:1.5px solid var(--ink);border-radius:8px;padding:8px 14px;font:600 .95rem var(--sans);color:var(--ink)}
+
+/* buttons */
+.btn{display:inline-block;background:var(--ink);color:#fff;text-decoration:none;border:1.5px solid var(--ink);border-radius:8px;padding:12px 20px;font:600 1rem var(--sans);cursor:pointer;text-align:center}
+.btn:hover{background:var(--teal-d);border-color:var(--teal-d);color:#fff}
+.btn.alt{background:transparent;color:var(--ink)}
+.btn.alt:hover{background:var(--ink);color:#fff}
+.btn.sm{padding:8px 14px;font-size:.93rem}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.btn.block{display:block;width:100%}
+
+/* hero */
+.hero{padding:56px 0 64px;background-color:var(--paper);background-image:linear-gradient(#E6EAF2 1px,transparent 1px),linear-gradient(90deg,#E6EAF2 1px,transparent 1px);background-size:34px 34px;background-position:-1px -1px}
+.hero .wrap{display:grid;grid-template-columns:1.1fr .9fr;gap:56px;align-items:start}
+.hero h1{max-width:13ch}
+.cta-row{display:flex;flex-wrap:wrap;gap:12px;margin:26px 0 34px}
+.markup{border-left:3px solid var(--line);padding:4px 0 4px 18px;max-width:46ch}
+.markup q{font-family:var(--serif);font-size:1.3rem;quotes:none;display:block;line-height:1.35}
+mark{background:linear-gradient(transparent 12%,var(--hi) 12%,var(--hi) 88%,transparent 88%);color:inherit;padding:0 2px}
+.pen{font-family:var(--serif);font-style:italic;color:var(--pen);font-size:1.02rem;display:block;margin-top:6px;transform:rotate(-1deg);transform-origin:left}
+.markup small{display:block;color:var(--ink2);margin-top:10px;font-size:.88rem}
+
+/* calculator: the quote slip */
+.calc{background:var(--white);border:1.5px solid var(--ink);border-radius:10px;box-shadow:7px 7px 0 var(--hi);padding:24px;position:relative}
+.calc h2,.calc h3{font-size:1.5rem;margin-bottom:.3em}
+.calc .sub{color:var(--ink2);font-size:.95rem;margin-bottom:16px}
+.calc fieldset{border:0;padding:0;margin:0 0 14px}
+.calc legend,.calc label.lbl,.f label{font-weight:600;font-size:.9rem;display:block;margin-bottom:6px;padding:0}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;border:1.5px solid var(--ink);border-radius:8px;overflow:hidden}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{margin:0;padding:10px 8px;text-align:center;cursor:pointer;font-weight:500;font-size:.93rem;border-right:1.5px solid var(--ink);background:#fff}
+.seg label:last-of-type{border-right:0}
+.seg input:checked+label{background:var(--ink);color:#fff}
+.seg input:focus-visible+label{outline:3px solid var(--teal);outline-offset:-3px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+input[type=text],input[type=email],input[type=tel],input[type=password],input[type=number],input[type=datetime-local],select,textarea{width:100%;font:400 1rem var(--sans);color:var(--ink);background:#fff;border:1.5px solid var(--ink);border-radius:8px;padding:10px 12px}
+textarea{min-height:130px;resize:vertical}
+.total{border-top:2px dashed var(--ink);margin-top:18px;padding-top:16px;display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.total output{font-family:var(--serif);font-size:2.6rem;font-weight:600;letter-spacing:-.02em;line-height:1}
+.breakdown{color:var(--ink2);font-size:.93rem;margin:8px 0 16px}
+.cur{display:flex;gap:8px;align-items:center;font-size:.88rem;color:var(--ink2);margin-bottom:14px}
+.cur select{width:auto;padding:5px 8px;font-size:.88rem}
+
+/* sections */
+section.s{padding:68px 0;border-top:1px solid var(--line)}
+section.s.tint{background:var(--white)}
+.sec-head{max-width:60ch;margin-bottom:34px}
+
+/* strip */
+.strip{padding:22px 0;background:var(--ink);color:#fff}
+.strip .wrap{display:flex;flex-wrap:wrap;gap:8px 26px;align-items:center}
+.strip strong{font-family:var(--serif);font-weight:500;font-size:1.1rem}
+.strip span{opacity:.88;font-size:.95rem}
+
+/* service rows */
+.rows{border-top:1.5px solid var(--ink)}
+.row{display:grid;grid-template-columns:.9fr 1.6fr 150px;gap:12px 32px;padding:24px 0;border-bottom:1px solid var(--line);align-items:start}
+.row h3{margin:0}
+.row p{margin:0 0 .4em}
+.row .price{font-family:var(--serif);font-size:1.25rem;font-weight:600;white-space:nowrap}
+.row .price small{display:block;font:400 .85rem var(--sans);color:var(--ink2);text-align:right}
+
+/* process: a true sequence */
+.steps{counter-reset:s;list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:28px}
+.steps li{counter-increment:s;border-top:3px solid var(--ink);padding-top:14px}
+.steps li::before{content:counter(s);font-family:var(--serif);font-size:1.7rem;font-weight:600;color:var(--teal-d);display:block;line-height:1;margin-bottom:8px}
+.steps h3{font-size:1.15rem;margin-bottom:.3em}
+.steps p{font-size:.97rem;color:var(--ink2);margin:0}
+
+/* tables */
+table.rates{border-collapse:collapse;width:100%;max-width:640px;background:#fff;border:1.5px solid var(--ink)}
+.rates th,.rates td{padding:12px 16px;text-align:left;border-bottom:1px solid var(--line)}
+.rates th{background:var(--ink);color:#fff;font-weight:600}
+.rates td:last-child{font-family:var(--serif);font-weight:600;font-size:1.15rem}
+
+/* two col content */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:48px}
+.panel{background:#fff;border:1.5px solid var(--ink);border-radius:10px;padding:24px}
+.panel h3{margin-top:0}
+ul.plain{padding-left:1.1em;margin:0 0 1em}
+ul.plain li{margin-bottom:.4em}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;list-style:none}
+.chips li{border:1.5px solid var(--ink);border-radius:999px;padding:4px 14px;font-size:.92rem;background:#fff}
+
+/* guides + faq */
+details{border-bottom:1px solid var(--line);padding:14px 0}
+details:first-of-type{border-top:1.5px solid var(--ink)}
+summary{cursor:pointer;font-family:var(--serif);font-size:1.3rem;font-weight:500;list-style:none;display:flex;justify-content:space-between;gap:16px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";font-family:var(--sans);font-weight:400;font-size:1.5rem;line-height:1}
+details[open] summary::after{content:"\2212"}
+details .body{padding:12px 0 6px;max-width:68ch}
+details .body h4{margin:1.1em 0 .3em;font-size:1rem}
+
+/* samples */
+.samples{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.sample{background:#fff;border:1.5px solid var(--ink);border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:10px}
+.sample h3{margin:0;font-size:1.2rem}
+.sample .meta{color:var(--ink2);font-size:.9rem}
+.sample .soon{color:var(--ink2);font-style:italic;font-family:var(--serif)}
+.sample .btn{margin-top:auto;align-self:flex-start}
+
+/* account */
+.demo-note{background:var(--hi);border:1.5px solid var(--ink);border-radius:8px;padding:10px 14px;font-size:.93rem;margin-bottom:22px}
+.auth{max-width:460px}
+.tabs{display:flex;gap:0;margin-bottom:18px}
+.tabs button{flex:1;padding:12px;border:1.5px solid var(--ink);background:#fff;font:600 1rem var(--sans);cursor:pointer;color:var(--ink)}
+.tabs button+button{border-left:0}
+.tabs button[aria-selected=true]{background:var(--ink);color:#fff}
+.f{margin-bottom:14px}
+.f .hint{font-size:.85rem;color:var(--ink2);margin-top:4px}
+.err{color:var(--pen);font-weight:600;font-size:.95rem;min-height:1.4em}
+.ok{color:var(--ok);font-weight:600}
+.dash-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:36px;align-items:start}
+.order{border:1.5px solid var(--ink);border-radius:10px;background:#fff;padding:16px 18px;margin-bottom:14px}
+.order h4{margin:0 0 4px;font-family:var(--serif);font-size:1.15rem;font-weight:600}
+.badge{display:inline-block;font-size:.8rem;font-weight:700;padding:2px 10px;border-radius:999px;border:1.5px solid var(--ink);background:#fff}
+.badge.due{background:var(--hi)}
+.badge.paid{background:#D6F0E1;border-color:var(--ok);color:#12522F}
+.paybox{margin-top:14px;border-top:2px dashed var(--ink);padding-top:14px}
+.paybox dl{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:8px 0 14px;font-size:.95rem}
+.paybox dt{font-weight:600}
+.paybox dd{margin:0;word-break:break-all}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:22px}
+
+/* footer */
+.site-footer{background:var(--ink);color:#DCE2EE;padding:48px 0 28px;margin-top:0}
+.site-footer a{color:#fff}
+.site-footer .grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:32px}
+.site-footer h4{font-family:var(--sans);font-size:.95rem;margin:0 0 10px;color:#fff}
+.site-footer ul{list-style:none;margin:0;padding:0}
+.site-footer li{margin-bottom:6px;font-size:.95rem}
+.site-footer .brand{color:#fff;font-size:1.4rem}
+.site-footer .legal{border-top:1px solid #2A3857;margin-top:30px;padding-top:16px;font-size:.85rem;opacity:.85}
+
+/* whatsapp */
+.wa{position:fixed;left:16px;bottom:16px;z-index:60;background:#1FA855;color:#fff;font-weight:700;text-decoration:none;border-radius:999px;padding:12px 18px;box-shadow:0 6px 18px rgba(0,0,0,.25);display:none}
+.wa.on{display:inline-block}
+.wa:hover{color:#fff;background:#178a45}
+
+.page-head{padding:52px 0 30px}
+.page-head h1{font-size:clamp(2.1rem,4.4vw,3.2rem);max-width:20ch}
+
+@media (max-width:940px){
+  .hero .wrap,.cols,.dash-grid{grid-template-columns:1fr}
+  .hero .wrap{gap:36px}
+  .steps{grid-template-columns:1fr 1fr}
+  .samples{grid-template-columns:1fr 1fr}
+  .site-footer .grid{grid-template-columns:1fr 1fr}
+  .row{grid-template-columns:1fr}
+  .row .price small{text-align:left}
+}
+@media (max-width:820px){
+  .menu-toggle{display:block}
+  .nav,.hdr-actions{display:none}
+  .site-header.open .wrap{flex-wrap:wrap;padding-bottom:14px}
+  .site-header.open .nav,.site-header.open .hdr-actions{display:flex;width:100%;flex-direction:column;align-items:flex-start;gap:10px;margin-left:0}
+}
+@media (max-width:560px){
+  .steps,.samples,.site-footer .grid,.two{grid-template-columns:1fr}
+  .hero{padding-top:34px}
+  .calc{padding:18px;box-shadow:5px 5px 0 var(--hi)}
+  .total output{font-size:2.2rem}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+/* about, values, motto */
+.about{display:grid;grid-template-columns:.9fr 1.1fr;gap:56px;align-items:start}
+.about-list{display:grid;grid-template-columns:1fr 1fr;gap:26px 30px}
+.about-list div{border-top:3px solid var(--ink);padding-top:12px}
+.about-list h3{font-size:1.2rem;margin-bottom:.3em}
+.about-list p{font-size:.97rem;color:var(--ink2);margin:0}
+.values{margin:0;border-top:1.5px solid var(--ink)}
+.values div{display:grid;grid-template-columns:.8fr 2fr;gap:8px 32px;padding:18px 0;border-bottom:1px solid var(--line)}
+.values dt{font-family:var(--serif);font-size:1.3rem;font-weight:600}
+.values dd{margin:0;color:var(--ink2)}
+.motto{background:var(--teal-d);color:#fff;padding:54px 0}
+.motto p{font-family:var(--serif);font-size:clamp(1.7rem,3.8vw,2.9rem);line-height:1.18;letter-spacing:-.02em;max-width:24ch;margin:0}
+@media (max-width:940px){.about{grid-template-columns:1fr;gap:30px}.values div{grid-template-columns:1fr}}
+@media (max-width:560px){.about-list{grid-template-columns:1fr}}
+
+/* illustrations and icons */
+.scene{display:block;width:100%;max-width:520px;height:auto;margin-top:30px}
+.row h3{display:flex;align-items:center;gap:12px}
+.ic{width:30px;height:30px;flex:none;fill:none;stroke:var(--teal-d);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.motto .wrap{display:grid;grid-template-columns:1.2fr .8fr;gap:30px;align-items:center}
+.motto img{width:100%;max-width:380px;height:auto;justify-self:end}
+.hero .markup{background:rgba(246,247,250,.9);padding-right:12px}
+@media (max-width:760px){.motto .wrap{grid-template-columns:1fr}.motto img{justify-self:start}}
+
+/* home v2: calmer */
+.view[hidden]{display:none}
+.hero .wrap{align-items:center}
+.hero h1{max-width:19ch;font-size:clamp(2rem,4.1vw,3.3rem);line-height:1.1}
+.motto-line{font-family:var(--serif);font-style:italic;font-size:clamp(1.25rem,2.2vw,1.65rem);color:var(--teal-d);margin:18px 0 0;max-width:34ch;line-height:1.3}
+.hero .cta-row{margin:26px 0 0}
+.hero .scene{margin:0;max-width:540px;justify-self:end}
+.about-list.four{grid-template-columns:repeat(4,1fr)}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:30px 36px}
+.tiles h3{font-size:1.2rem;margin-bottom:.3em}
+.tiles p{margin:0;color:var(--ink2);font-size:.98rem}
+.btn.yellow{background:var(--hi);color:var(--ink);border-color:var(--hi)}
+.btn.yellow:hover{background:#fff;border-color:#fff;color:var(--ink)}
+.motto p:first-child{font-size:clamp(1.7rem,3.4vw,2.5rem);margin:0 0 20px}
+.motto .small{font-family:var(--sans);font-size:.95rem;max-width:none}
+section.s{padding:56px 0}
+@media (max-width:940px){.about-list.four{grid-template-columns:1fr 1fr}.tiles{grid-template-columns:1fr 1fr}.hero .scene{justify-self:start}}
+@media (max-width:560px){.about-list.four,.tiles{grid-template-columns:1fr}}
+
+/* samples + pay tabs */
+.sample .intro{border:0;padding:0}
+.sample .intro summary{font:600 .95rem var(--sans);color:var(--teal-d);text-decoration:underline;text-underline-offset:3px;display:block}
+.sample .intro summary::after{content:""}
+.sample .intro p{font-family:var(--serif);font-size:1.02rem;margin:10px 0 0;padding:10px 0 10px 14px;border-left:3px solid var(--hi)}
+.sample .locked{margin-top:auto;border-top:2px dashed var(--ink);padding-top:12px;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.sample .badge{align-self:flex-start}
+.paytabs{flex-wrap:wrap;gap:6px}
+.paytabs button{flex:1 1 auto;border:1.5px solid var(--ink)!important;border-radius:8px}
+.samples{align-items:start}
+
+.about-list.three{grid-template-columns:repeat(3,1fr)}
+@media (max-width:940px){.about-list.three{grid-template-columns:1fr}}
+.approx{color:var(--ink2);font-size:.88rem;margin:-6px 0 12px}
+.cur select{min-width:150px}
+
+/* academic backdrop */
+.hero{position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;left:0;right:0;bottom:0;height:150px;background:url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNDQwIDIwMCIgcHJlc2VydmVBc3BlY3RSYXRpbz0ieE1pZFlNYXggc2xpY2UiIGFyaWEtaGlkZGVuPSJ0cnVlIj4KPGcgZmlsbD0iI0RDRTNFRSI+CjxyZWN0IHg9IjQwIiB5PSIxMzYiIHdpZHRoPSIxMiIgaGVpZ2h0PSI2NCIgcng9IjEuNSIvPjxyZWN0IHg9IjU0IiB5PSIxMjgiIHdpZHRoPSIxMCIgaGVpZ2h0PSI3MiIgcng9IjEuNSIvPjxyZWN0IHg9IjY2IiB5PSIxNDQiIHdpZHRoPSIxNiIgaGVpZ2h0PSI1NiIgcng9IjEuNSIvPjxyZWN0IHg9Ijg0IiB5PSIxNTQiIHdpZHRoPSIxMCIgaGVpZ2h0PSI0NiIgcng9IjEuNSIvPjxyZWN0IHg9Ijk2IiB5PSIxMjgiIHdpZHRoPSIxMCIgaGVpZ2h0PSI3MiIgcng9IjEuNSIvPjxyZWN0IHg9IjEwOCIgeT0iMTU0IiB3aWR0aD0iMTQiIGhlaWdodD0iNDYiIHJ4PSIxLjUiLz48cmVjdCB4PSIxMjQiIHk9IjEyMCIgd2lkdGg9IjEyIiBoZWlnaHQ9IjgwIiByeD0iMS41Ii8+PHJlY3QgeD0iMTM4IiB5PSIxMzYiIHdpZHRoPSIxNCIgaGVpZ2h0PSI2NCIgcng9IjEuNSIvPjxyZWN0IHg9IjE1NCIgeT0iMTU0IiB3aWR0aD0iMTIiIGhlaWdodD0iNDYiIHJ4PSIxLjUiLz48cmVjdCB4PSIxNjgiIHk9IjE0NCIgd2lkdGg9IjE0IiBoZWlnaHQ9IjU2IiByeD0iMS41Ii8+PHJlY3QgeD0iMTg0IiB5PSIxMzYiIHdpZHRoPSIxMCIgaGVpZ2h0PSI2NCIgcng9IjEuNSIvPjxyZWN0IHg9IjE5NiIgeT0iMTQ0IiB3aWR0aD0iMTQiIGhlaWdodD0iNTYiIHJ4PSIxLjUiLz48cmVjdCB4PSIyMTIiIHk9IjEzNiIgd2lkdGg9IjEyIiBoZWlnaHQ9IjY0IiByeD0iMS41Ii8+PHJlY3QgeD0iMjI2IiB5PSIxMzYiIHdpZHRoPSIxNCIgaGVpZ2h0PSI2NCIgcng9IjEuNSIvPjxyZWN0IHg9IjI0MiIgeT0iMTIwIiB3aWR0aD0iMTAiIGhlaWdodD0iODAiIHJ4PSIxLjUiLz48cmVjdCB4PSIyNTQiIHk9IjEyOCIgd2lkdGg9IjE0IiBoZWlnaHQ9IjcyIiByeD0iMS41Ii8+PHJlY3QgeD0iMjcwIiB5PSIxNDQiIHdpZHRoPSIxMiIgaGVpZ2h0PSI1NiIgcng9IjEuNSIvPjxyZWN0IHg9IjI4NCIgeT0iMTI4IiB3aWR0aD0iMTIiIGhlaWdodD0iNzIiIHJ4PSIxLjUiLz48cmVjdCB4PSIyOTgiIHk9IjE1NCIgd2lkdGg9IjE0IiBoZWlnaHQ9IjQ2IiByeD0iMS41Ii8+PHJlY3QgeD0iMzE0IiB5PSIxNTQiIHdpZHRoPSIxNCIgaGVpZ2h0PSI0NiIgcng9IjEuNSIvPjxyZWN0IHg9IjMzMCIgeT0iMTIwIiB3aWR0aD0iMTQiIGhlaWdodD0iODAiIHJ4PSIxLjUiLz48cmVjdCB4PSIzNDYiIHk9IjEyMCIgd2lkdGg9IjE0IiBoZWlnaHQ9IjgwIiByeD0iMS41Ii8+PHJlY3QgeD0iMzYyIiB5PSIxMjgiIHdpZHRoPSIxMiIgaGVpZ2h0PSI3MiIgcng9IjEuNSIvPjxyZWN0IHg9IjM3NiIgeT0iMTIwIiB3aWR0aD0iMTYiIGhlaWdodD0iODAiIHJ4PSIxLjUiLz48cmVjdCB4PSIzOTQiIHk9IjEyOCIgd2lkdGg9IjE0IiBoZWlnaHQ9IjcyIiByeD0iMS41Ii8+CjxnPgogPHBhdGggZD0iTTUyMCA4NiBMNzIwIDIyIEw5MjAgODYgWiIvPgogPHJlY3QgeD0iNTIwIiB5PSI4NiIgd2lkdGg9IjQwMCIgaGVpZ2h0PSIxMCIvPgogPHJlY3QgeD0iNTYwIiB5PSI4NiIgd2lkdGg9IjIyIiBoZWlnaHQ9Ijg2IiAvPjxyZWN0IHg9IjYxMiIgeT0iODYiIHdpZHRoPSIyMiIgaGVpZ2h0PSI4NiIgLz48cmVjdCB4PSI2NjQiIHk9Ijg2IiB3aWR0aD0iMjIiIGhlaWdodD0iODYiIC8+PHJlY3QgeD0iNzE2IiB5PSI4NiIgd2lkdGg9IjIyIiBoZWlnaHQ9Ijg2IiAvPjxyZWN0IHg9Ijc2OCIgeT0iODYiIHdpZHRoPSIyMiIgaGVpZ2h0PSI4NiIgLz48cmVjdCB4PSI4MjAiIHk9Ijg2IiB3aWR0aD0iMjIiIGhlaWdodD0iODYiIC8+PHJlY3QgeD0iODcyIiB5PSI4NiIgd2lkdGg9IjIyIiBoZWlnaHQ9Ijg2IiAvPgogPHJlY3QgeD0iNTAwIiB5PSIxNzIiIHdpZHRoPSI0NDAiIGhlaWdodD0iMTIiLz4KIDxyZWN0IHg9IjQ4NCIgeT0iMTg0IiB3aWR0aD0iNDcyIiBoZWlnaHQ9IjE2Ii8+CiA8cmVjdCB4PSI3MDAiIHk9IjQiIHdpZHRoPSI0MCIgaGVpZ2h0PSIxOCIgcng9IjIiLz4KPC9nPgo8cGF0aCBkPSJNOTgwIDIwMCBWMTIwIEgxMDQwIFYyMDAgWiIvPgo8cGF0aCBkPSJNMTA0MCAyMDAgVjk2IEgxMDU2IFYyMDAgWiIvPgo8Y2lyY2xlIGN4PSIxMDEwIiBjeT0iMTAwIiByPSIyMiIvPgo8cmVjdCB4PSIxMDA2IiB5PSI3MCIgd2lkdGg9IjgiIGhlaWdodD0iMTQiLz4KPHJlY3QgeD0iMTA2MCIgeT0iMTQ4IiB3aWR0aD0iMTYiIGhlaWdodD0iNTIiIHJ4PSIxLjUiLz48cmVjdCB4PSIxMDc4IiB5PSIxNDAiIHdpZHRoPSIxMiIgaGVpZ2h0PSI2MCIgcng9IjEuNSIvPjxyZWN0IHg9IjEwOTIiIHk9IjE2MCIgd2lkdGg9IjE0IiBoZWlnaHQ9IjQwIiByeD0iMS41Ii8+PHJlY3QgeD0iMTEwOCIgeT0iMTYwIiB3aWR0aD0iMTAiIGhlaWdodD0iNDAiIHJ4PSIxLjUiLz48cmVjdCB4PSIxMTIwIiB5PSIxNDAiIHdpZHRoPSIxNiIgaGVpZ2h0PSI2MCIgcng9IjEuNSIvPjxyZWN0IHg9IjExMzgiIHk9IjE0MCIgd2lkdGg9IjE2IiBoZWlnaHQ9IjYwIiByeD0iMS41Ii8+PHJlY3QgeD0iMTE1NiIgeT0iMTQ4IiB3aWR0aD0iMTIiIGhlaWdodD0iNTIiIHJ4PSIxLjUiLz48cmVjdCB4PSIxMTcwIiB5PSIxMzAiIHdpZHRoPSIxMCIgaGVpZ2h0PSI3MCIgcng9IjEuNSIvPjxyZWN0IHg9IjExODIiIHk9IjEzMCIgd2lkdGg9IjEyIiBoZWlnaHQ9IjcwIiByeD0iMS41Ii8+PHJlY3QgeD0iMTE5NiIgeT0iMTQ4IiB3aWR0aD0iMTQiIGhlaWdodD0iNTIiIHJ4PSIxLjUiLz48cmVjdCB4PSIxMjEyIiB5PSIxMzAiIHdpZHRoPSIxNCIgaGVpZ2h0PSI3MCIgcng9IjEuNSIvPjxyZWN0IHg9IjEyMjgiIHk9IjE0OCIgd2lkdGg9IjE0IiBoZWlnaHQ9IjUyIiByeD0iMS41Ii8+PHJlY3QgeD0iMTI0NCIgeT0iMTYwIiB3aWR0aD0iMTQiIGhlaWdodD0iNDAiIHJ4PSIxLjUiLz48cmVjdCB4PSIxMjYwIiB5PSIxNDgiIHdpZHRoPSIxMCIgaGVpZ2h0PSI1MiIgcng9IjEuNSIvPjxyZWN0IHg9IjEyNzIiIHk9IjE0OCIgd2lkdGg9IjE0IiBoZWlnaHQ9IjUyIiByeD0iMS41Ii8+PHJlY3QgeD0iMTI4OCIgeT0iMTQwIiB3aWR0aD0iMTAiIGhlaWdodD0iNjAiIHJ4PSIxLjUiLz48cmVjdCB4PSIxMzAwIiB5PSIxNDAiIHdpZHRoPSIxMiIgaGVpZ2h0PSI2MCIgcng9IjEuNSIvPjxyZWN0IHg9IjEzMTQiIHk9IjE2MCIgd2lkdGg9IjE2IiBoZWlnaHQ9IjQwIiByeD0iMS41Ii8+PHJlY3QgeD0iMTMzMiIgeT0iMTQwIiB3aWR0aD0iMTAiIGhlaWdodD0iNjAiIHJ4PSIxLjUiLz48cmVjdCB4PSIxMzQ0IiB5PSIxNDAiIHdpZHRoPSIxMCIgaGVpZ2h0PSI2MCIgcng9IjEuNSIvPjxyZWN0IHg9IjEzNTYiIHk9IjE2MCIgd2lkdGg9IjE0IiBoZWlnaHQ9IjQwIiByeD0iMS41Ii8+PHJlY3QgeD0iMTM3MiIgeT0iMTQwIiB3aWR0aD0iMTQiIGhlaWdodD0iNjAiIHJ4PSIxLjUiLz48cmVjdCB4PSIxMzg4IiB5PSIxNDgiIHdpZHRoPSIxNCIgaGVpZ2h0PSI1MiIgcng9IjEuNSIvPgo8L2c+Cjwvc3ZnPg==) center bottom/cover no-repeat;pointer-events:none;opacity:.9}
+.hero .wrap{position:relative;z-index:1;padding-bottom:70px}
+.page-head{background:linear-gradient(var(--paper),var(--paper));position:relative}
+.page-head::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(transparent 0 33px,#E4E9F2 33px 34px);opacity:.55;pointer-events:none}
+.page-head .wrap{position:relative}
+body{background:var(--paper)}
+.reviews{display:grid;grid-template-columns:repeat(3,1fr);gap:26px}
+.reviews figure{margin:0;border-left:3px solid var(--hi);padding-left:16px}
+.reviews blockquote{margin:0 0 10px;font-family:var(--serif);font-size:1.1rem;line-height:1.5}
+.reviews figcaption{color:var(--ink2);font-size:.92rem}
+@media (max-width:940px){.reviews{grid-template-columns:1fr}.nav{gap:14px}}
+@media (max-width:1060px){.nav{gap:12px}.nav a{font-size:.92rem}.hdr-actions a:first-child{display:none}}
+
+/* chat */
+.chat{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:max(16px,env(safe-area-inset-bottom,0px));z-index:70}
+.chat-launch{background:var(--ink);color:#fff;border:2px solid var(--ink);border-radius:999px;padding:12px 20px;font:600 1rem var(--sans);cursor:pointer;box-shadow:4px 4px 0 var(--hi)}
+.chat-launch:hover{background:var(--teal-d);border-color:var(--teal-d)}
+.chat-panel{width:350px;max-width:calc(100vw - 32px);background:#fff;border:1.5px solid var(--ink);border-radius:12px;box-shadow:6px 6px 0 var(--hi);display:flex;flex-direction:column;overflow:hidden;max-height:min(520px,calc(100vh - 40px))}
+.chat-panel[hidden]{display:none}
+.chat-panel header{background:var(--ink);color:#fff;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.chat-panel header strong{display:block;font-family:var(--serif);font-size:1.1rem;font-weight:600}
+.chat-panel header span{font-size:.85rem;opacity:.85}
+.chat-x{background:none;border:0;color:#fff;font-size:1.6rem;line-height:1;cursor:pointer;padding:0 4px}
+.chat-log{padding:14px;overflow-y:auto;flex:1;min-height:150px;display:flex;flex-direction:column;gap:10px}
+.msg{padding:9px 12px;border-radius:10px;font-size:.95rem;line-height:1.45;max-width:90%}
+.msg.bot{background:var(--paper);border:1px solid var(--line);align-self:flex-start}
+.msg.me{background:var(--ink);color:#fff;align-self:flex-end}
+.msg.small{font-size:.85rem;color:var(--ink2)}
+.chat-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.chat{transition:bottom .2s}.chat.lifted{bottom:calc(max(16px,env(safe-area-inset-bottom,0px)) + 80px)}
+.chat-actions .wa-btn{background:#1FA855;border-color:#1FA855;color:#fff}.chat-actions .wa-btn:hover{background:#178a45;border-color:#178a45;color:#fff}
+.brand-mark{height:42px;width:auto;background:#fff;border-radius:10px;padding:2px 4px;object-fit:contain;flex:none}
+.site-footer .brand-mark{height:48px}
+@media (max-width:560px){.brand-mark{height:34px}.brand{font-size:1.1rem}}
+.chat-chips{display:flex;gap:6px;flex-wrap:wrap;padding:0 14px 10px}
+.chat-chips button{border:1.5px solid var(--ink);background:#fff;border-radius:999px;padding:4px 11px;font:500 .85rem var(--sans);cursor:pointer;color:var(--ink)}
+.chat-chips button:hover{background:var(--hi)}
+.chat-form{display:flex;gap:8px;border-top:1px solid var(--line);padding:10px}
+.chat-form input{flex:1;min-width:0;padding:8px 10px}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+@media (max-width:560px){.wa{bottom:max(16px,env(safe-area-inset-bottom,0px))}.chat-launch{padding:10px 14px}}
+
+table.rates{max-width:720px}.rates th:not(:first-child),.rates td:not(:first-child){text-align:right}
+[hidden]{display:none!important}
+
+/* ---- v3: cards, stats, how it works, CTA and related links ---- */
+.cardgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.card{display:block;background:var(--white);border:1.5px solid var(--ink);border-radius:14px;padding:22px 22px 20px;color:var(--ink);text-decoration:none;box-shadow:5px 5px 0 var(--hi);transition:transform .15s ease,box-shadow .15s ease}
+a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color:var(--ink)}
+.card h3{font-size:1.25rem;margin:10px 0 .3em}
+.card p{margin:0;color:var(--ink2);font-size:.98rem}
+.card .ic,.ic-lg{width:34px;height:34px;fill:none;stroke:var(--teal-d);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.card .more{display:inline-block;margin-top:12px;font-weight:700;font-size:.95rem;color:var(--teal-d)}
+.cardgrid.four{grid-template-columns:repeat(4,1fr)}
+.statbar{background:var(--ink);color:#fff;padding:26px 0}
+.statbar .wrap{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.statbar b{display:block;font-family:var(--serif);font-weight:500;font-size:1.5rem;line-height:1.1;color:var(--hi)}
+.statbar span{font-size:.93rem;opacity:.9}
+.faqmini details{background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:4px 18px;margin-bottom:10px}
+.faqmini summary{font-weight:700;padding:14px 0;cursor:pointer}
+.faqmini .body{padding:0 0 14px;color:var(--ink2)}
+.ctaband{background:var(--teal-d);color:#fff;padding:40px 0}
+.ctaband .wrap{display:flex;flex-wrap:wrap;gap:16px 28px;align-items:center;justify-content:space-between}
+.ctaband h2{font-size:clamp(1.5rem,3vw,2.1rem);margin:0;max-width:24ch;color:#fff}
+.ctaband .btn.alt{background:transparent;color:#fff;border-color:#fff}
+.related{padding:26px 0;border-top:1px solid var(--line);background:var(--white)}
+.related h2{font-size:1.1rem;font-family:var(--sans);font-weight:700;margin:0 0 8px;letter-spacing:0}
+.related ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px 22px}
+.legal a{color:inherit;opacity:.8;margin-left:14px}
+@media (max-width:900px){.cardgrid,.cardgrid.four{grid-template-columns:1fr 1fr}.statbar .wrap{grid-template-columns:1fr 1fr}}
+@media (max-width:600px){.cardgrid,.cardgrid.four{grid-template-columns:1fr}}
+
+/* ---- v4: dark header to match footer ---- */
+.site-header{background:rgba(15,27,51,.98);border-bottom:1px solid #22345a;backdrop-filter:none}
+.site-header .brand,.site-header .brand:hover{color:#fff}
+.site-header .nav a{color:#fff}
+.site-header .nav a:hover,.site-header .nav a[aria-current="page"]{border-bottom-color:var(--hi);color:#fff}
+.site-header .hdr-actions a:not(.btn){color:#fff}
+.site-header .btn{background:var(--hi);border-color:var(--hi);color:var(--ink)}
+.site-header .btn:hover{background:#fff;border-color:#fff;color:var(--ink)}
+.site-header .menu-toggle{border-color:#fff;color:#fff}
+.site-header img[width="38"]{border-radius:9px;box-shadow:0 0 0 1.5px #3a4d78}
+.about-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:36px;align-items:start}
+@media (max-width:900px){.about-grid{grid-template-columns:1fr}}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:600px){.field-row{grid-template-columns:1fr}}
+
 </style>
-<script src="site-config.js"></script>
 </head>
-<body><main>
-<h1>Dashboard</h1>
-<p class="hint">For you only. Add or remove samples from your phone. Choose a Word or text file, tap one button, and the Samples page updates.</p>
-
-<section class="box" id="sbbox" hidden>
-  <h2>Owner sign-in</h2>
-  <div id="sbin">
-    <label for="sbe">Email</label><input id="sbe" type="email" autocapitalize="none" autocorrect="off">
-    <label for="sbp">Account password</label><input id="sbp" type="password" autocomplete="current-password">
-    <button id="sbgo" type="button">Sign in</button>
-  </div>
-  <p id="sbmsg" role="status"></p>
-  <div id="sbwork" hidden>
-    <h2 style="margin-top:6px">Sample requests</h2>
-    <p class="hint">When a student has paid, tap <b>Allow access</b>. They then open their pages with their email and code. You do not have to upload or email anything.</p>
-    <div id="reqs"><p class="hint">Loading...</p></div>
-    <h2 style="margin-top:22px">Assignment and coaching orders</h2>
-    <p class="hint">For a quote request, reply to the student by email, type the agreed price and tap <b>Send quote</b>: the student then sees the price in their account and can pay. When a student reports payment, check it in PayPal or M-Pesa, then tap <b>Confirm payment</b>. When the work is ready, choose the finished file and tap <b>Upload and deliver</b>. The student sees it in their account.</p>
-    <div id="ords"><p class="hint">Loading...</p></div>
-    <button class="alt" id="sbout" type="button">Sign out</button>
-  </div>
-</section>
-
-<section class="box" id="connect">
-  <h2>Optional: one-tap publishing</h2><p class="hint">Without this, the page makes a small file for you to upload to GitHub (like you already do). Connect a token only if you want samples to publish by themselves.</p>
-  <p id="cstate" class="hint">Not connected. That is fine.</p>
-  <p><a class="btn" style="display:inline-block;text-decoration:none" target="_blank" rel="noopener" href="https://github.com/settings/personal-access-tokens/new?name=Samples+admin&description=Publish+samples+on+the+website&target_name=ResearchGeniusHub&expires_in=90&contents=write">Open the GitHub token page</a></p>
-  <p class="hint">On that page choose <b>Only select repositories</b>, pick <b>researchgeniushub.github.io</b>, then tap <b>Generate token</b> and copy it. Paste it below.</p>
-  <details>
-    <summary>How to get your access token</summary>
-    <ol>
-      <li>On GitHub tap your profile picture, then <b>Settings</b>.</li>
-      <li>Scroll to the bottom of the menu and tap <b>Developer settings</b>.</li>
-      <li>Tap <b>Personal access tokens</b>, then <b>Fine-grained tokens</b>, then <b>Generate new token</b>.</li>
-      <li>Name it <b>Samples admin</b>. Set Expiration to 90 days.</li>
-      <li>Under <b>Repository access</b> choose <b>Only select repositories</b> and pick your <b>researchgeniushub.github.io</b> repository.</li>
-      <li>Under <b>Permissions</b>, then <b>Repository permissions</b>, find <b>Contents</b> and set it to <b>Read and write</b>.</li>
-      <li>Tap <b>Generate token</b> and copy it. It starts with <code>github_pat_</code>. You only see it once.</li>
-    </ol>
-    <p class="hint">The token is kept only in this browser on this phone. Never share it. You can delete it on GitHub at any time.</p>
-  </details>
-  <label for="repo">Repository</label><input id="repo" autocapitalize="none" autocorrect="off">
-  <label for="tok">Access token</label><input id="tok" type="password" autocomplete="off" autocapitalize="none" autocorrect="off" placeholder="github_pat_...">
-  <button id="save">Save and test</button><button class="alt" id="forget">Forget token</button>
-  <p id="cmsg" role="status"></p>
-</section>
-
-<section class="box" id="staffbox" hidden>
-  <h2>Staff</h2>
-  <p class="hint">Only you can add staff. Staff sign in on the Staff tab of the account page with the name and password you set here. They can see student orders and confirm payments, but cannot add samples or staff.</p>
-  <div class="row"><div><label for="sn">Staff name (one word, letters or numbers)</label><input id="sn" autocapitalize="none" autocorrect="off" placeholder="mary"></div>
-  <div><label for="sw">Password (at least 8 characters)</label><input id="sw" type="text" autocomplete="off" autocapitalize="none"></div></div>
-  <button id="sadd" type="button">Add staff</button>
-  <p id="smsg" role="status"></p>
-  <div id="slist"></div>
-</section>
-
-<section class="box" id="addbox">
-  <h2>Add a sample</h2>
-  <label for="t">Sample title</label><input id="t" placeholder="Literature review on remote working">
-  <div class="row">
-    <div><label for="sb">Subject</label><input id="sb" placeholder="Business Management"></div>
-    <div><label for="lv">Level</label><select id="lv"><option>Undergraduate</option><option>Masters</option><option>PhD</option></select></div>
-  </div>
-  <div class="row">
-    <div><label for="st">Referencing</label><input id="st" value="Harvard"></div>
-    <div><label for="wp">Words per page</label><input id="wp" type="number" value="275"></div>
-  </div>
-  <label for="iw">Free introduction length (words)</label><input id="iw" type="number" value="275">
-  <label for="fl">Choose a Word (.docx) or text (.txt) file</label>
-  <input id="fl" type="file" accept=".docx,.txt">
-  <p class="hint" id="fmsg">Or paste the text below. PDF files are not supported: open the PDF, copy the text and paste it.</p>
-  <label for="tx">Full sample text</label>
-  <textarea id="tx" placeholder="The whole document text. Visitors see only the free introduction. The rest stays private until you allow access."></textarea>
-  <p class="hint" id="sum"></p>
-  <button id="pub">Make samples file</button>
-  <p id="pmsg" role="status"></p>
-  <div id="dl" hidden><a class="btn" id="dla" style="display:inline-block;text-decoration:none" download="samples-data.js">Download samples-data.js</a>
-    <ol><li>Tap the button above and save the file.</li><li>Open your repository on GitHub, tap <b>Add file</b>, then <b>Upload files</b>.</li><li>Choose <b>samples-data.js</b>, then tap <b>Commit changes</b>.</li><li>Wait 1 to 2 minutes and refresh the Samples page.</li></ol></div>
-</section>
-
-<section class="box" id="listbox">
-  <h2>Samples on the website</h2>
-  <div id="list"><p class="hint">Loading...</p></div>
-</section>
-
-<section class="box" id="revbox">
-  <h2>Add a student review</h2>
-  <p class="hint">Only add real reviews that a student sent you and agreed to publish. Reviews sent through the website arrive in your email. Until you add one, the website shows no reviews section at all.</p>
-  <div class="row">
-    <div><label for="rn">First name</label><input id="rn"></div>
-    <div><label for="rc">Country</label><input id="rc"></div>
-  </div>
-  <label for="rs">Service used</label><input id="rs" placeholder="Dissertation support">
-  <label for="rt">Review text</label><textarea id="rt" style="min-height:120px"></textarea>
-  <label style="display:flex;gap:10px;align-items:flex-start;font-weight:400"><input type="checkbox" id="rok" style="width:auto;margin-top:5px"><span>This student agreed to publish this review.</span></label>
-  <button id="rpub">Make reviews file</button>
-  <p id="rmsg" role="status"></p>
-  <div id="rdl" hidden><a class="btn" id="rdla" style="display:inline-block;text-decoration:none" download="testimonials-data.js">Download testimonials-data.js</a>
-    <ol><li>Tap the button above and save the file.</li><li>Open your repository on GitHub, tap <b>Add file</b>, then <b>Upload files</b>.</li><li>Choose <b>testimonials-data.js</b>, then tap <b>Commit changes</b>.</li><li>Wait 1 to 2 minutes and refresh the home page.</li></ol></div>
-  <h2 style="margin-top:18px">Reviews on the website</h2>
-  <div id="rlist"><p class="hint">Loading...</p></div>
-</section>
-
-<p class="hint" style="margin-top:18px">After you publish or upload, the website rebuilds in 1 to 2 minutes. Refresh the Samples page to see the change. Only the free introduction is published. Send the paid pages to the student by email after you confirm their payment.</p>
-
+<body>
+<main class="wrap" style="max-width:980px;margin:0 auto;padding:20px 16px">
+<div class="topbar"><strong id="who">Staff</strong><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm alt" id="reload">Refresh</button><button class="btn sm alt" id="out">Sign out</button></span></div>
+<h1 style="font-size:2rem">Orders</h1>
+<div class="two"><div class="f"><label>Show</label><select id="flt"><option value="attn">Needs attention</option><option value="all">All orders</option><option value="awaiting_quote">Quote requests</option><option value="awaiting_payment">Awaiting payment</option><option value="payment_reported">Payment reported</option><option value="in_progress">In progress</option><option value="revision_requested">Revision requested</option><option value="delivered">Delivered</option></select></div>
+<div class="f"><label>Search</label><input id="q" placeholder="Order number, name, email or title"></div></div>
+<p class="err" id="top-err" role="alert"></p>
+<div id="list"><p class="muted">Loading...</p></div>
+</main>
+<script src="site-config.js"></script>
 <script>
-const $ = id => document.getElementById(id);
-const FILE = "samples-data.js", RFILE = "testimonials-data.js";
-const K_TOK = "rgh_admin_token", K_REPO = "rgh_admin_repo";
-const store = {
-  get(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } },
-  set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
-  del(k) { try { localStorage.removeItem(k); } catch (e) {} }
-};
-let TOKEN = store.get(K_TOK), CONNECTED = false;
-let REPO = store.get(K_REPO) || (location.hostname.endsWith(".github.io") ? location.hostname.replace(".github.io", "") + "/" + location.hostname : "");
-$("repo").value = REPO;
-if (TOKEN) $("tok").placeholder = "Token saved on this phone";
+(async function () {
+  const C = window.RGH, $ = (s, r) => (r || document).querySelector(s), money = n => "£" + Number(n || 0).toFixed(2);
+  const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const load = src => new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = () => rej(new Error("Could not load " + src)); document.head.appendChild(s); });
+  await load("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js");
+  const sb = window.supabase.createClient(C.supabase.url, C.supabase.anonKey);
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { location.href = "account.html?staff=1"; return; }
+  const { data: role } = await sb.rpc("my_role");
+  if (role !== "admin" && role !== "staff") { location.href = "account.html"; return; }
+  const isAdmin = role === "admin"; $("#who").textContent = "Signed in as " + (session.user.email) + " (" + role + ")";
+  let orders = [], pays = [], evs = [];
+  const label = { awaiting_quote: "Quote requested", awaiting_payment: "Awaiting payment", payment_reported: "Payment reported", in_progress: "In progress", delivered: "Delivered", revision_requested: "Revision requested" };
 
-const api = (path, opt = {}) => fetch("https://api.github.com" + path, Object.assign({}, opt, {
-  headers: Object.assign({ Accept: "application/vnd.github+json", Authorization: "Bearer " + TOKEN }, opt.headers || {})
-}));
-const b64enc = s => { const b = new TextEncoder().encode(s); let t = ""; b.forEach(x => t += String.fromCharCode(x)); return btoa(t); };
-const b64dec = s => { const t = atob(s.replace(/\s/g, "")); const b = new Uint8Array(t.length); for (let i = 0; i < t.length; i++) b[i] = t.charCodeAt(i); return new TextDecoder().decode(b); };
-const show = (el, msg, cls) => { el.textContent = msg; el.className = cls || ""; };
-
-function parseList(text) {
-  let list = [];
-  try { list = JSON.parse(text.slice(text.indexOf("=") + 1).trim().replace(/;\s*$/, "")); } catch (e) { list = []; }
-  return Array.isArray(list) ? list : [];
-}
-async function readList(file = FILE) {
-  if (!CONNECTED) {
-    try { const r = await fetch(file + "?t=" + Date.now()); return { list: r.ok ? parseList(await r.text()) : [], sha: null }; }
-    catch (e) { return { list: [], sha: null }; }
+  async function email(order_id, event_id) {
+    const { error } = await sb.functions.invoke("rgh-notify", { body: { type: "staff_message", order_id, event_id } });
+    if (error) throw new Error("Saved, but the email to the student failed (" + error.message + "). Check the rgh-notify function.");
   }
-  const r = await api("/repos/" + REPO + "/contents/" + file);
-  if (r.status === 404) return { list: [], sha: null };
-  if (!r.ok) throw new Error(await explain(r));
-  const j = await r.json(), text = b64dec(j.content);
-  let list = [];
-  try { list = JSON.parse(text.slice(text.indexOf("=") + 1).trim().replace(/;\s*$/, "")); } catch (e) { list = []; }
-  return { list: Array.isArray(list) ? list : [], sha: j.sha };
-}
-function offerFile(list, v, box, anchor) {
-  const text = "window." + v + " = " + JSON.stringify(list, null, 2) + ";\n";
-  const url = URL.createObjectURL(new Blob([text], { type: "text/javascript" }));
-  const a = $(anchor); a.href = url; $(box).hidden = false;
-  try { a.click(); } catch (e) {}
-  $(box).scrollIntoView({ behavior: "smooth" });
-}
-async function writeList(list, sha, message, file = FILE, v = "RGH_SAMPLES", box = "dl", anchor = "dla") {
-  if (!CONNECTED) { offerFile(list, v, box, anchor); return; }
-  const body = { message, content: b64enc("window." + v + " = " + JSON.stringify(list, null, 2) + ";\n") };
-  if (sha) body.sha = sha;
-  const r = await api("/repos/" + REPO + "/contents/" + file, { method: "PUT", body: JSON.stringify(body) });
-  if (!r.ok) throw new Error(await explain(r));
-}
-async function explain(r) {
-  if (r.status === 401) return "GitHub did not accept the token. Make a new one and save it again.";
-  if (r.status === 403 || r.status === 404) return "The token cannot reach this repository, or it does not have Contents set to Read and write. Check the repository name and the token permissions.";
-  if (r.status === 409 || r.status === 422) return "The website changed while you were working. Refresh this page and try again.";
-  let m = ""; try { m = (await r.json()).message; } catch (e) {}
-  return "GitHub said: " + (m || r.status);
-}
-
-async function refreshList() {
-  if (SBLIVE) return SBT ? sbRefreshSamples() : undefined;
-  const box = $("list");
-  try {
-    const { list } = await readList();
-    if (!list.length) { box.innerHTML = '<p class="hint">No samples yet.</p>'; return; }
-    box.innerHTML = "";
-    list.forEach((s, i) => {
-      const d = document.createElement("div"); d.className = "item";
-      const a = document.createElement("div"); a.innerHTML = "<b></b><br><span class='hint'></span>";
-      a.querySelector("b").textContent = s.title;
-      a.querySelector("span").textContent = [s.subject, s.level, s.pages + " pages", s.style].filter(Boolean).join(" · ");
-      const b = document.createElement("button"); b.className = "del"; b.textContent = "Delete";
-      b.onclick = async () => {
-        if (!confirm("Delete this sample from the website?\n" + s.title)) return;
-        b.disabled = true;
-        try {
-          const cur = await readList();
-          const next = cur.list.filter(x => !(x.title === s.title && x.pages === s.pages));
-          await writeList(next, cur.sha, "Remove sample: " + s.title);
-          await refreshList();
-        } catch (e) { alert(e.message); b.disabled = false; }
-      };
-      d.append(a, b); box.append(d);
+  async function reload() {
+    const [o, p, e] = await Promise.all([sb.from("orders").select("*").order("created_at", { ascending: false }), sb.from("payments").select("*"), sb.from("order_events").select("*").order("created_at")]);
+    if (o.error) { $("#top-err").textContent = o.error.message; return; }
+    orders = o.data; pays = p.data || []; evs = e.data || []; render();
+  }
+  const needsAttn = o => {
+    const mine = evs.filter(e => e.order_id === o.id), last = mine[mine.length - 1];
+    return o.status === "awaiting_quote" || o.status === "payment_reported" || o.status === "revision_requested" || pays.some(p => p.order_id === o.id && !p.confirmed) || (last && last.author_role === "student");
+  };
+  function render() {
+    const f = $("#flt").value, q = $("#q").value.trim().toLowerCase();
+    const rows = orders.filter(o => (f === "all" || (f === "attn" ? needsAttn(o) : o.status === f)) &&
+      (!q || [o.id, o.data && o.data.customer, o.data && o.data.customerEmail, o.data && o.data.title].join(" ").toLowerCase().includes(q)));
+    $("#list").innerHTML = rows.length ? rows.map(card).join("") : `<p class="muted">Nothing here.</p>`;
+    $("#list").querySelectorAll("article").forEach(wire);
+  }
+  function card(o) {
+    const d = o.data || {}, op = pays.filter(p => p.order_id === o.id), my = evs.filter(e => e.order_id === o.id), owing = Math.max(0, o.total - o.paid_amount);
+    const pendingPay = op.filter(p => !p.confirmed), defAmt = pendingPay.length && pendingPay[0].portion === "part" ? pendingPay[0].amount : Math.round(o.total * (C.partPayPercent || 50)) / 100;
+    return `<article class="order" data-id="${esc(o.id)}" data-user="${esc(o.user_id)}">
+      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div><h4>${esc(d.title || d.service)}</h4><div class="muted small">${esc(o.id)} · ${esc(d.service)} · ${esc(d.level)} · ${d.coaching ? d.pages + " h" : d.pages + " pages"}${d.due ? " · due " + esc(String(d.due).replace("T", " ")) : ""}</div>
+          <div class="small"><strong>${esc(d.customer)}</strong> · <a href="mailto:${esc(d.customerEmail)}">${esc(d.customerEmail)}</a>${d.phone ? " · " + esc(d.phone) : ""}</div></div>
+        <div style="text-align:right"><strong style="font-family:var(--serif);font-size:1.3rem">${o.status === "awaiting_quote" ? "Quote needed" : money(o.total)}</strong><br>
+          <span class="badge ${o.status === "delivered" ? "paid" : "due"}">${esc(label[o.status] || o.status)}</span>
+          <div class="small muted">Paid ${money(o.paid_amount)} · Balance ${money(owing)} · Student access: ${esc(o.access)}</div></div>
+      </div>
+      <details style="margin-top:10px"><summary>Brief, files and history</summary>
+        <p class="small" style="white-space:pre-wrap">${esc(d.instructions || "(no written instructions)")}</p>
+        <div data-files class="small muted">Loading files...</div>
+        ${op.map(p => `<p class="small" style="margin:4px 0">${p.confirmed ? "Confirmed" : "<strong>Awaiting confirmation</strong>"}: ${money(p.amount)} (${esc(p.portion || "full")}) via ${esc(p.method)}, ref ${esc(p.reference || "none")}</p>`).join("")}
+        ${my.map(e => `<div style="border-left:3px solid var(--ink);padding:2px 10px;margin:8px 0"><div class="small muted">${e.author_role === "staff" ? "Staff" : "Student"} · ${esc(e.kind)} · ${new Date(e.created_at).toLocaleString()}</div>${e.author_role === "student" ? `<div><strong>Added: ${esc(e.summary)}</strong></div>` : ""}<div style="white-space:pre-wrap">${esc(e.message || "")}</div>${(e.files || []).map(f => `<div class="small"><a href="#" data-sign="${esc(f.path)}">${esc(f.name)}</a></div>`).join("")}</div>`).join("")}
+      </details>
+      ${o.status === "awaiting_quote" ? `<form data-quote class="panel" style="margin-top:12px"><h4 style="margin:0 0 8px">Send a quote</h4>
+        <div class="f"><label>Price (GBP)</label><input type="number" min="1" step="0.01" name="price"></div>
+        <div class="f"><label>Message to student</label><textarea name="msg" placeholder="What the price covers and how to pay."></textarea></div><p class="err"></p><button class="btn sm">Send quote and email student</button></form>` : ""}
+      <form data-confirm class="panel" style="margin-top:12px"><h4 style="margin:0 0 8px">Confirm and email the student</h4>
+        <div class="f"><label>Action</label><select name="kind"><option value="received">Received: documents or feedback received, being worked on</option><option value="partial"${pendingPay.length && pendingPay[0].portion === "part" ? " selected" : ""}>Partial payment confirmed</option><option value="full"${pendingPay.length && pendingPay[0].portion !== "part" ? " selected" : ""}>Full payment confirmed</option><option value="note">Message only (no confirmation)</option></select></div>
+        <div class="f" data-amt hidden><label>Amount received (GBP)</label><input type="number" name="amount" min="0.01" step="0.01" value="${defAmt}"></div>
+        <div class="f"><label>Next step for the student (required, emailed immediately)</label><textarea name="msg" placeholder="e.g. We have your documents and are working on them. Expect the first draft by Friday 5pm UK time."></textarea></div>
+        <p class="err"></p><button class="btn sm" disabled>Confirm and send email</button></form>
+      ${o.status !== "awaiting_quote" ? `<form data-deliver class="panel" style="margin-top:12px"><h4 style="margin:0 0 8px">Upload completed work</h4>
+        <p class="small muted" style="margin:0 0 8px">${o.paid_amount >= o.total ? "Fully paid: the student can view online and download." : "Not fully paid: the student will only see a preview (first half of each PDF) until the balance of " + money(owing) + " is confirmed. Word and other files need a PDF preview below."}</p>
+        <div class="f"><label>Final files</label><input type="file" name="files" multiple></div>
+        ${o.paid_amount < o.total ? `<div class="f"><label>Preview PDF (only if a final file is not a PDF)</label><input type="file" name="prev" accept=".pdf" multiple></div>` : ""}
+        <div class="f"><label>Message to student (required)</label><textarea name="msg" placeholder="What is attached and anything they should check."></textarea></div><p class="err"></p><button class="btn sm">Upload and email student</button></form>` : ""}
+      ${isAdmin ? `<p style="margin:12px 0 0"><button class="btn sm alt" data-del>Delete order (admin only)</button></p>` : ""}
+    </article>`;
+  }
+  function wire(a) {
+    const id = a.dataset.id, uid = a.dataset.user, o = orders.find(x => x.id === id);
+    const busy = (btn, on, t) => { btn.disabled = on; if (t) btn.dataset.t = btn.dataset.t || btn.textContent, btn.textContent = on ? t : btn.dataset.t; };
+    const fail = (f, x) => { f.querySelector(".err").textContent = x.message; };
+    a.querySelector("details").addEventListener("toggle", async ev => {
+      if (!ev.target.open || ev.target.dataset.done) return; ev.target.dataset.done = 1;
+      const box = a.querySelector("[data-files]"), out = [];
+      const { data } = await sb.storage.from("requirements").list(uid + "/" + id + "/");
+      for (const f of data || []) if (f.id) { const p = uid + "/" + id + "/" + f.name; out.push(`<a href="#" data-sign="${esc(p)}">${esc(f.name.replace(/^\d+-/, ""))}</a>`); }
+      box.innerHTML = out.length ? "Order files: " + out.join(" · ") : "No files with the order.";
     });
-  } catch (e) { box.innerHTML = ""; const p = document.createElement("p"); p.className = "err"; p.textContent = e.message; box.append(p); }
-}
-
-async function refreshReviews() {
-  const box = $("rlist");
-  try {
-    const { list } = await readList(RFILE);
-    if (!list.length) { box.innerHTML = '<p class="hint">No reviews yet.</p>'; return; }
-    box.innerHTML = "";
-    list.forEach(t => {
-      const d = document.createElement("div"); d.className = "item";
-      const a = document.createElement("div"); a.innerHTML = "<b></b><br><span class='hint'></span>";
-      a.querySelector("b").textContent = t.name + (t.country ? ", " + t.country : "");
-      a.querySelector("span").textContent = (t.text || "").slice(0, 90) + ((t.text || "").length > 90 ? "..." : "");
-      const b = document.createElement("button"); b.className = "del"; b.textContent = "Delete";
-      b.onclick = async () => {
-        if (!confirm("Delete this review?")) return;
-        b.disabled = true;
-        try {
-          const cur = await readList(RFILE);
-          await writeList(cur.list.filter(x => !(x.name === t.name && x.text === t.text)), cur.sha, "Remove review", RFILE, "RGH_TESTIMONIALS", "rdl", "rdla");
-          await refreshReviews();
-        } catch (e) { alert(e.message); b.disabled = false; }
-      };
-      d.append(a, b); box.append(d);
+    a.addEventListener("click", async e => {
+      const t = e.target.closest("[data-sign]"); if (!t) return; e.preventDefault();
+      const { data } = await sb.storage.from("requirements").createSignedUrl(t.dataset.sign, 600); if (data) window.open(data.signedUrl, "_blank");
     });
-  } catch (e) { box.innerHTML = ""; const p = document.createElement("p"); p.className = "err"; p.textContent = e.message; box.append(p); }
-}
-$("rpub").onclick = async () => {
-  const name = $("rn").value.trim(), text = $("rt").value.trim();
-  if (!name || text.length < 20) return show($("rmsg"), "Add the first name and the review text.", "err");
-  if (!$("rok").checked) return show($("rmsg"), "Tick the box to confirm the student agreed to publish it.", "err");
-  $("rpub").disabled = true; show($("rmsg"), "Working...", "hint");
-  try {
-    const cur = await readList(RFILE);
-    cur.list.push({ name, country: $("rc").value.trim(), service: $("rs").value.trim(), text });
-    await writeList(cur.list, cur.sha, "Add review from " + name, RFILE, "RGH_TESTIMONIALS", "rdl", "rdla");
-    show($("rmsg"), CONNECTED ? "Published. It appears on the home page in 1 to 2 minutes." : "Your file is ready. Download it and upload it to GitHub, as shown below.", "ok");
-    ["rn", "rc", "rs", "rt"].forEach(i => $(i).value = ""); $("rok").checked = false;
-    await refreshReviews();
-  } catch (e) { show($("rmsg"), e.message, "err"); }
-  $("rpub").disabled = false;
-};
-
-async function connected() {
-  CONNECTED = true; $("pub").textContent = "Publish sample"; $("rpub").textContent = "Publish review";
-  await refreshList(); await refreshReviews();
-}
-
-$("save").onclick = async () => {
-  const repo = $("repo").value.trim().replace(/^https?:\/\/github\.com\//, "").replace(/\/$/, "");
-  const tok = $("tok").value.trim() || TOKEN;
-  if (!/^[^\/\s]+\/[^\/\s]+$/.test(repo)) return show($("cmsg"), "Repository should look like researchgeniushub/researchgeniushub.github.io", "err");
-  if (!tok) return show($("cmsg"), "Paste your access token first.", "err");
-  REPO = repo; TOKEN = tok;
-  show($("cmsg"), "Testing...", "hint");
-  try {
-    const r = await api("/repos/" + REPO);
-    if (!r.ok) throw new Error(await explain(r));
-    const j = await r.json();
-    if (!j.permissions || !j.permissions.push) throw new Error("This token can read the repository but cannot change it. Set Contents to Read and write, then make a new token.");
-    store.set(K_TOK, TOKEN); store.set(K_REPO, REPO); $("tok").value = "";
-    show($("cmsg"), "Connected to " + j.full_name + ".", "ok"); show($("cstate"), "Connected: " + j.full_name, "ok");
-    connected();
-  } catch (e) { show($("cmsg"), e.message, "err"); }
-};
-$("forget").onclick = () => { store.del(K_TOK); TOKEN = ""; CONNECTED = false; $("pub").textContent = "Make samples file"; $("rpub").textContent = "Make reviews file"; refreshList(); refreshReviews(); show($("cmsg"), "Token removed from this phone.", "hint"); show($("cstate"), "Not connected. That is fine.", "hint"); };
-
-/* ---- reading a Word or text file ---- */
-function loadMammoth() {
-  return new Promise((res, rej) => {
-    if (window.mammoth) return res();
-    const s = document.createElement("script");
-    s.src = "https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js";
-    s.onload = res; s.onerror = () => rej(new Error("Could not load the Word reader. Paste the text instead."));
-    document.head.appendChild(s);
-  });
-}
-$("fl").onchange = async () => {
-  const f = $("fl").files[0]; if (!f) return;
-  show($("fmsg"), "Reading " + f.name + "...", "hint");
-  try {
-    let text = "";
-    if (/\.txt$/i.test(f.name)) text = await f.text();
-    else if (/\.docx$/i.test(f.name)) { await loadMammoth(); const r = await window.mammoth.extractRawText({ arrayBuffer: await f.arrayBuffer() }); text = r.value; }
-    else throw new Error("Choose a .docx or .txt file, or paste the text.");
-    $("tx").value = text.trim();
-    if (!$("t").value.trim()) $("t").value = f.name.replace(/\.[^.]+$/, "");
-    show($("fmsg"), "Loaded " + f.name + ".", "ok"); preview();
-  } catch (e) { show($("fmsg"), e.message, "err"); }
-};
-
-const introOf = (t, n) => { t = String(t).replace(/\r/g, "").replace(/[ \t]+/g, " ").replace(/ ?\n ?/g, "\n").replace(/\n{3,}/g, "\n\n").trim(); let m, re = /\S+/g, i = 0, end = t.length; while ((m = re.exec(t))) { if (++i === n) { end = m.index + m[0].length; break; } } return t.slice(0, end).trim(); };
-const words = t => t.replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
-function calc() {
-  const w = words($("tx").value), wp = Math.max(50, +$("wp").value || 275), iw = Math.max(30, +$("iw").value || wp);
-  return { w, wp, iw, pages: Math.max(1, Math.ceil(w.length / wp)) };
-}
-function preview() {
-  const c = calc();
-  $("sum").textContent = c.w.length ? c.w.length + " words = " + c.pages + " page" + (c.pages > 1 ? "s" : "") + ". The first " + Math.min(c.iw, c.w.length) + " words are shown free. Students can unlock " + Math.max(0, c.pages - 1) + " more page" + (c.pages - 1 === 1 ? "" : "s") + "." : "";
-}
-["tx", "wp", "iw"].forEach(id => $(id).addEventListener("input", preview));
-
-$("pub").onclick = async () => {
-  const c = calc(), title = $("t").value.trim();
-  if (!title) return show($("pmsg"), "Add a sample title.", "err");
-  if (c.pages < 2) return show($("pmsg"), "The text is too short. It needs more than one page so students have pages to unlock.", "err");
-  $("pub").disabled = true; show($("pmsg"), "Publishing...", "hint");
-  try {
-    if (SBLIVE) { await sbPublish(c, title); show($("pmsg"), "Published. It is on the Samples page now.", "ok"); $("t").value = ""; $("sb").value = ""; $("tx").value = ""; $("fl").value = ""; preview(); await sbRefreshSamples(); $("pub").disabled = false; return; }
-    const cur = await readList();
-    cur.list.push({ title, subject: $("sb").value.trim(), level: $("lv").value, pages: c.pages, style: $("st").value.trim() || "Harvard", introFile: "", introText: introOf($("tx").value, c.iw) });
-    await writeList(cur.list, cur.sha, "Add sample: " + title);
-    show($("pmsg"), CONNECTED ? "Published. It appears on the Samples page in 1 to 2 minutes." : "Your file is ready. Download it and upload it to GitHub, as shown below.", "ok");
-    $("t").value = ""; $("sb").value = ""; $("tx").value = ""; $("fl").value = ""; show($("fmsg"), "Or paste the text below. PDF files are not supported: open the PDF, copy the text and paste it.", "hint"); preview();
-    await refreshList();
-  } catch (e) { show($("pmsg"), e.message, "err"); }
-  $("pub").disabled = false;
-};
-
-
-/* ---- Supabase mode (no GitHub needed) ---- */
-const SBC = (window.RGH && window.RGH.supabase) || {}, SBLIVE = !!(SBC.url && SBC.anonKey);
-let SBT = ""; try { SBT = sessionStorage.getItem("rgh_sb_tok") || ""; } catch (e) {}
-const sbq = async (path, opt = {}) => {
-  const r = await fetch(SBC.url + path, Object.assign({}, opt, { headers: Object.assign({ apikey: SBC.anonKey, Authorization: "Bearer " + (SBT || SBC.anonKey), "Content-Type": "application/json" }, opt.headers || {}) }));
-  if (r.status === 401 || (r.status === 403 && SBT)) { SBT = ""; try { sessionStorage.removeItem("rgh_sb_tok"); } catch (e) {} location.href = "account.html?staff=1"; throw new Error("Please sign in again."); }
-  if (!r.ok) { let m = "Something went wrong."; try { const j = await r.json(); m = j.message || j.msg || m; } catch (e) {} throw new Error(m); }
-  return r.status === 204 ? null : r.json().catch(() => null);
-};
-const priceOf = n => "£" + (n * ((window.RGH && window.RGH.samplePerPage) || 2)).toFixed(2);
-async function sbRefreshReqs() {
-  const box = $("reqs");
-  try {
-    const rows = await sbq("/rest/v1/sample_access?select=*,samples(title)&order=created_at.desc");
-    if (!rows.length) { box.innerHTML = '<p class="hint">No requests yet.</p>'; return; }
-    box.innerHTML = "";
-    rows.forEach(q => {
-      const d = document.createElement("div"); d.className = "item"; d.style.alignItems = "flex-start";
-      const a = document.createElement("div");
-      a.innerHTML = "<b></b><br><span class='hint'></span>";
-      a.querySelector("b").textContent = q.email + " · " + q.status.toUpperCase();
-      a.querySelector("span").textContent = (q.samples && q.samples.title || "") + " · " + q.pages + " page(s) · " + priceOf(q.pages) + " · " + (q.format || "") + " · reference: " + (q.reference || "none") + " · code " + q.code + " · " + new Date(q.created_at).toLocaleDateString();
-      const wrap = document.createElement("div"); wrap.style.cssText = "display:flex;gap:6px;flex-wrap:wrap";
-      const mk = (label, cls, fn) => { const b = document.createElement("button"); b.className = cls; b.textContent = label; b.style.margin = "0"; b.onclick = async () => { b.disabled = true; try { await fn(); await sbRefreshReqs(); } catch (e) { alert(e.message); b.disabled = false; } }; return b; };
-      if (q.status !== "granted") wrap.append(mk("Allow access", "", () => sbq("/rest/v1/sample_access?id=eq." + q.id, { method: "PATCH", body: JSON.stringify({ status: "granted" }) })));
-      else wrap.append(mk("Revoke", "alt", () => sbq("/rest/v1/sample_access?id=eq." + q.id, { method: "PATCH", body: JSON.stringify({ status: "requested" }) })));
-      wrap.append(mk("Delete", "del", () => confirm("Delete this request?") ? sbq("/rest/v1/sample_access?id=eq." + q.id, { method: "DELETE" }) : Promise.reject(new Error("Cancelled"))));
-      d.append(a, wrap); box.append(d);
+    const cf = a.querySelector("[data-confirm]");
+    const sync = () => { cf.querySelector("[data-amt]").hidden = cf.kind.value !== "partial"; cf.querySelector("button").disabled = cf.msg.value.trim().length < 10; };
+    cf.addEventListener("input", sync); cf.addEventListener("change", sync); sync();
+    cf.addEventListener("submit", async e => {
+      e.preventDefault(); const btn = cf.querySelector("button"); cf.querySelector(".err").textContent = ""; busy(btn, true, "Sending...");
+      try {
+        const msg = cf.msg.value.trim(); let eid;
+        if (cf.kind.value === "note") { const r = await sb.from("order_events").insert({ order_id: id, kind: "note", author_role: "staff", summary: "note", message: msg }).select().single(); if (r.error) throw r.error; eid = r.data.id; }
+        else { const r = await sb.rpc("staff_confirm", { p_order: id, p_kind: cf.kind.value, p_amount: Number(cf.amount.value) || null, p_message: msg }); if (r.error) throw r.error; eid = r.data; }
+        await email(id, eid); await reload();
+      } catch (x) { fail(cf, x); busy(btn, false); sync(); await reload().catch(() => {}); }
     });
-  } catch (e) { box.innerHTML = ""; const p = document.createElement("p"); p.className = "err"; p.textContent = e.message; box.append(p); }
-}
-
-const sbStore = (path, opt = {}) => fetch(SBC.url + "/storage/v1" + path, Object.assign({}, opt, { headers: Object.assign({ apikey: SBC.anonKey, Authorization: "Bearer " + SBT }, opt.headers || {}) }));
-async function sbFiles(bucket, prefix) {
-  const r = await sbStore("/object/list/" + bucket, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prefix, limit: 100 }) });
-  if (!r.ok) return []; const items = await r.json(); const out = [];
-  for (const it of items) { if (!it.name) continue; const sr = await sbStore("/object/sign/" + bucket + "/" + prefix + it.name, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ expiresIn: 3600 }) }); if (sr.ok) { const j = await sr.json(); out.push({ name: it.name.replace(/^\d+-/, ""), url: SBC.url + "/storage/v1" + j.signedURL }); } }
-  return out;
-}
-async function sbRefreshOrders() {
-  const box = $("ords");
-  try {
-    const rows = await sbq("/rest/v1/orders?select=*,payments(method,reference)&order=created_at.desc");
-    if (!rows.length) { box.innerHTML = '<p class="hint">No orders yet.</p>'; return; }
-    box.innerHTML = "";
-    for (const o of rows) {
-      const d = o.data || {}, pre = o.user_id + "/" + o.id + "/";
-      const wrap = document.createElement("div"); wrap.className = "item"; wrap.style.cssText = "display:block";
-      const head = document.createElement("div");
-      head.innerHTML = "<b></b><br><span class='hint'></span><br><span class='hint'></span><div class='lk'></div>";
-      head.querySelector("b").textContent = (d.service || "Order") + " · " + String(o.status).replace(/_/g, " ").toUpperCase();
-      const sp = head.querySelectorAll("span");
-      sp[0].textContent = (d.customer || "") + " · " + (d.customerEmail || "") + " · " + (d.pages || "") + (d.coaching ? " hour(s)" : " page(s)") + " · £" + Number(o.total || 0).toFixed(2) + " · due " + (d.due || d.tier || "") + " · " + new Date(o.created_at).toLocaleDateString();
-      sp[1].textContent = "Payment: " + ((o.payments || []).map(x => x.method + " ref " + (x.reference || "none")).join("; ") || "none reported") + (d.instructions ? " · Notes: " + String(d.instructions).slice(0, 200) : "");
-      const lk = head.querySelector(".lk");
-      sbFiles("requirements", pre).then(fs => fs.forEach(f => { const a = document.createElement("a"); a.href = f.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Brief: " + f.name; a.style.display = "block"; lk.append(a); }));
-      sbFiles("deliveries", pre).then(fs => fs.forEach(f => { const a = document.createElement("a"); a.href = f.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Delivered: " + f.name; a.style.display = "block"; lk.append(a); }));
-      const row = document.createElement("div"); row.style.cssText = "display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center";
-      const mk = (label, cls, fn) => { const b = document.createElement("button"); b.className = cls; b.textContent = label; b.style.margin = "0"; b.onclick = async () => { b.disabled = true; try { await fn(); await sbRefreshOrders(); } catch (e) { alert(e.message); b.disabled = false; } }; return b; };
-      const setSt = st => sbq("/rest/v1/orders?id=eq." + o.id, { method: "PATCH", body: JSON.stringify({ status: st }) });
-      if (o.status === "awaiting_quote") {
-        const qi = document.createElement("input"); qi.type = "number"; qi.min = "1"; qi.step = "0.01"; qi.placeholder = "Quote in GBP"; qi.style.cssText = "max-width:140px;padding:8px";
-        row.append(qi, mk("Send quote", "", async () => {
-          const v = Number(qi.value); if (!(v > 0)) throw new Error("Enter the quote amount in GBP.");
-          await sbq("/rest/v1/orders?id=eq." + o.id, { method: "PATCH", body: JSON.stringify({ total: v, status: "awaiting_payment", data: Object.assign({}, o.data, { total: v }) }) });
-        }));
-      } else
-      if (o.status !== "in_progress" && o.status !== "delivered") row.append(mk("Confirm payment", "", () => setSt("in_progress")));
-      const fi = document.createElement("input"); fi.type = "file"; fi.style.cssText = "max-width:200px;padding:6px";
-      row.append(fi);
-      row.append(mk("Upload and deliver", "alt", async () => {
-        if (!fi.files[0]) throw new Error("Choose the finished file first.");
-        const f = fi.files[0], r = await sbStore("/object/deliveries/" + pre + Date.now() + "-" + f.name.replace(/[^\w.\-]+/g, "_"), { method: "POST", headers: { "Content-Type": f.type || "application/octet-stream", "x-upsert": "true" }, body: f });
-        if (!r.ok) { let m = "Upload failed."; try { m = (await r.json()).message || m; } catch (e) {} throw new Error(m); }
-        await setSt("delivered");
-      }));
-      if (o.status === "delivered") row.append(mk("Reopen", "alt", () => setSt("in_progress")));
-      wrap.append(head, row); box.append(wrap);
-    }
-  } catch (e) { box.innerHTML = ""; const p = document.createElement("p"); p.className = "err"; p.textContent = e.message; box.append(p); }
-}
-async function sbRefreshSamples() {
-  const box = $("list");
-  try {
-    const rows = await sbq("/rest/v1/samples?select=id,title,subject,level,pages,style&order=created_at.desc");
-    if (!rows.length) { box.innerHTML = '<p class="hint">No samples yet.</p>'; return; }
-    box.innerHTML = "";
-    rows.forEach(sm => {
-      const d = document.createElement("div"); d.className = "item";
-      const a = document.createElement("div"); a.innerHTML = "<b></b><br><span class='hint'></span>";
-      a.querySelector("b").textContent = sm.title;
-      a.querySelector("span").textContent = [sm.subject, sm.level, sm.pages + " pages", sm.style].filter(Boolean).join(" · ");
-      const b = document.createElement("button"); b.className = "del"; b.textContent = "Delete";
-      b.onclick = async () => { if (!confirm("Delete this sample?\n" + sm.title)) return; b.disabled = true; try { await sbq("/rest/v1/samples?id=eq." + sm.id, { method: "DELETE" }); await sbRefreshSamples(); } catch (e) { alert(e.message); b.disabled = false; } };
-      d.append(a, b); box.append(d);
+    const qf = a.querySelector("[data-quote]");
+    if (qf) qf.addEventListener("submit", async e => {
+      e.preventDefault(); const btn = qf.querySelector("button"); busy(btn, true, "Sending...");
+      try { const r = await sb.rpc("staff_quote", { p_order: id, p_total: Number(qf.price.value), p_message: qf.msg.value.trim() }); if (r.error) throw r.error; await email(id, r.data); await reload(); }
+      catch (x) { fail(qf, x); busy(btn, false); }
     });
-  } catch (e) { box.innerHTML = ""; const p = document.createElement("p"); p.className = "err"; p.textContent = e.message; box.append(p); }
-}
-function sbSignedIn() { sbStart(); }
-async function sbPublish(c, title) {
-  if (!SBT) throw new Error("Sign in first (Owner sign-in above).");
-  const intro = introOf($("tx").value, c.iw);
-  const row = await sbq("/rest/v1/samples", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({ title, subject: $("sb").value.trim(), level: $("lv").value, style: $("st").value.trim() || "Harvard", pages: c.pages, words_per_page: c.wp, intro }) });
-  await sbq("/rest/v1/sample_full", { method: "POST", body: JSON.stringify({ sample_id: row[0].id, body: $("tx").value.trim() }) }).catch(async e => { await sbq("/rest/v1/samples?id=eq." + row[0].id, { method: "DELETE" }); throw e; });
-}
-
-let MYROLE = "";
-const staffEmail = n => "researchgeniushub+" + n + "@gmail.com";
-async function sbRefreshStaff() {
-  const box = $("slist");
-  try {
-    const rows = await sbq("/rest/v1/staff?select=*&order=created_at.desc");
-    if (!rows.length) { box.innerHTML = '<p class="hint">No staff yet.</p>'; return; }
-    box.innerHTML = "";
-    rows.forEach(r => {
-      const d = document.createElement("div"); d.className = "item";
-      const a = document.createElement("div"); a.innerHTML = "<b></b><br><span class='hint'>Staff</span>"; a.querySelector("b").textContent = r.name || r.email;
-      const b = document.createElement("button"); b.className = "del"; b.textContent = "Remove";
-      b.onclick = async () => { if (!confirm("Remove " + (r.name || r.email) + "? They can no longer see orders.")) return; b.disabled = true; try { await sbq("/rest/v1/staff?email=eq." + encodeURIComponent(r.email), { method: "DELETE" }); await sbRefreshStaff(); } catch (e) { alert(e.message); b.disabled = false; } };
-      d.append(a, b); box.append(d);
+    const df = a.querySelector("[data-deliver]");
+    if (df) df.addEventListener("submit", async e => {
+      e.preventDefault(); const btn = df.querySelector("button"); df.querySelector(".err").textContent = "";
+      const files = Array.from(df.files.files), prev = df.prev ? Array.from(df.prev.files) : [], msg = df.msg.value.trim(), full = o.paid_amount >= o.total;
+      if (!files.length) return fail(df, new Error("Choose the final file(s)."));
+      if (msg.length < 10) return fail(df, new Error("Add a message to the student."));
+      const nonPdf = files.filter(f => !/\.pdf$/i.test(f.name));
+      if (!full && nonPdf.length && !prev.length) return fail(df, new Error("Not fully paid: add a PDF preview for " + nonPdf.map(f => f.name).join(", ") + "."));
+      busy(btn, true, "Uploading...");
+      try {
+        const base = uid + "/" + id + "/", ts = Date.now(), safe = n => n.replace(/[^\w.\-]+/g, "_");
+        for (const f of files) { const u = await sb.storage.from("deliveries").upload(base + ts + "-" + safe(f.name), f); if (u.error) throw u.error; }
+        if (!full) {
+          if (files.some(f => /\.pdf$/i.test(f.name))) await load("https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js");
+          for (const f of files.filter(f => /\.pdf$/i.test(f.name))) {
+            const { PDFDocument, rgb, degrees, StandardFonts } = window.PDFLib, src = await PDFDocument.load(await f.arrayBuffer()), n = src.getPageCount();
+            if (n < 2) throw new Error(f.name + " has only one page. Upload a custom preview PDF for it.");
+            const out = await PDFDocument.create(), pages = await out.copyPages(src, Array.from({ length: Math.ceil(n / 2) }, (_, i) => i)), font = await out.embedFont(StandardFonts.HelveticaBold);
+            pages.forEach(p => { out.addPage(p); const { width, height } = p.getSize(); p.drawText("PREVIEW - UNPAID", { x: width * 0.12, y: height * 0.3, size: Math.min(width, height) * 0.09, font, rotate: degrees(45), color: rgb(0.8, 0.1, 0.1), opacity: 0.25 }); });
+            const bytes = await out.save(); const u = await sb.storage.from("previews").upload(base + ts + "-preview-" + safe(f.name), new Blob([bytes], { type: "application/pdf" })); if (u.error) throw u.error;
+          }
+          for (const f of prev) { const u = await sb.storage.from("previews").upload(base + ts + "-preview-" + safe(f.name), f); if (u.error) throw u.error; }
+        }
+        const r = await sb.rpc("staff_deliver", { p_order: id, p_message: msg }); if (r.error) throw r.error;
+        await email(id, r.data); await reload();
+      } catch (x) { fail(df, x); busy(btn, false); }
     });
-  } catch (e) { box.innerHTML = ""; const p = document.createElement("p"); p.className = "err"; p.textContent = e.message; box.append(p); }
-}
-$("sadd").onclick = async () => {
-  const n = $("sn").value.trim().toLowerCase(), pw = $("sw").value;
-  if (!/^[a-z0-9]{2,20}$/.test(n)) return show($("smsg"), "Use one word of letters or numbers for the name.", "err");
-  if (pw.length < 8) return show($("smsg"), "The password needs at least 8 characters.", "err");
-  $("sadd").disabled = true; show($("smsg"), "Adding...", "hint");
-  try {
-    const r = await fetch(SBC.url + "/auth/v1/signup", { method: "POST", headers: { apikey: SBC.anonKey, "Content-Type": "application/json" }, body: JSON.stringify({ email: staffEmail(n), password: pw, data: { name: n } }) });
-    const j = await r.json();
-    if (!r.ok) throw new Error(/registered|exists/i.test(j.msg || j.message || "") ? "That name is already taken. Choose another." : (j.msg || j.message || j.error_description || "Could not create the login."));
-    await sbq("/rest/v1/staff", { method: "POST", body: JSON.stringify({ email: staffEmail(n), name: n }) });
-    show($("smsg"), "Added. " + n + " signs in on the Staff tab with the name " + n + " and the password you set.", "ok"); $("sn").value = ""; $("sw").value = ""; await sbRefreshStaff();
-  } catch (e) { show($("smsg"), e.message, "err"); }
-  $("sadd").disabled = false;
-};
-async function sbStart() {
-  try {
-    const role = await sbq("/rest/v1/rpc/my_role", { method: "POST", body: "{}" });
-    MYROLE = role;
-    if (role !== "admin" && role !== "staff") { location.href = "account.html"; return; }
-  } catch (e) { return; }
-  $("sbbox").hidden = false; $("sbin").hidden = true; $("sbwork").hidden = false; $("sbbox").querySelector("h2").textContent = (MYROLE === "admin" ? "Admin" : "Staff") + " dashboard";
-  $("sbmsg").textContent = "";
-  $("pub").textContent = "Publish sample"; sbRefreshReqs(); sbRefreshOrders();
-  if (MYROLE === "admin") { $("staffbox").hidden = false; sbRefreshStaff(); sbRefreshSamples(); }
-  else { ["addbox", "listbox", "revbox"].forEach(i => { $(i).hidden = true; }); }
-}
-if (SBLIVE) {
-  $("connect").hidden = true;
-  $("sbout").onclick = () => { SBT = ""; try { sessionStorage.removeItem("rgh_sb_tok"); localStorage.removeItem("sb-" + SBC.url.replace("https://", "").split(".")[0] + "-auth-token"); } catch (e) {} location.href = "account.html"; };
-  if (!SBT) location.href = "account.html?staff=1"; else sbStart();
-}
-
-refreshList(); refreshReviews();
-if (TOKEN && REPO) { show($("cstate"), "Checking saved token...", "hint"); api("/repos/" + REPO).then(async r => { if (r.ok) { show($("cstate"), "Connected: " + REPO, "ok"); connected(); } else show($("cstate"), "Saved token no longer works. Make a new one below.", "err"); }).catch(() => show($("cstate"), "Could not reach GitHub. Check your connection.", "err")); }
+    const del = a.querySelector("[data-del]");
+    if (del) del.addEventListener("click", async () => {
+      if (!confirm("Permanently delete order " + id + " and its messages? This cannot be undone.")) return;
+      for (const b of ["requirements", "deliveries", "previews"]) {
+        const { data } = await sb.storage.from(b).list(uid + "/" + id + "/"); if (data && data.length) await sb.storage.from(b).remove(data.filter(f => f.id).map(f => uid + "/" + id + "/" + f.name));
+      }
+      const r = await sb.from("orders").delete().eq("id", id); if (r.error) alert(r.error.message); else reload();
+    });
+  }
+  $("#flt").addEventListener("change", render); $("#q").addEventListener("input", render); $("#reload").addEventListener("click", reload);
+  $("#out").addEventListener("click", async () => { await sb.auth.signOut(); location.href = "account.html"; });
+  reload();
+})();
 </script>
-</main></body></html>
+</body>
+</html>

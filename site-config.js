@@ -77,6 +77,10 @@ window.RGH = {
   // Example: { name: "A. Student", country: "Canada", service: "Dissertation support", text: "..." }
   testimonials: [],
 
+  // ---- Part payment ----
+  // Students can pay this % now; they preview the finished work online and download unlocks when the balance is confirmed.
+  partPayPercent: 50, partPayMin: 20,   // set partPayPercent to 0 to switch part payment off
+
   // ---- Sample access ----
   samplePerPage: 2,               // GBP per page to unlock a full sample
 
