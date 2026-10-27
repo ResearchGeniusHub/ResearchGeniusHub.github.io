@@ -374,6 +374,8 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 @media (max-width:600px){.field-row{grid-template-columns:1fr}}
 
 </style>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 </head>
 <body>
 <header class="site-header"><div class="wrap">
@@ -392,11 +394,31 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     <form id="form-in" novalidate>
       <div class="f"><label for="in-email">Email</label><input type="email" id="in-email" name="email" autocomplete="email" required></div>
       <div class="f"><label for="in-pw">Password</label><input type="password" id="in-pw" name="password" autocomplete="current-password" required></div>
+      <p class="small" style="margin:0 0 12px"><a href="#" id="forgot-link">Forgot password?</a></p>
       <p class="err" role="alert"></p>
       <button class="btn block">Sign in</button>
     </form>
+    <form id="form-forgot" hidden novalidate>
+      <p class="small muted" style="margin-top:0">Enter your account email. We will send you a link to choose a new password. If the email also shows a code, you can use it below instead.</p>
+      <div class="f"><label for="fg-email">Email</label><input type="email" id="fg-email" name="email" autocomplete="email" required></div>
+      <p class="err" role="alert"></p><p class="small" data-ok role="status"></p>
+      <button class="btn block">Send reset email</button>
+      <div data-code hidden style="margin-top:16px;border-top:2px dashed var(--ink);padding-top:14px">
+        <div class="f"><label for="fg-code">Code from the email</label><input type="text" id="fg-code" name="code" inputmode="numeric" autocomplete="one-time-code"></div>
+        <div class="f"><label for="fg-pw">New password</label><input type="password" id="fg-pw" name="password" autocomplete="new-password"><div class="hint">At least 8 characters.</div></div>
+        <button type="button" class="btn block alt" data-usecode>Reset password with code</button>
+      </div>
+      <p class="small"><a href="#" data-back>Back to sign in</a></p>
+    </form>
+    <form id="form-reset" hidden novalidate>
+      <h3 style="margin-top:0">Choose a new password</h3>
+      <div class="f"><label for="rs-pw">New password</label><input type="password" id="rs-pw" name="password" autocomplete="new-password" required><div class="hint">At least 8 characters.</div></div>
+      <div class="f"><label for="rs-pw2">Repeat new password</label><input type="password" id="rs-pw2" name="password2" autocomplete="new-password" required></div>
+      <p class="err" role="alert"></p>
+      <button class="btn block">Save new password</button>
+    </form>
     <form id="form-staff" hidden novalidate>
-      <p class="small muted" style="margin-top:0">For Research Genius Hub staff and admin only. Staff accounts are created by the admin. Students: use Sign in or Create account.</p>
+      <p class="small muted" style="margin-top:0">For Research Genius Hub staff and admin only. Staff accounts are created by the admin, and a forgotten staff password is reset by the admin. Students: use Sign in or Create account.</p>
       <div class="f"><label for="st-name">Staff name or admin email</label><input type="text" id="st-name" name="uname" autocomplete="username" autocapitalize="none" required></div>
       <div class="f"><label for="st-pw">Password</label><input type="password" id="st-pw" name="password" autocomplete="current-password" required></div>
       <p class="err" role="alert"></p>
@@ -446,6 +468,13 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
           <div class="f"><label for="o-due" id="due-label">Exact due date and time (optional)</label><input type="datetime-local" id="o-due" name="due"><div class="hint">Use your local time and tell us your time zone in the instructions.</div></div>
           <div class="f"><label for="o-ins">Instructions</label><textarea id="o-ins" name="instructions" placeholder="Paste your brief, marking criteria, and anything your tutor asked for."></textarea></div>
           <div class="f"><label for="o-files">Attach your requirements</label><input type="file" id="o-files" name="files_in" multiple accept=".pdf,.doc,.docx,.txt,.rtf,.ppt,.pptx,.xls,.xlsx,.png,.jpg,.jpeg"><div class="hint" id="file-hint">Up to 10 files. Brief, marking criteria, readings, your draft.</div><div class="small" id="file-msg" aria-live="polite"></div></div>
+          <div class="f"><label for="o-pm">Price</label><select id="o-pm" name="pricemode"><option value="fixed">Standard price (shown below)</option><option value="neg">I have a negotiated price</option></select>
+            <div class="hint"><strong>Prices are negotiable.</strong> <a id="neg-wa" href="#" target="_blank" rel="noopener">WhatsApp us</a> to negotiate, then choose "negotiated price" and enter the amount we agreed. Our team checks it before you pay.</div></div>
+          <div id="neg-wrap" hidden style="border:1.5px dashed var(--ink);border-radius:10px;padding:14px;margin-bottom:14px">
+            <div class="f"><label for="o-nt">Discount type</label><select id="o-nt" name="negtype"></select></div>
+            <div class="f" id="ref-wrap" hidden><label for="o-ref">Referral ID of the student who referred you</label><input type="text" id="o-ref" name="refid" maxlength="20" placeholder="RGH-XXXXXX" autocapitalize="characters"></div>
+            <div class="f"><label for="o-agreed">Agreed price (GBP)</label><input type="number" id="o-agreed" name="agreed" min="1" step="0.01"><div class="hint" id="neg-hint"></div></div>
+          </div>
           <div class="total"><span>Order total</span><output id="o-total">£0.00</output></div>
           <p class="breakdown" id="o-break"></p>
           <p class="approx" id="o-approx"></p>
@@ -454,6 +483,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
         </form>
       </div>
       <div>
+        <div class="panel" id="ref-panel" data-live-only hidden style="margin-bottom:22px"><h3 style="margin:0 0 6px;font-size:1.25rem">Refer a friend</h3><p class="small" style="margin:0">Share your Referral ID. A friend who quotes it on their first order can negotiate up to <span data-refpct>20</span>% off.</p><p style="font-family:var(--serif);font-size:1.6rem;margin:8px 0" id="ref-code">...</p><button class="btn sm" id="ref-copy" type="button">Copy my referral link</button> <span class="small muted" id="ref-msg" role="status"></span></div>
         <h2 id="orders-h" style="font-size:1.8rem">Your orders</h2>
         <div id="orders"></div>
       </div>
@@ -681,7 +711,8 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
   const live = {
     async init() {
       if (sb) return;
-      await new Promise((res, rej) => {
+      if (!window.supabase) await new Promise(res => { let n = 0; const t = setInterval(() => { if (window.supabase || ++n > 40) { clearInterval(t); res(); } }, 50); });
+      if (!window.supabase) await new Promise((res, rej) => {
         const s = document.createElement("script");
         s.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js";
         s.onload = res; s.onerror = () => rej(new Error("Could not load the account service. Check your connection and refresh."));
@@ -835,14 +866,27 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
   }
   async function afterSignIn() {
     const r = await api.role();
-    if (r === "admin" || r === "staff") { await goStaff(); return; }
+    try { sessionStorage.setItem("rgh_role", JSON.stringify({ r, id: me.id })); } catch (e) {}
+    if (/^(admin|staff|staff_pending)$/.test(r)) { await goStaff(); return; }
     enterDash();
   }
+  function showForm(n) { ["in", "up", "staff", "forgot", "reset"].forEach(x => { $("#form-" + x).hidden = x !== n; }); }
   async function boot() {
     if (!LIVE) { emailMode(); return; }
+    if (/type=recovery/.test(location.hash)) { show("auth"); showForm("reset"); await live.init(); return; }
+    const k = "sb-" + C.supabase.url.replace("https://", "").split(".")[0] + "-auth-token";
+    let tok = null; try { tok = JSON.parse(localStorage.getItem(k) || "null"); } catch (e) {}
+    if (!tok) {
+      show("auth");
+      if (/[?&]staff=1/.test(location.search)) { const t = document.querySelector('[data-tab="staff"]'); if (t) t.click(); }
+      return;
+    }
+    let cached = null; try { cached = JSON.parse(sessionStorage.getItem("rgh_role") || "null"); } catch (e) {}
+    if (cached && tok.user && cached.id === tok.user.id && /^(admin|staff|staff_pending)$/.test(cached.r)) { location.href = "admin.html"; return; }
+    show("dash"); $("#hello").textContent = "Loading your account...";   // show the page now, check the role in the background
     try { me = await api.user(); } catch (e) { me = null; }
-    if (me) { try { await afterSignIn(); } catch (e) { enterDash(); } } else show("auth");
-    if (!me && /[?&]staff=1/.test(location.search)) { const t = document.querySelector('[data-tab="staff"]'); if (t) t.click(); }
+    if (!me) { show("auth"); return; }
+    try { await afterSignIn(); } catch (e) { enterDash(); }
   }
 
   /* auth tabs */
@@ -851,7 +895,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     tabs.forEach(x => x.setAttribute("aria-selected", x === t));
     $("#form-in").hidden = t.dataset.tab !== "in";
     $("#form-up").hidden = t.dataset.tab !== "up";
-    $("#form-staff").hidden = t.dataset.tab !== "staff";
+    $("#form-staff").hidden = t.dataset.tab !== "staff"; $("#form-forgot").hidden = true; $("#form-reset").hidden = true;
   }));
 
   $("#form-in").addEventListener("submit", async e => {
@@ -872,11 +916,11 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     try {
       me = await api.signIn(email, f.password.value);
       const r = await api.role();
-      if (r === "admin" || r === "staff") { await goStaff(); return; }
+      if (/^(admin|staff|staff_pending)$/.test(r)) { await goStaff(); return; }
       await api.signOut(); me = null; err.textContent = "This is not a staff account. Students: use the Sign in tab.";
     } catch (x) { err.textContent = /invalid/i.test(x.message) ? "Wrong name or password." : x.message; }
   });
-  $("#signout").addEventListener("click", async () => { await api.signOut(); me = null; show("auth"); if (window.RGHChat) RGHChat.refresh(); });
+  $("#signout").addEventListener("click", async () => { try { sessionStorage.removeItem("rgh_role"); } catch (e) {} await api.signOut(); me = null; show("auth"); if (window.RGHChat) RGHChat.refresh(); });
   const lc = $("#livechat"); if (lc) lc.addEventListener("click", () => { if (window.RGHChat) RGHChat.live(); });
 
   /* order form */
@@ -944,6 +988,75 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     } catch (e) {}
   }
 
+
+  /* password show/hide on every password box */
+  document.querySelectorAll("input[type=password]").forEach(i => {
+    const w = document.createElement("div"); w.style.position = "relative"; i.parentNode.insertBefore(w, i); w.appendChild(i); i.style.paddingRight = "70px";
+    const b = document.createElement("button"); b.type = "button"; b.textContent = "Show"; b.setAttribute("aria-label", "Show password");
+    b.style.cssText = "position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:transparent;font-weight:700;color:var(--ink);cursor:pointer;padding:6px 8px";
+    b.addEventListener("click", () => { const sh = i.type === "password"; i.type = sh ? "text" : "password"; b.textContent = sh ? "Hide" : "Show"; b.setAttribute("aria-label", sh ? "Hide password" : "Show password"); });
+    w.appendChild(b);
+  });
+
+  /* forgot / reset password */
+  const resetTo = () => location.origin + location.pathname;
+  $("#forgot-link").addEventListener("click", e => { e.preventDefault(); showForm("forgot"); tabs.forEach(x => x.setAttribute("aria-selected", "false")); const em = $("#form-in").email.value; if (em) $("#form-forgot").email.value = em; });
+  $("#form-forgot [data-back]").addEventListener("click", e => { e.preventDefault(); showForm("in"); tabs.forEach(x => x.setAttribute("aria-selected", x.dataset.tab === "in")); });
+  $("#form-forgot").addEventListener("submit", async e => {
+    e.preventDefault(); const f = e.target, err = $(".err", f), ok = $("[data-ok]", f); err.textContent = ""; ok.textContent = "";
+    const email = f.email.value.trim(); if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { err.textContent = "Enter the email you signed up with."; return; }
+    try {
+      await live.init(); const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: resetTo() }); if (error) throw error;
+      ok.textContent = "If that email has an account, we have sent a reset link. Check your inbox and spam folder."; $("[data-code]", f).hidden = false;
+    } catch (x) { err.textContent = x.message; }
+  });
+  $("#form-forgot [data-usecode]").addEventListener("click", async () => {
+    const f = $("#form-forgot"), err = $(".err", f); err.textContent = "";
+    if (f.password.value.length < 8) { err.textContent = "Use a new password of at least 8 characters."; return; }
+    try {
+      await live.init(); let r = await sb.auth.verifyOtp({ email: f.email.value.trim(), token: f.code.value.trim(), type: "recovery" }); if (r.error) throw r.error;
+      r = await sb.auth.updateUser({ password: f.password.value }); if (r.error) throw r.error;
+      me = await api.user(); await afterSignIn();
+    } catch (x) { err.textContent = "That code did not work: " + x.message; }
+  });
+  $("#form-reset").addEventListener("submit", async e => {
+    e.preventDefault(); const f = e.target, err = $(".err", f); err.textContent = "";
+    if (f.password.value.length < 8) { err.textContent = "Use at least 8 characters."; return; }
+    if (f.password.value !== f.password2.value) { err.textContent = "The two passwords do not match."; return; }
+    try {
+      await live.init(); const { error } = await sb.auth.updateUser({ password: f.password.value }); if (error) throw error;
+      history.replaceState(null, "", location.pathname); me = await api.user(); await afterSignIn();
+    } catch (x) { err.textContent = /session/i.test(x.message) ? "This reset link has expired. Request a new one." : x.message; }
+  });
+
+  /* negotiated price and referral */
+  const DISC = C.discounts || { new: 30, referral: 20, loyalty: 15 };
+  const NEGTYPES = { new: "New client", referral: "Referred by a student (Referral ID needed)", loyalty: "Existing client, loyalty" };
+  form.negtype.innerHTML = Object.keys(NEGTYPES).map(k => `<option value="${k}">${NEGTYPES[k]}: up to ${DISC[k]}% off</option>`).join("");
+  const waNeg = $("#neg-wa"); if (waNeg) { if (C.whatsapp) waNeg.href = "https://wa.me/" + C.whatsapp + "?text=" + encodeURIComponent("Hi Research Genius Hub, I would like to negotiate the price of my order."); else waNeg.outerHTML = "email us"; }
+  const refPct = document.querySelector("[data-refpct]"); if (refPct) refPct.textContent = DISC.referral;
+  function updateNeg() {
+    const q = formQuote(), avail = !q.sample && !q.quote && q.total > 0;
+    form.pricemode.parentNode.hidden = !avail; if (!avail) form.pricemode.value = "fixed";
+    const on = form.pricemode.value === "neg"; $("#neg-wrap").hidden = !on; $("#ref-wrap").hidden = !on || form.negtype.value !== "referral";
+    if (on) { const max = DISC[form.negtype.value], min = Math.round(q.total * (100 - max)) / 100; $("#neg-hint").textContent = `Standard price ${Q.money(q.total)}. Up to ${max}% off, so not below ${Q.money(min)}.`; }
+  }
+  form.addEventListener("input", updateNeg); form.addEventListener("change", updateNeg);
+  try { const rf = localStorage.getItem("rgh_ref"); if (rf) { form.refid.value = rf; } } catch (e) {}
+  const priceText = o => o.negotiated ? "Negotiated price proposed: " + Q.money(o.negotiated.agreed) + " (" + o.negotiated.type + (o.negotiated.referral ? ", referral " + o.negotiated.referral : "") + "; standard " + Q.money(o.negotiated.list) + "). Needs approval." : (o.status === "awaiting_quote" ? "quote needed" : Q.money(o.total));
+  if (LIVE) {
+    live.referralValid = async c => { await live.init(); const { data } = await sb.rpc("referral_valid", { p_code: c }); return !!data; };
+    live.myReferral = async () => { await live.init(); const { data } = await sb.rpc("my_referral"); return data || ""; };
+  }
+  async function showReferral() {
+    if (!LIVE || !live.myReferral) return;
+    try {
+      const code = await live.myReferral(); if (!code) return;
+      $("#ref-panel").hidden = false; $("#ref-code").textContent = code;
+      $("#ref-copy").onclick = async () => { const link = location.origin + "/index.html?ref=" + code; try { await navigator.clipboard.writeText("Get academic support from Research Genius Hub. Use my Referral ID " + code + " when you order: " + link); $("#ref-msg").textContent = "Copied. Send it to your friend."; } catch (e) { $("#ref-msg").textContent = link; } };
+    } catch (e) {}
+  }
+
   const fileIn = form.files_in;
   fileIn.addEventListener("change", () => {
     const list = Array.from(fileIn.files), bad = [];
@@ -977,6 +1090,17 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       ai: q.ai, rate: q.rate, total: q.total, due: form.due.value, instructions: form.instructions.value.trim(),
       customer: me ? me.name : form.gname.value.trim(), customerEmail: me ? me.email : form.gemail.value.trim(), phone: me ? "" : form.gphone.value.trim(), created: new Date().toISOString(), status: q.quote ? "awaiting_quote" : "awaiting_payment"
     };
+    if (form.pricemode.value === "neg" && !form.pricemode.parentNode.hidden) {
+      const t = form.negtype.value, max = DISC[t], agreed = Number(form.agreed.value), min = Math.round(q.total * (100 - max)) / 100, ref = form.refid.value.trim().toUpperCase();
+      if (!(agreed > 0)) { err.textContent = "Enter the price you agreed with us."; return; }
+      if (agreed > q.total) { err.textContent = "The agreed price is higher than the standard price. Choose the standard price instead."; return; }
+      if (agreed < min) { err.textContent = `${NEGTYPES[t].split(" (")[0]} discounts go up to ${max}%, so the lowest price is ${Q.money(min)}.`; return; }
+      if (t === "referral") {
+        if (!ref) { err.textContent = "Enter the Referral ID of the student who referred you."; return; }
+        if (LIVE) { try { if (!(await api.referralValid(ref))) { err.textContent = "We could not find that Referral ID. Check it, or choose another discount type."; return; } } catch (x) {} }
+      }
+      order.negotiated = { type: t, maxPct: max, agreed, list: q.total, referral: t === "referral" ? ref : "" }; order.status = "awaiting_quote";
+    }
     $("#o-submit").disabled = true; $("#o-submit").textContent = "Placing order...";
     if (!LIVE) {
       order.id = "RGH-" + Date.now().toString(36).toUpperCase();
@@ -1003,7 +1127,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       o.coaching ? "Hours: " + o.pages + (o.due ? "\nLesson start: " + o.due.replace("T", " ") : "") : "Length: " + o.pages + " page" + (o.pages > 1 ? "s" : ""),
       o.tier ? "Deadline: " + ((Q.tiersFor(o.level === "PhD" ? "phd" : "std").find(t => t.id === o.tier) || {}).label || o.tier) : "",
       o.due && !o.coaching ? "Exact due: " + o.due.replace("T", " ") : "",
-      "Price shown: " + (o.status === "awaiting_quote" ? "quote needed" : Q.money(o.total)), "",
+      "Price shown: " + priceText(o), "",
       "Instructions:", short && ins.length > 900 ? ins.slice(0, 900) + " ... (more in my attached files)" : ins, "",
       "From: " + o.customer, "Email: " + o.customerEmail, o.phone ? "WhatsApp: " + o.phone : "",
       "", "I will attach my brief and files to this email."
@@ -1022,7 +1146,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     add("name", o.customer); add("email", o.customerEmail); add("whatsapp", o.phone);
     add("order_id", o.id); add("service", o.service); add("title", o.title); add("subject", o.subject); add("level", o.level);
     add("country", o.country); add("referencing", o.style); add("length", o.coaching ? o.pages + " hours" : o.pages + " pages");
-    add("deadline", o.tier || ""); add("due", o.due || ""); add("price", o.status === "awaiting_quote" ? "quote needed" : Q.money(o.total)); add("instructions", o.instructions);
+    add("deadline", o.tier || ""); add("due", o.due || ""); add("price", priceText(o)); add("instructions", o.instructions);
     if (files.length) { fileIn.name = "attachment"; f.appendChild(fileIn); }
     document.body.appendChild(f);
     $("#send-form").disabled = true; $("#send-form").textContent = "Sending...";
@@ -1063,7 +1187,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
   async function enterDash() {
     show("dash"); $("#hello").textContent = "Signed in as " + me.name;
     if (window.RGHChat) { RGHChat.identify(me.name, me.email); RGHChat.refresh(); }
-    prefill(); updatePrice(); await renderOrders();
+    prefill(); updatePrice(); updateNeg(); await renderOrders(); showReferral();
     if (location.hash === "#new") form.scrollIntoView();
   }
 
@@ -1091,9 +1215,10 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
         <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:start">
           <div><h4>${esc(o.title || o.service)}</h4>
           <div class="muted small">${esc(o.id)} · ${esc(o.service)} · ${o.coaching ? plural(o.pages, "hour") + (o.due ? ", lesson " + esc(o.due.replace("T", " ")) : "") : plural(o.pages, "page")} · ${plural((o.files || []).length, "file")}</div></div>
-          <div style="text-align:right"><strong style="font-family:var(--serif);font-size:1.3rem">${isQuote ? "Quote pending" : Q.money(o.total)}</strong><br><span class="badge ${st[1]}">${esc(st[0])}</span> ${payBadge}</div>
+          <div style="text-align:right"><strong style="font-family:var(--serif);font-size:1.3rem">${isQuote ? (o.negotiated ? "Proposed " + money(o.negotiated.agreed) : "Quote pending") : Q.money(o.total)}</strong><br><span class="badge ${st[1]}">${esc(st[0])}</span> ${payBadge}</div>
         </div>
         ${dup ? `<p class="small" style="margin:10px 0 0"><strong>Possible duplicate:</strong> you have another unpaid order with the same details. Delete the extra one if you placed it by mistake.</p>` : ""}
+        ${isQuote && o.negotiated ? `<p class="small" style="margin:10px 0 0">Negotiated price proposed (${esc(o.negotiated.type)}${o.negotiated.referral ? ", referral " + esc(o.negotiated.referral) : ""}). Standard price ${money(o.negotiated.list)}. We will check it and email you before you pay.</p>` : ""}
         ${pending ? `<p class="small muted" style="margin:10px 0 0">Your payment report is with our team. We will email you when it is confirmed.</p>` : ""}
         ${showDl ? `<div class="paybox" data-dl="${esc(o.id)}" data-access="${o.access}"><p class="small muted">Loading your work...</p></div>` : (delivered ? `<div class="paybox"><p class="small muted">Your work is ready. Complete payment to unlock access. Email ${esc(C.email)} if you need help.</p></div>` : "")}
         ${needPay ? `<div class="paybox" data-pay="${esc(o.id)}"${o.id === openId ? "" : " hidden"}></div>
@@ -1149,8 +1274,8 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     const canPart = LIVE && o.status === "awaiting_payment" && !o.paid && !o.coaching && !o.sample && o.total >= (C.partPayMin || 20) && pct > 0 && pct < 100;
     if (!canPart) { buildMethods(el, Object.assign({}, o, { total: owing || o.total, _portion: o.paid ? "balance" : "full" }), o.paid ? "balance" : "full"); return; }
     const part = Math.round(o.total * pct) / 100;
-    el.innerHTML = `<div class="f"><label><input type="radio" name="plan-${esc(o.id)}" value="full" checked> Pay in full ${money(o.total)}: view online and download when delivered</label>
-      <label><input type="radio" name="plan-${esc(o.id)}" value="part"> Pay ${pct}% now (${money(part)}): we start the work, you preview it online, and download unlocks when you pay the balance ${money(o.total - part)}</label></div><div data-methods></div>`;
+    el.innerHTML = `<div class="f"><label><input type="radio" name="plan-${esc(o.id)}" value="full" checked> Pay in full ${money(o.total)}: guarantees full access to view online and download when delivered</label>
+      <label><input type="radio" name="plan-${esc(o.id)}" value="part"> Pay ${pct}% now (${money(part)}): this starts your work and lets you preview half of it online. The balance ${money(o.total - part)} unlocks the full document and download. Full payment guarantees full access</label></div><div data-methods></div>`;
     const go = () => { const v = el.querySelector("input:checked").value; buildMethods(el.querySelector("[data-methods]"), Object.assign({}, o, { total: v === "part" ? part : o.total }), v === "part" ? "part" : "full"); };
     el.querySelectorAll("input[type=radio]").forEach(r => r.addEventListener("change", go)); go();
   }
@@ -1635,5 +1760,6 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 })();
 
 </script>
+<script src="site-auth.js" defer></script>
 </body>
 </html>

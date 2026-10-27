@@ -81,6 +81,15 @@ window.RGH = {
   // Students can pay this % now; they preview the finished work online and download unlocks when the balance is confirmed.
   partPayPercent: 50, partPayMin: 20,   // set partPayPercent to 0 to switch part payment off
 
+  // ---- Negotiable prices and referrals ----
+  // Prices are negotiable on WhatsApp. Maximum discounts a student can enter on the order form (staff approve the final price).
+  negotiable: true,
+  discounts: { new: 30, referral: 20, loyalty: 15 },   // new client / referred by a student's Referral ID / returning client (percent)
+
+  // ---- Services (used by the staff page to limit what each staff member sees) ----
+  // Keep in sync with the Service list on the order form.
+  services: ["Research support", "Essay guidance and model answer", "Report or business plan", "Assignment guide", "Editing and proofreading", "Dissertation or proposal support", "Data analysis guidance (Excel, SPSS, NVivo)", "PowerPoint presentation", "AI content removal", "Full sample access", "Online coaching", "Journal publication guidance"],
+
   // ---- Sample access ----
   samplePerPage: 2,               // GBP per page to unlock a full sample
 

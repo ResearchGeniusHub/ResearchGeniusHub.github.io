@@ -378,11 +378,14 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 <body>
 <main class="wrap" style="max-width:980px;margin:0 auto;padding:20px 16px">
 <div class="topbar"><strong id="who">Staff</strong><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm alt" id="reload">Refresh</button><button class="btn sm alt" id="out">Sign out</button></span></div>
-<h1 style="font-size:2rem">Orders</h1>
+<div class="tabs" id="tabs-wrap" hidden role="tablist"><button type="button" aria-selected="true" data-view="orders">Orders</button><button type="button" aria-selected="false" data-view="staff">Staff</button></div>
+<section id="v-orders"><h1 style="font-size:2rem">Orders by service</h1>
+<div id="chips" style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px"></div>
 <div class="two"><div class="f"><label>Show</label><select id="flt"><option value="attn">Needs attention</option><option value="all">All orders</option><option value="awaiting_quote">Quote requests</option><option value="awaiting_payment">Awaiting payment</option><option value="payment_reported">Payment reported</option><option value="in_progress">In progress</option><option value="revision_requested">Revision requested</option><option value="delivered">Delivered</option></select></div>
 <div class="f"><label>Search</label><input id="q" placeholder="Order number, name, email or title"></div></div>
 <p class="err" id="top-err" role="alert"></p>
-<div id="list"><p class="muted">Loading...</p></div>
+<div id="list"><p class="muted">Loading...</p></div></section>
+<section id="v-staff" hidden></section>
 </main>
 <script src="site-config.js"></script>
 <script>
@@ -395,8 +398,31 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { location.href = "account.html?staff=1"; return; }
   const { data: role } = await sb.rpc("my_role");
-  if (role !== "admin" && role !== "staff") { location.href = "account.html"; return; }
+  if (!/^(admin|staff|staff_pending)$/.test(role)) { location.href = "account.html"; return; }
+  if (role === "staff_pending") { await pendingScreen(); return; }
   const isAdmin = role === "admin"; $("#who").textContent = "Signed in as " + (session.user.email) + " (" + role + ")";
+  async function pendingScreen() {
+    const { data: p } = await sb.rpc("my_staff_profile"), pr = Array.isArray(p) ? p[0] : p || {};
+    const msg = !pr.contact_email ? "Welcome. For accountability, enter your email address and phone number to activate your account."
+      : !pr.contact_approved ? "Your contact details were changed, so your account is paused until the admin approves them. Re-enter your original details to continue, or wait for the admin."
+      : "Please confirm your email address and phone number to continue.";
+    document.querySelector("main").innerHTML = `<div class="topbar"><strong>${esc(session.user.email)}</strong><button class="btn sm alt" id="out2">Sign out</button></div>
+      <form class="panel" id="pf" style="max-width:480px;margin:24px auto" novalidate><h2 style="margin-top:0;font-size:1.5rem">Confirm your details</h2><p>${esc(msg)}</p>
+      <div class="f"><label>Your email</label><input type="email" name="e" autocomplete="email" value="${esc(pr.pending_email || "")}"></div>
+      <div class="f"><label>Your phone number</label><input type="tel" name="p" autocomplete="tel" value="${esc(pr.pending_phone || "")}"></div>
+      <p class="small muted">If these details are removed or changed later, your account stops working until the admin approves the change.</p>
+      <p class="err" role="alert"></p><p class="small" data-ok></p><button class="btn block">Save and continue</button></form>`;
+    $("#out2").addEventListener("click", async () => { await sb.auth.signOut(); try { sessionStorage.removeItem("rgh_role"); } catch (e) {} location.href = "account.html"; });
+    $("#pf").addEventListener("submit", async e => {
+      e.preventDefault(); const f = e.target; f.querySelector(".err").textContent = "";
+      const r = await sb.rpc("staff_set_contact", { p_email: f.e.value, p_phone: f.p.value });
+      if (r.error) { f.querySelector(".err").textContent = r.error.message; return; }
+      try { sessionStorage.removeItem("rgh_role"); } catch (x) {}
+      if (r.data === "active") location.reload(); else f.querySelector("[data-ok]").textContent = "Sent to the admin for approval. Your account stays paused until then.";
+    });
+  }
+  let svc = "all";
+  const fnErr = async e => { try { const j = await e.context.json(); return j.error || e.message; } catch (x) { return e.message; } };
   let orders = [], pays = [], evs = [];
   const label = { awaiting_quote: "Quote requested", awaiting_payment: "Awaiting payment", payment_reported: "Payment reported", in_progress: "In progress", delivered: "Delivered", revision_requested: "Revision requested" };
 
@@ -408,6 +434,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     const [o, p, e] = await Promise.all([sb.from("orders").select("*").order("created_at", { ascending: false }), sb.from("payments").select("*"), sb.from("order_events").select("*").order("created_at")]);
     if (o.error) { $("#top-err").textContent = o.error.message; return; }
     orders = o.data; pays = p.data || []; evs = e.data || []; render();
+    if (isAdmin) $("#tabs-wrap").hidden = false;
   }
   const needsAttn = o => {
     const mine = evs.filter(e => e.order_id === o.id), last = mine[mine.length - 1];
@@ -415,9 +442,21 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
   };
   function render() {
     const f = $("#flt").value, q = $("#q").value.trim().toLowerCase();
-    const rows = orders.filter(o => (f === "all" || (f === "attn" ? needsAttn(o) : o.status === f)) &&
+    const base = orders.filter(o => (f === "all" || (f === "attn" ? needsAttn(o) : o.status === f)) &&
       (!q || [o.id, o.data && o.data.customer, o.data && o.data.customerEmail, o.data && o.data.title].join(" ").toLowerCase().includes(q)));
-    $("#list").innerHTML = rows.length ? rows.map(card).join("") : `<p class="muted">Nothing here.</p>`;
+    const counts = {}; base.forEach(o => { const k = (o.data && o.data.service) || "Other"; counts[k] = (counts[k] || 0) + 1; });
+    const names = Object.keys(counts).sort();
+    if (svc !== "all" && !counts[svc]) svc = "all";
+    $("#chips").innerHTML = [["all", "All services", base.length]].concat(names.map(n => [n, n, counts[n]])).map(c =>
+      `<button type="button" class="btn sm ${svc === c[0] ? "" : "alt"}" data-svc="${esc(c[0])}">${esc(c[1])} (${c[2]})</button>`).join("");
+    $("#chips").querySelectorAll("[data-svc]").forEach(b => b.addEventListener("click", () => { svc = b.dataset.svc; render(); }));
+    const rows = svc === "all" ? base : base.filter(o => ((o.data && o.data.service) || "Other") === svc);
+    let html = "";
+    (svc === "all" ? names : [svc]).forEach(n => {
+      const grp = rows.filter(o => ((o.data && o.data.service) || "Other") === n); if (!grp.length) return;
+      html += `<h3 style="margin:22px 0 8px;font-size:1.25rem;border-bottom:2px solid var(--ink)">${esc(n)} (${grp.length})</h3>` + grp.map(card).join("");
+    });
+    $("#list").innerHTML = html || `<p class="muted">Nothing here.</p>`;
     $("#list").querySelectorAll("article").forEach(wire);
   }
   function card(o) {
@@ -437,9 +476,10 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
         ${op.map(p => `<p class="small" style="margin:4px 0">${p.confirmed ? "Confirmed" : "<strong>Awaiting confirmation</strong>"}: ${money(p.amount)} (${esc(p.portion || "full")}) via ${esc(p.method)}, ref ${esc(p.reference || "none")}</p>`).join("")}
         ${my.map(e => `<div style="border-left:3px solid var(--ink);padding:2px 10px;margin:8px 0"><div class="small muted">${e.author_role === "staff" ? "Staff" : "Student"} · ${esc(e.kind)} · ${new Date(e.created_at).toLocaleString()}</div>${e.author_role === "student" ? `<div><strong>Added: ${esc(e.summary)}</strong></div>` : ""}<div style="white-space:pre-wrap">${esc(e.message || "")}</div>${(e.files || []).map(f => `<div class="small"><a href="#" data-sign="${esc(f.path)}">${esc(f.name)}</a></div>`).join("")}</div>`).join("")}
       </details>
-      ${o.status === "awaiting_quote" ? `<form data-quote class="panel" style="margin-top:12px"><h4 style="margin:0 0 8px">Send a quote</h4>
-        <div class="f"><label>Price (GBP)</label><input type="number" min="1" step="0.01" name="price"></div>
-        <div class="f"><label>Message to student</label><textarea name="msg" placeholder="What the price covers and how to pay."></textarea></div><p class="err"></p><button class="btn sm">Send quote and email student</button></form>` : ""}
+      ${d.negotiated ? `<div class="panel" style="margin-top:12px;padding:12px"><strong>Negotiated price requested:</strong> ${money(d.negotiated.agreed)} (${esc(d.negotiated.type)}, up to ${d.negotiated.maxPct}% off). Standard price ${money(d.negotiated.list)}; lowest allowed ${money(Math.round(d.negotiated.list * (100 - d.negotiated.maxPct)) / 100)}.${d.negotiated.agreed < Math.round(d.negotiated.list * (100 - d.negotiated.maxPct)) / 100 ? " <strong>Below the allowed minimum.</strong>" : ""}${d.negotiated.referral ? `<br>Referral ID ${esc(d.negotiated.referral)} · referred by <span data-refowner="${esc(d.negotiated.referral)}">checking...</span>` : ""}<br><span class="small muted">Check it matches what was agreed on WhatsApp.</span></div>` : ""}
+      ${o.status === "awaiting_quote" ? `<form data-quote class="panel" style="margin-top:12px"><h4 style="margin:0 0 8px">${d.negotiated ? "Approve or change the price" : "Send a quote"}</h4>
+        <div class="f"><label>Final price (GBP)</label><input type="number" min="1" step="0.01" name="price" value="${d.negotiated ? d.negotiated.agreed : ""}"></div>
+        <div class="f"><label>Message to student</label><textarea name="msg" placeholder="What the price covers and how to pay.">${d.negotiated ? "Your negotiated price of " + money(d.negotiated.agreed) + " is approved. You can pay from your account: you may pay in full, or half now to start and the balance before download." : ""}</textarea></div><p class="err"></p><button class="btn sm">${d.negotiated ? "Approve price and email student" : "Send quote and email student"}</button></form>` : ""}
       <form data-confirm class="panel" style="margin-top:12px"><h4 style="margin:0 0 8px">Confirm and email the student</h4>
         <div class="f"><label>Action</label><select name="kind"><option value="received">Received: documents or feedback received, being worked on</option><option value="partial"${pendingPay.length && pendingPay[0].portion === "part" ? " selected" : ""}>Partial payment confirmed</option><option value="full"${pendingPay.length && pendingPay[0].portion !== "part" ? " selected" : ""}>Full payment confirmed</option><option value="note">Message only (no confirmation)</option></select></div>
         <div class="f" data-amt hidden><label>Amount received (GBP)</label><input type="number" name="amount" min="0.01" step="0.01" value="${defAmt}"></div>
@@ -454,6 +494,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     </article>`;
   }
   function wire(a) {
+    a.querySelectorAll("[data-refowner]").forEach(async sp => { const r = await sb.rpc("referral_owner", { p_code: sp.dataset.refowner }); sp.textContent = r.data || "no matching ID (check it)"; });
     const id = a.dataset.id, uid = a.dataset.user, o = orders.find(x => x.id === id);
     const busy = (btn, on, t) => { btn.disabled = on; if (t) btn.dataset.t = btn.dataset.t || btn.textContent, btn.textContent = on ? t : btn.dataset.t; };
     const fail = (f, x) => { f.querySelector(".err").textContent = x.message; };
@@ -520,6 +561,48 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
         const { data } = await sb.storage.from(b).list(uid + "/" + id + "/"); if (data && data.length) await sb.storage.from(b).remove(data.filter(f => f.id).map(f => uid + "/" + id + "/" + f.name));
       }
       const r = await sb.from("orders").delete().eq("id", id); if (r.error) alert(r.error.message); else reload();
+    });
+  }
+
+  /* ---------- staff management (admin only) ---------- */
+  document.querySelectorAll("[data-view]").forEach(b => b.addEventListener("click", () => {
+    document.querySelectorAll("[data-view]").forEach(x => x.setAttribute("aria-selected", x === b));
+    $("#v-orders").hidden = b.dataset.view !== "orders"; $("#v-staff").hidden = b.dataset.view !== "staff";
+    if (b.dataset.view === "staff") loadStaff();
+  }));
+  const svcBoxes = (sel, name) => (C.services || []).map(x => `<label style="display:block;font-weight:400"><input type="checkbox" name="${name}" value="${esc(x)}"${(sel || []).includes(x) ? " checked" : ""}> ${esc(x)}</label>`).join("");
+  async function loadStaff() {
+    const box = $("#v-staff"); box.innerHTML = `<p class="muted">Loading staff...</p>`;
+    const { data, error } = await sb.rpc("admin_list_staff"); if (error) { box.innerHTML = `<p class="err">${esc(error.message)}</p>`; return; }
+    box.innerHTML = `<h1 style="font-size:2rem">Staff</h1>
+      <form id="addstaff" class="panel" novalidate><h3 style="margin-top:0">Add a staff member</h3>
+        <div class="two"><div class="f"><label>Full name</label><input name="full"></div><div class="f"><label>Username (letters and numbers)</label><input name="user" autocapitalize="none"></div></div>
+        <div class="f"><label>Temporary password (at least 10 characters)</label><input name="pw" type="text" autocomplete="off"></div>
+        <div class="f"><label>Services this person can see (they cannot see any others)</label>${svcBoxes([], "svc")}</div>
+        <p class="small muted">On first sign-in they must enter their own email and phone number. If they change or remove them later, their account pauses until you approve.</p>
+        <p class="err"></p><button class="btn sm">Add staff member</button></form>
+      <div id="stafflist">${(data || []).map(st => `<article class="order" data-uid="${esc(st.user_id)}">
+        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><h4>${esc(st.full_name || st.username)}</h4><div class="small muted">Sign-in name: ${esc(st.username)}</div>
+          <div class="small">Contact: ${esc(st.contact_email || "not given yet")} · ${esc(st.contact_phone || "")}</div></div>
+          <div style="text-align:right"><span class="badge ${st.active ? "paid" : "due"}">${st.active ? "Active" : "Deactivated"}</span>${st.must_confirm ? `<br><span class="small muted">Waiting for them to confirm details</span>` : ""}</div></div>
+        ${st.pending_email || st.pending_phone || !st.contact_approved ? `<div class="panel" style="margin-top:10px;padding:12px"><strong>Contact details changed, account paused.</strong><br>New: ${esc(st.pending_email || "(removed)")} · ${esc(st.pending_phone || "(removed)")}<br>
+          <button class="btn sm" data-rv="1" style="margin-top:8px">Approve change</button> <button class="btn sm alt" data-rv="0" style="margin-top:8px">Reject (they must re-enter the old details)</button></div>` : ""}
+        <details style="margin-top:10px"><summary>Services (${(st.services || []).length})</summary><div class="f" style="margin-top:8px">${svcBoxes(st.services, "s_" + st.user_id)}</div><button class="btn sm" data-save>Confirm and save services</button></details>
+        <p style="margin:10px 0 0"><button class="btn sm alt" data-reset>Reset password</button> <button class="btn sm alt" data-act="${st.active ? 0 : 1}">${st.active ? "Deactivate" : "Reactivate"}</button></p><p class="err"></p></article>`).join("") || `<p class="muted">No staff added yet.</p>`}</div>`;
+    $("#addstaff").addEventListener("submit", async e => {
+      e.preventDefault(); const f = e.target, err = f.querySelector(".err"), sv = Array.from(f.querySelectorAll("input[name=svc]:checked")).map(x => x.value); err.textContent = "";
+      if (!f.user.value.trim() || f.pw.value.length < 10) { err.textContent = "Enter a username and a password of at least 10 characters."; return; }
+      if (!sv.length) { err.textContent = "Choose at least one service."; return; }
+      if (!confirm("Add " + (f.full.value || f.user.value) + " with access to only these services?\n\n" + sv.join("\n"))) return;
+      const r = await sb.functions.invoke("rgh-staff", { body: { action: "create", username: f.user.value, full_name: f.full.value.trim(), password: f.pw.value, services: sv } });
+      if (r.error) { err.textContent = await fnErr(r.error); return; } alert("Added. Give them the username and temporary password."); loadStaff();
+    });
+    box.querySelectorAll("article[data-uid]").forEach(a => {
+      const id = a.dataset.uid, err = a.querySelector(".err"), run = async fn => { err.textContent = ""; try { const r = await fn(); if (r && r.error) throw new Error(r.error.message || await fnErr(r.error)); loadStaff(); } catch (x) { err.textContent = x.message; } };
+      a.querySelectorAll("[data-rv]").forEach(b => b.addEventListener("click", () => run(() => sb.rpc("admin_review_contact", { p_user: id, p_approve: b.dataset.rv === "1" }))));
+      a.querySelector("[data-save]").addEventListener("click", () => { const sv = Array.from(a.querySelectorAll("input[name='s_" + id + "']:checked")).map(x => x.value); if (!sv.length) { err.textContent = "Choose at least one service."; return; } if (confirm("Limit this person to these services?\n\n" + sv.join("\n"))) run(() => sb.rpc("admin_set_services", { p_user: id, p_services: sv })); });
+      a.querySelector("[data-reset]").addEventListener("click", () => { const pw = prompt("New temporary password (at least 10 characters). They must re-enter their email and phone after signing in."); if (pw) run(() => sb.functions.invoke("rgh-staff", { body: { action: "reset", user_id: id, password: pw } })); });
+      a.querySelector("[data-act]").addEventListener("click", e => run(() => sb.rpc("admin_set_active", { p_user: id, p_active: e.target.dataset.act === "1" })));
     });
   }
   $("#flt").addEventListener("change", render); $("#q").addEventListener("input", render); $("#reload").addEventListener("click", reload);
