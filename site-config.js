@@ -42,8 +42,8 @@ window.RGH = {
   manualPay: [
     { label: "PayPal", lines: [["PayPal email", "Muigaimoses1@live.com"]],
       note: "Send the amount shown. PayPal converts it if your account uses another currency. Choose Goods and services if asked, and put your order number in the note." },
-    { label: "Mobile money (M-Pesa)", lines: [["Mobile number", "+254712117244"]],
-      note: "Send from Wise or WorldRemit to this M-Pesa number, then tell us the transfer reference." }
+    { label: "Mobile money (Wise, Wave, World Remit)", lines: [["Mobile number", "+254712117244"]],
+      note: "Send from Wise, Wave or World Remit to this mobile number, then tell us the transfer reference." }
   ],
 
   // Hosted payment links (card, Wise, Payoneer, Paystack, Flutterwave...).
@@ -51,7 +51,8 @@ window.RGH = {
   payLinks: [
     { id: "card",     label: "Card",     url: "", note: "Pay by Visa or Mastercard on a secure payment page." },
     { id: "wise",     label: "Wise",     url: "", note: "Pay from your bank in GBP, USD, CAD, AUD or EUR with a low-fee transfer." },
-    { id: "payoneer", label: "Payoneer", url: "", note: "Pay with Payoneer." }
+    { id: "payoneer", label: "Payoneer", url: "", note: "Pay with Payoneer." },
+    { id: "whatsapp", label: "Other method", url: "https://wa.me/254106858200", note: "Prefer another payment method? Message us on WhatsApp and we will arrange it." }
   ],
 
   // Bank transfer details, one entry per currency. Entries with no account number or IBAN are hidden.

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Staff | Research Genius Hub</title>
-<meta name="description" content="Choose your service, see the price, send your requirements and pay by PayPal or M-Pesa.">
+<meta name="description" content="Choose your service, see the price, send your requirements and pay by PayPal or mobile money.">
 <meta name="robots" content="noindex">
 <meta property="og:site_name" content="Research Genius Hub">
 <meta property="og:image" content="https://researchgeniushub.github.io/og-image.png">
@@ -12,7 +12,7 @@
 <meta name="theme-color" content="#0F1B33">
 
 <meta property="og:title" content="Place an Order | Research Genius Hub">
-<meta property="og:description" content="Choose your service, see the price, send your requirements and pay by PayPal or M-Pesa.">
+<meta property="og:description" content="Choose your service, see the price, send your requirements and pay by PayPal or mobile money.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://researchgeniushub.github.io/account.html">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -459,8 +459,8 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       else if (e.kind === "partial") { head = "Part payment received"; line = "We have received a PART payment of " + gbp(paid) + " of " + gbp(total) + ". Balance remaining: " + gbp(bal) + "."; }
       else if (e.kind === "received") { head = "We have received your order details"; line = "Your documents or feedback were received and your order is being worked on."; }
       else { head = "A message about your order"; line = ""; }
-      const body = "Hello " + (d.customer || "") + ",\n\n" + head + " for your order \"" + (d.title || o.id) + "\".\n" + line + (e.message ? "\n\nNext step from us:\n" + e.message : "") + "\n\nSign in to see your order: " + location.origin + "/account.html\n\nResearch Genius Hub";
-      await fetch("https://formsubmit.co/ajax/" + (C.email || "researchgeniushub@gmail.com"), { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ _subject: head + " - Research Genius Hub", _captcha: "false", _template: "box", _autoresponse: body, email: to, name: d.customer || to, message: head + ": " + (d.title || o.id) + " (" + to + "). " + line }) });
+      const body = "Hello " + (d.customer || "") + ",\n\n" + head + " for your order \"" + (d.title || o.order_no || o.id) + "\".\n" + line + (e.message ? "\n\nNext step from us:\n" + e.message : "") + "\n\nSign in to see your order: " + location.origin + "/account.html\n\nResearch Genius Hub";
+      await fetch("https://formsubmit.co/ajax/" + (C.email || "researchgeniushub@gmail.com"), { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ _subject: head + " - Research Genius Hub", _captcha: "false", _template: "box", _autoresponse: body, email: to, name: d.customer || to, message: head + ": " + (d.title || o.order_no || o.id) + " (" + to + "). " + line }) });
     } catch (x) { /* the confirmation itself is already saved */ }
   }
   async function reload() {
@@ -533,7 +533,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
         <div class="f"><label>Message to student</label><textarea name="msg" placeholder="What the price covers and how to pay.">${d.negotiated ? "Your negotiated price of " + money(d.negotiated.agreed) + " is approved. You can pay from your account: you may pay in full, or half now to start and the balance before download." : ""}</textarea></div><p class="err"></p><button class="btn sm">${d.negotiated ? "Approve price and email student" : "Send quote and email student"}</button></form>` : ""}
       <form data-confirm class="panel" style="margin-top:12px"><h4 style="margin:0 0 8px">Confirm and email the student</h4>
         <div class="f"><label>Action</label><select name="kind"><option value="received">Received: documents or feedback received, being worked on</option><option value="partial"${pendingPay.length && pendingPay[0].portion === "part" ? " selected" : ""}>Partial payment confirmed</option><option value="full"${pendingPay.length && pendingPay[0].portion !== "part" ? " selected" : ""}>Full payment confirmed</option><option value="note">Message only (no confirmation)</option></select></div>
-        <div class="f" data-code hidden><label>Payment code from PayPal / M-Pesa (must match what the student entered)</label><input name="pcode" autocomplete="off" placeholder="e.g. QSRDUSVT2"></div>
+        <div class="f" data-code hidden><label>Payment code from PayPal / mobile money (must match what the student entered)</label><input name="pcode" autocomplete="off" placeholder="e.g. QSRDUSVT2"></div>
         <div class="f" data-amt hidden><label>Amount received (GBP)</label><input type="number" name="amount" min="0.01" step="0.01" value="${defAmt}"></div>
         <div class="f"><label>Next step for the student (required, emailed immediately)</label><textarea name="msg" placeholder="e.g. We have your documents and are working on them. Expect the first draft by Friday 5pm UK time."></textarea></div>
         <p class="err"></p><button class="btn sm" disabled>Confirm and send email</button></form>
@@ -554,12 +554,15 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       if (!ev.target.open || ev.target.dataset.done) return; ev.target.dataset.done = 1;
       const box = a.querySelector("[data-files]"), out = [];
       const { data } = await sb.storage.from("requirements").list(uid + "/" + id + "/");
+      const dl = await sb.storage.from("deliveries").list(uid + "/" + id + "/"), pv = await sb.storage.from("previews").list(uid + "/" + id + "/");
       for (const f of data || []) if (f.id) { const p = uid + "/" + id + "/" + f.name; out.push(`<a href="#" data-sign="${esc(p)}">${esc(f.name.replace(/^\d+-/, ""))}</a>`); }
-      box.innerHTML = out.length ? "Order files: " + out.join(" · ") : "No files with the order.";
+      const fileLink = (bucket, f) => `<a href="#" data-bucket="${bucket}" data-sign="${esc(uid + "/" + id + "/" + f.name)}">${esc(f.name.replace(/^\d+-/, ""))}</a>`;
+      const dOut = (dl.data || []).filter(f => f.id).map(f => fileLink("deliveries", f)), pOut = (pv.data || []).filter(f => f.id).map(f => fileLink("previews", f));
+      box.innerHTML = "<div>Student files: " + (out.length ? out.join(" · ") : "none") + "</div><div>Delivered to student: " + (dOut.length ? dOut.join(" · ") : "nothing yet") + "</div>" + (pOut.length ? "<div>Previews: " + pOut.join(" · ") + "</div>" : "");
     });
     a.addEventListener("click", async e => {
       const t = e.target.closest("[data-sign]"); if (!t) return; e.preventDefault();
-      const { data } = await sb.storage.from("requirements").createSignedUrl(t.dataset.sign, 600); if (data) window.open(data.signedUrl, "_blank");
+      const { data } = await sb.storage.from(t.dataset.bucket || "requirements").createSignedUrl(t.dataset.sign, 600); if (data) window.open(data.signedUrl, "_blank");
     });
     const cf = a.querySelector("[data-confirm]");
     const sync = () => { cf.querySelector("[data-amt]").hidden = cf.kind.value !== "partial"; cf.querySelector("[data-code]").hidden = !["partial", "full"].includes(cf.kind.value); cf.querySelector("button").disabled = cf.msg.value.trim().length < 10; };
@@ -748,14 +751,14 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     if (o.error) { box.innerHTML = `<p class="err">${esc(o.error.message)}</p>`; return; }
     pays = p.data || [];
     const due = (o.data || []).filter(x => x.status !== "awaiting_quote" && Number(x.paid_amount || 0) > 0 && Number(x.paid_amount) < Number(x.total));
-    box.innerHTML = `<h1 style="font-size:2rem">Balances</h1><p class="small muted">Students who paid part of an order. When the other part arrives, enter the payment code from PayPal or M-Pesa. If it matches what the student entered, the order is marked fully paid, the student can open and download everything, and they get an email saying the task is complete.</p><div id="blist"></div>`;
+    box.innerHTML = `<h1 style="font-size:2rem">Balances</h1><p class="small muted">Students who paid part of an order. When the other part arrives, enter the payment code from PayPal or mobile money. If it matches what the student entered, the order is marked fully paid, the student can open and download everything, and they get an email saying the task is complete.</p><div id="blist"></div>`;
     const L = $("#blist"); if (!due.length) { L.innerHTML = '<p class="muted">No balances waiting.</p>'; return; }
     due.forEach(x => {
       const d = x.data || {}, owing = Math.round((Number(x.total) - Number(x.paid_amount)) * 100) / 100, reported = pays.filter(q => q.order_id === x.id && !q.confirmed), a = document.createElement("article"); a.className = "order";
       a.innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><h4 style="margin:0">${esc(d.title || d.service || x.id)}</h4><div class="small"><strong>${esc(d.customer || "")}</strong> · ${esc(d.customerEmail || "")} · ${esc(x.id)}</div></div>
         <div style="text-align:right"><strong>Balance ${money(owing)}</strong><div class="small muted">Paid ${money(x.paid_amount)} of ${money(x.total)}</div></div></div>
         ${reported.length ? reported.map(q => `<p class="small" style="margin:6px 0"><b>Student reported</b> ${money(q.amount)} via ${esc(q.method)}, payment code <b>${esc(q.reference || "none")}</b></p>`).join("") : '<p class="small muted" style="margin:6px 0">The student has not reported the balance payment yet.</p>'}
-        <form class="panel" style="padding:12px;margin-top:8px"><div class="f"><label>Payment code from PayPal / M-Pesa</label><input name="pcode" autocomplete="off"></div>
+        <form class="panel" style="padding:12px;margin-top:8px"><div class="f"><label>Payment code from PayPal / mobile money</label><input name="pcode" autocomplete="off"></div>
           <div class="f"><label>Message to the student (required, emailed)</label><textarea name="msg" rows="2">Your balance payment is confirmed. Your task is complete. Sign in to your account, open the order and view or download your full work.</textarea></div>
           <p class="err"></p><button class="btn sm"${reported.length ? "" : " disabled"}>Confirm balance, complete order and email student</button></form>`;
       const f = a.querySelector("form"); f.addEventListener("submit", async e => {
@@ -793,8 +796,8 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
           : "Thank you. We have received a PART payment for the sample \"" + d.title + "\": " + gbp(d.paid) + " of " + gbp(d.total) + ". Balance: " + gbp(d.total - d.paid) + ". You can open " + d.unlocked + " paid page(s) now; the copy carries a part-payment watermark until the balance is paid and confirmed.\n\nYour access code: " + d.code + "\n\nGo to " + site + ", open the sample, choose Already paid? and enter this email and the code. Read online: 2 sessions. Download: once.";
         const R = await fetch("https://formsubmit.co/ajax/" + (C.email || "researchgeniushub@gmail.com"), { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ _subject: (d.complete ? "Payment complete: " : "Part payment received: ") + d.title + " - " + L, _captcha: "false", _template: "box", _autoresponse: body + "\n\n" + L, email: d.email, name: d.email, message: (d.complete ? "COMPLETE" : "PART") + " payment confirmed. Code " + d.code + " sent to " + d.email + " for " + d.title }) }); return R.ok; } catch (x) { return false; } };
       const send = (action, amount, pcode) => run(async () => { const res = action === "approve" ? await sb.rpc("admin_approve_sample", { p_access: r.id, p_amount: amount, p_code: pcode }) : action === "balance" ? await sb.rpc("admin_confirm_balance", { p_access: r.id, p_amount: amount, p_code: pcode }) : await sb.rpc("admin_sample_code", { p_access: r.id }); if (res.error) throw new Error(res.error.message); const d = res.data, ok = await mailCode(d); alert((d.complete ? "Payment COMPLETE. The student can now open the full copy with no watermark. " : "Part payment recorded. ") + "Code " + d.code + (ok ? " and a notice were emailed to " + d.email + "." : " is in their account. The email could not be sent, so please tell " + d.email + " yourself.")); loadAccess(); });
-      const ap = a.querySelector("[data-ap]"); if (ap) ap.onclick = () => { const got = prompt("Amount received from " + r.email + " (reference " + (r.reference || "none") + ")?\nOption chosen: " + (r.pay_option === "part" ? "half" : "full") + ". Full = " + money(amt) + ", half = " + money(amt / 2) + ".", String(r.due_now ?? amt)); if (got === null) return; const n = Number(got); if (!(n > 0)) { alert("Enter the amount received."); return; } const pc = prompt("Type the payment code you see in PayPal / M-Pesa for this payment.\nIt must match what the student entered, or the payment is NOT confirmed."); if (pc === null) return; send("approve", n, pc); };
-      const bal = a.querySelector("[data-bal]"); if (bal) bal.onclick = () => { const left = Math.max(0, Number(amt) - Number(r.paid_amount || 0)), got = prompt("Balance received from " + r.email + "?\nBalance due: " + money(left), String(left)); if (got === null) return; const n = Number(got); if (!(n > 0)) { alert("Enter the amount received."); return; } const pc = prompt("Type the payment code you see in PayPal / M-Pesa for the BALANCE payment.\nIt must match what the student entered, or it is NOT confirmed."); if (pc === null) return; send("balance", n, pc); };
+      const ap = a.querySelector("[data-ap]"); if (ap) ap.onclick = () => { const got = prompt("Amount received from " + r.email + " (reference " + (r.reference || "none") + ")?\nOption chosen: " + (r.pay_option === "part" ? "half" : "full") + ". Full = " + money(amt) + ", half = " + money(amt / 2) + ".", String(r.due_now ?? amt)); if (got === null) return; const n = Number(got); if (!(n > 0)) { alert("Enter the amount received."); return; } const pc = prompt("Type the payment code you see in PayPal / mobile money for this payment.\nIt must match what the student entered, or the payment is NOT confirmed."); if (pc === null) return; send("approve", n, pc); };
+      const bal = a.querySelector("[data-bal]"); if (bal) bal.onclick = () => { const left = Math.max(0, Number(amt) - Number(r.paid_amount || 0)), got = prompt("Balance received from " + r.email + "?\nBalance due: " + money(left), String(left)); if (got === null) return; const n = Number(got); if (!(n > 0)) { alert("Enter the amount received."); return; } const pc = prompt("Type the payment code you see in PayPal / mobile money for the BALANCE payment.\nIt must match what the student entered, or it is NOT confirmed."); if (pc === null) return; send("balance", n, pc); };
       const rs = a.querySelector("[data-rs]"); if (rs) rs.onclick = () => send("resend");
       const rst = a.querySelector("[data-rst]"); if (rst) rst.onclick = () => run(async () => { const x = await sb.from("sample_access").update({ opens_used: 0, download_used: 0, last_session: null, status: "approved" }).eq("id", r.id); if (x.error) throw x.error; loadAccess(); });
       const rv = a.querySelector("[data-rv]"); if (rv) rv.onclick = () => run(async () => { const x = await sb.from("sample_access").update({ status: "closed" }).eq("id", r.id); if (x.error) throw x.error; loadAccess(); });

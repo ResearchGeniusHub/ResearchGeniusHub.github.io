@@ -126,7 +126,7 @@
         <label class="small">I will mostly</label><select data-f><option value="read">Read online (2 sessions)</option><option value="download">Download (once)</option></select>
         <label class="small">Payment now</label><select data-pay><option value="full">Pay full amount</option><option value="part">Pay half now (50%), balance later</option></select>
         <label class="small">Your email (the code is sent here)</label><input type="email" data-e autocomplete="email" placeholder="you@example.com" value="${esc(mine.email || "")}" style="width:100%">
-        <label class="small">Payment reference</label><input data-r placeholder="PayPal or M-Pesa transaction ID" autocomplete="off" style="width:100%">
+        <label class="small">Payment reference</label><input data-r placeholder="PayPal or mobile money transaction ID" autocomplete="off" style="width:100%">
         <p><button class="btn sm" data-req>Send for confirmation</button></p><div data-out role="status"></div></div>
       <details class="intro" data-paid ${mine.email ? "open" : ""}><summary>Already paid? Open my pages</summary>
         <p class="small muted">Enter your email and the access code we sent you. Reading online: 2 sessions (each reopening after closing the tab counts as one). Download: once, then the code ends.</p>
@@ -134,7 +134,7 @@
         <p><button class="btn sm" data-read>Read online</button> <button class="btn sm alt" data-dl>Download</button></p><div data-msg role="status"></div>
         <div class="panel" style="padding:12px;margin-top:10px"><strong>Paid half? Pay the balance here</strong>
           <p class="small muted" style="margin:6px 0">Pay the balance with the details above, then enter your payment reference. When we confirm it, the watermark is removed and you can open the full copy with the same code.</p>
-          <input data-bref placeholder="Balance payment reference (PayPal or M-Pesa ID)" autocomplete="off" style="width:100%"> <p><button class="btn sm" data-bal>I have paid the balance</button></p><div data-balmsg role="status"></div></div></details>`;
+          <input data-bref placeholder="Balance payment reference (PayPal or mobile money ID)" autocomplete="off" style="width:100%"> <p><button class="btn sm" data-bal>I have paid the balance</button></p><div data-balmsg role="status"></div></div></details>`;
     const q = x => det.querySelector(x), n = () => Math.min(paid, Math.max(1, Math.floor(Number(q("[data-n]").value) || 1)));
     const payNow = () => q("[data-pay]").value, upd = () => { const t = n() * rate; q("[data-price]").textContent = payNow() === "part" ? money(t / 2) + " now (of " + money(t) + ")" : money(t); };
     q("[data-n]").oninput = upd; q("[data-pay]").onchange = upd;

@@ -636,7 +636,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     { re: /coach|tutor|lesson|session|hourly|per hour/i, a: () => `Online coaching for undergraduate, postgraduate and PhD students, including thesis defence preparation, costs ${m(C.coaching.first)} for 1 hour, or ${m(C.coaching.additional)} per hour when you book more than 1 hour. Please book at least ${C.coaching.noticeHours} hours before the lesson. <a href="coaching.html">See coaching</a>` },
     { re: /\bai\b|detect|humani|turnitin|plagiar/i, a: () => `AI content removal is ${m(C.aiRemovalRate)} per page for finished work, at any deadline. You pay only for the pages or words that need AI removed, not the whole document. We rewrite it so it reads as natural human writing and keep your meaning and citations. We cannot guarantee a particular detector score.` },
     { re: /sample|example|preview/i, a: () => `Every sample introduction is free to read. The full sample costs ${m(C.samplePerPage)} per page. <a href="samples.html">See samples</a>` },
-    { re: /pay|paypal|card|bank|wise|payoneer|transfer|invoice|receipt/i, a: () => `After you place an order you can pay by PayPal or by mobile money (M-Pesa) sent from Wise or WorldRemit. We send full details with your invoice. <a href="payments.html">Payment support</a>` },
+    { re: /pay|paypal|card|bank|wise|payoneer|transfer|invoice|receipt/i, a: () => `After you place an order you can pay by PayPal or by mobile money (mobile money) sent from Wise, Wave or World Remit. We send full details with your invoice. <a href="payments.html">Payment support</a>` },
     { re: /urgent|rush|asap|today|tonight|24 hour|deadline|fast|quick/i, a: () => `Yes, we take urgent orders. Under 24 hours is ${m(C.tiers[0].rate)} per page. Longer deadlines cost less. Undergraduate and Masters: ${tiers}. PhD: ${tiersPhd}.` },
     { re: /price|cost|how much|rate|charge|fee|cheap|quote/i, a: () => `Prices are per page (about ${C.wordsPerPage} words). Undergraduate and Masters: ${tiers}. PhD: ${tiersPhd}. AI content removal is ${m(C.aiRemovalRate)} per page. <a href="pricing.html">Get an instant quote</a>` },
     { re: /spss|excel|nvivo|data|analysis|questionnaire|interview|stata|survey/i, a: () => `We guide you on collecting primary and secondary data, entering and analysing it in Excel, SPSS, NVivo and other systems, and presenting and discussing your findings. Send your brief for a quote: <a href="account.html#new">start an order</a>` },
@@ -644,7 +644,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     { re: /subject|course|nursing|finance|accounting|business|hr\b|human resource|logistics|law|field|cover/i, a: () => `We cover Finance, Business, Accounting, Nursing, Healthcare, Human Resource, Logistics and many more fields. <a href="index.html#subjects">See the list</a>` },
     { re: /account|sign|upload|file|login|register|order/i, a: () => `Create a free account or sign in, then place your order and attach your brief and files. <a href="account.html#new">Start an order</a>` },
     { re: /refund|revision|change|edit/i, a: () => `You can ask for revisions within 7 days of delivery. See our <a href="terms.html">terms</a> for refunds.` },
-    { re: /country|uk|usa|us\b|canada|australia|china|where/i, a: () => `We work with students from Australia, the US, China, the UK and Canada.` }
+    { re: /country|uk|usa|us\b|canada|australia|china|where/i, a: () => `We work with global students.` }
   ];
   const HUMAN = /human|person|agent|someone|staff|call|whatsapp|email|talk|speak|contact/i;
 
@@ -848,7 +848,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
           <label class="small" for="f-${s.id}">I want to</label><select id="f-${s.id}" data-f>${FMT}</select>
           <strong data-price>${money(Math.min(2, paid) * C.samplePerPage)}</strong>
           <label class="small" for="e-${s.id}">Your email</label><input type="email" id="e-${s.id}" data-e autocomplete="email" placeholder="you@example.com" value="${esc(mine.email || "")}">
-          <label class="small" for="r-${s.id}">Payment reference</label><input id="r-${s.id}" data-r placeholder="PayPal or M-Pesa transaction ID" autocomplete="off">
+          <label class="small" for="r-${s.id}">Payment reference</label><input id="r-${s.id}" data-r placeholder="PayPal or mobile money transaction ID" autocomplete="off">
           <button class="btn sm" data-req>Send for confirmation</button>
           <div data-out role="status"></div>
         </div>
@@ -929,7 +929,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
           <input type="number" id="n${i}" min="1" max="${paid}" step="1" value="${def}" data-n="${i}" style="max-width:110px">
           <strong data-price="${i}">${money(def * C.samplePerPage)}</strong>
           <div data-pp="${i}"></div>
-          <button class="btn sm" data-buy="${i}">${instant(s) ? "Order by M-Pesa or other method" : "Unlock these pages"}</button>
+          <button class="btn sm" data-buy="${i}">${instant(s) ? "Order by mobile money or other method" : "Unlock these pages"}</button>
         </div>
         <div data-open="${i}">${have && s.pagesText ? unlockedHtml(s, Math.min(have, s.pagesText.length)) : ""}</div>
       </article>`;

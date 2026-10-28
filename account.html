@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Place an Order | Research Genius Hub</title>
-<meta name="description" content="Choose your service, see the price, send your requirements and pay by PayPal or M-Pesa.">
+<meta name="description" content="Choose your service, see the price, send your requirements and pay by PayPal or mobile money.">
 <link rel="canonical" href="https://researchgeniushub.github.io/account.html">
 <meta property="og:site_name" content="Research Genius Hub">
 <meta property="og:image" content="https://researchgeniushub.github.io/og-image.png">
@@ -12,7 +12,7 @@
 <meta name="theme-color" content="#0F1B33">
 
 <meta property="og:title" content="Place an Order | Research Genius Hub">
-<meta property="og:description" content="Choose your service, see the price, send your requirements and pay by PayPal or M-Pesa.">
+<meta property="og:description" content="Choose your service, see the price, send your requirements and pay by PayPal or mobile money.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://researchgeniushub.github.io/account.html">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -761,7 +761,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       await this.init();
       const { data, error } = await sb.from("orders").select("*").order("created_at", { ascending: false });
       if (error) throw error;
-      return data.map(r => Object.assign({}, r.data, { id: r.id, status: r.status, created: r.created_at }));
+      return data.map(r => Object.assign({}, r.data, { id: r.id, order_no: r.order_no, status: r.status, created: r.created_at }));
     },
     async createOrder(user, order, files) {
       await this.init();
@@ -808,7 +808,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       await live.init();
       const { data, error } = await sb.from("orders").select("*").order("created_at", { ascending: false });
       if (error) throw error;
-      return data.map(r => Object.assign({}, r.data, { id: r.id, status: r.status, created: r.created_at, total: Number(r.total), paid: Number(r.paid_amount || 0), access: r.access || "none" }));
+      return data.map(r => Object.assign({}, r.data, { id: r.id, order_no: r.order_no, status: r.status, created: r.created_at, total: Number(r.total), paid: Number(r.paid_amount || 0), access: r.access || "none" }));
     };
     live.payments = async () => { await live.init(); const { data } = await sb.from("payments").select("*"); return data || []; };
     live.events = async ids => { if (!ids.length) return []; await live.init(); const { data } = await sb.from("order_events").select("*").in("order_id", ids).order("created_at"); return data || []; };
@@ -1288,13 +1288,13 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       const delivered = ["delivered", "revision_requested"].includes(o.status);
       const payBadge = o.paid >= o.total && o.total > 0 ? `<span class="badge paid">Paid in full</span>` : o.paid > 0 ? `<span class="badge due">Part paid ${money(o.paid)}, balance ${money(owing)}</span>` : "";
       const rs = rowStatus(o, evs, o.paid, o.total, pending), dueTxt = o.due ? String(o.due).replace("T", " ") : (o.tier || "");
-      const head = rowHead([esc(me.email), esc(o.service), esc(o.id), new Date(o.created).toLocaleDateString(), esc(dueTxt || "-"), esc(rs.pay), esc(rs.phase), ""], rowHeaderLabels);
+      const head = rowHead([esc(me.email), esc(o.service), esc(o.order_no || o.id), new Date(o.created).toLocaleDateString(), esc(dueTxt || "-"), esc(rs.pay), esc(rs.phase), ""], rowHeaderLabels);
       const markDone = (delivered || o.status === "in_progress") && rs.phase !== "Complete" && o.status !== "awaiting_quote" ? `<p style="margin:12px 0 0"><button class="btn sm" data-markdone="${esc(o.id)}">Mark this order complete</button> <span class="small muted">Or it completes by itself after ${C.completeAfterDays || 7} days with no feedback. You can still request a revision.</span></p>` : "";
       const reopen = ["Reviewing", "Complete"].includes(rs.phase) ? `<p style="margin:12px 0 0"><button class="btn sm" data-reactivate="${esc(o.id)}">Reactivate this order (I need changes)</button></p>` : "";
       return `<article class="order orow" data-id="${esc(o.id)}">${head}<div class="orow-body">
         <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:start">
           <div><h4>${esc(o.title || o.service)}</h4>
-          <div class="muted small">${esc(o.id)} · ${esc(o.service)} · ${o.coaching ? plural(o.pages, "hour") + (o.due ? ", lesson " + esc(o.due.replace("T", " ")) : "") : plural(o.pages, "page")} · ${plural((o.files || []).length, "file")}</div></div>
+          <div class="muted small">${esc(o.order_no || o.id)} · ${esc(o.service)} · ${o.coaching ? plural(o.pages, "hour") + (o.due ? ", lesson " + esc(o.due.replace("T", " ")) : "") : plural(o.pages, "page")} · ${plural((o.files || []).length, "file")}</div></div>
           <div style="text-align:right"><strong style="font-family:var(--serif);font-size:1.3rem">${isQuote ? (o.negotiated ? "Proposed " + money(o.negotiated.agreed) : "Quote pending") : Q.money(o.total)}</strong><br><span class="badge ${st[1]}">${esc(st[0])}</span> ${payBadge}</div>
         </div>
         ${dup ? `<p class="small" style="margin:10px 0 0"><strong>Possible duplicate:</strong> you have another unpaid order with the same details. Delete the extra one if you placed it by mistake.</p>` : ""}
@@ -1408,11 +1408,11 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     o._portion = portion;
     const ms = methods();
     if (!ms.length) {
-      el.innerHTML = `<p class="small">Payment methods are being set up. Email <a href="mailto:${C.email}">${C.email}</a> with order number <strong>${esc(o.id)}</strong> and we will send payment details.</p>`;
+      el.innerHTML = `<p class="small">Payment methods are being set up. Email <a href="mailto:${C.email}">${C.email}</a> with order number <strong>${esc(o.order_no || o.id)}</strong> and we will send payment details.</p>`;
       return;
     }
     el.innerHTML = `<h4 style="margin:0">Pay ${Q.money(o.total)}</h4>
-      <p class="small muted">Use your order number <strong>${esc(o.id)}</strong> as the payment reference.</p>
+      <p class="small muted">Use your order number <strong>${esc(o.order_no || o.id)}</strong> as the payment reference.</p>
       <div class="tabs paytabs" role="tablist">${ms.map((m, i) => `<button type="button" role="tab" aria-selected="${i === 0}" data-m="${esc(m.id)}">${esc(m.label)}</button>`).join("")}</div>
       ${ms.map((m, i) => `<div data-p="${esc(m.id)}"${i ? " hidden" : ""}></div>`).join("")}`;
     el.querySelectorAll("[data-m]").forEach(t => t.addEventListener("click", () => {
@@ -1425,7 +1425,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       if (m.manual) {
         host.innerHTML = `<dl>${m.manual.lines.map(l => `<dt>${esc(l[0])}</dt><dd>${esc(l[1])}</dd>`).join("")}
           <dt>Amount</dt><dd>${Q.money(o.total)}${m.manual.label.indexOf("PayPal") < 0 ? " (or the equivalent in your currency)" : ""}</dd>
-          <dt>Reference</dt><dd>${esc(o.id)}</dd></dl>
+          <dt>Reference</dt><dd>${esc(o.order_no || o.id)}</dd></dl>
           ${m.manual.note ? `<p class="small muted">${esc(m.manual.note)}</p>` : ""}${reportBlock("I have sent the payment")}`;
       } else if (m.link) {
         host.innerHTML = `${m.link.note ? `<p class="small muted">${esc(m.link.note)}</p>` : ""}
@@ -1443,7 +1443,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
           ${b.iban ? `<dt>IBAN</dt><dd>${esc(b.iban)}</dd>` : ""}
           ${b.swift ? `<dt>SWIFT/BIC</dt><dd>${esc(b.swift)}</dd>` : ""}
           <dt>Amount</dt><dd>${b.currency === "GBP" ? Q.money(o.total) : "The equivalent of " + Q.money(o.total) + " in " + esc(b.currency)}</dd>
-          <dt>Reference</dt><dd>${esc(o.id)}</dd></dl>`).join("") + reportBlock("I have sent the transfer");
+          <dt>Reference</dt><dd>${esc(o.order_no || o.id)}</dd></dl>`).join("") + reportBlock("I have sent the transfer");
       }
       const btn = host.querySelector("[data-reported]");
       if (btn) btn.addEventListener("click", async () => {
@@ -1518,7 +1518,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     { re: /coach|tutor|lesson|session|hourly|per hour/i, a: () => `Online coaching for undergraduate, postgraduate and PhD students, including thesis defence preparation, costs ${m(C.coaching.first)} for 1 hour, or ${m(C.coaching.additional)} per hour when you book more than 1 hour. Please book at least ${C.coaching.noticeHours} hours before the lesson. <a href="coaching.html">See coaching</a>` },
     { re: /\bai\b|detect|humani|turnitin|plagiar/i, a: () => `AI content removal is ${m(C.aiRemovalRate)} per page for finished work, at any deadline. You pay only for the pages or words that need AI removed, not the whole document. We rewrite it so it reads as natural human writing and keep your meaning and citations. We cannot guarantee a particular detector score.` },
     { re: /sample|example|preview/i, a: () => `Every sample introduction is free to read. The full sample costs ${m(C.samplePerPage)} per page. <a href="samples.html">See samples</a>` },
-    { re: /pay|paypal|card|bank|wise|payoneer|transfer|invoice|receipt/i, a: () => `After you place an order you can pay by PayPal or by mobile money (M-Pesa) sent from Wise or WorldRemit. We send full details with your invoice. <a href="payments.html">Payment support</a>` },
+    { re: /pay|paypal|card|bank|wise|payoneer|transfer|invoice|receipt/i, a: () => `After you place an order you can pay by PayPal or by mobile money (mobile money) sent from Wise, Wave or World Remit. We send full details with your invoice. <a href="payments.html">Payment support</a>` },
     { re: /urgent|rush|asap|today|tonight|24 hour|deadline|fast|quick/i, a: () => `Yes, we take urgent orders. Under 24 hours is ${m(C.tiers[0].rate)} per page. Longer deadlines cost less. Undergraduate and Masters: ${tiers}. PhD: ${tiersPhd}.` },
     { re: /price|cost|how much|rate|charge|fee|cheap|quote/i, a: () => `Prices are per page (about ${C.wordsPerPage} words). Undergraduate and Masters: ${tiers}. PhD: ${tiersPhd}. AI content removal is ${m(C.aiRemovalRate)} per page. <a href="pricing.html">Get an instant quote</a>` },
     { re: /spss|excel|nvivo|data|analysis|questionnaire|interview|stata|survey/i, a: () => `We guide you on collecting primary and secondary data, entering and analysing it in Excel, SPSS, NVivo and other systems, and presenting and discussing your findings. Send your brief for a quote: <a href="account.html#new">start an order</a>` },
@@ -1526,7 +1526,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     { re: /subject|course|nursing|finance|accounting|business|hr\b|human resource|logistics|law|field|cover/i, a: () => `We cover Finance, Business, Accounting, Nursing, Healthcare, Human Resource, Logistics and many more fields. <a href="index.html#subjects">See the list</a>` },
     { re: /account|sign|upload|file|login|register|order/i, a: () => `Create a free account or sign in, then place your order and attach your brief and files. <a href="account.html#new">Start an order</a>` },
     { re: /refund|revision|change|edit/i, a: () => `You can send revision feedback and extra documents from your account at any time after delivery. See our <a href="terms.html">terms</a> for refunds.` },
-    { re: /country|uk|usa|us\b|canada|australia|china|where/i, a: () => `We work with students from Australia, the US, China, the UK and Canada.` }
+    { re: /country|uk|usa|us\b|canada|australia|china|where/i, a: () => `We work with global students.` }
   ];
   const HUMAN = /human|person|agent|someone|staff|call|whatsapp|email|talk|speak|contact/i;
 
@@ -1730,7 +1730,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
           <label class="small" for="f-${s.id}">I want to</label><select id="f-${s.id}" data-f>${FMT}</select>
           <strong data-price>${money(Math.min(2, paid) * C.samplePerPage)}</strong>
           <label class="small" for="e-${s.id}">Your email</label><input type="email" id="e-${s.id}" data-e autocomplete="email" placeholder="you@example.com" value="${esc(mine.email || "")}">
-          <label class="small" for="r-${s.id}">Payment reference</label><input id="r-${s.id}" data-r placeholder="PayPal or M-Pesa transaction ID" autocomplete="off">
+          <label class="small" for="r-${s.id}">Payment reference</label><input id="r-${s.id}" data-r placeholder="PayPal or mobile money transaction ID" autocomplete="off">
           <button class="btn sm" data-req>Send for confirmation</button>
           <div data-out role="status"></div>
         </div>
@@ -1811,7 +1811,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
           <input type="number" id="n${i}" min="1" max="${paid}" step="1" value="${def}" data-n="${i}" style="max-width:110px">
           <strong data-price="${i}">${money(def * C.samplePerPage)}</strong>
           <div data-pp="${i}"></div>
-          <button class="btn sm" data-buy="${i}">${instant(s) ? "Order by M-Pesa or other method" : "Unlock these pages"}</button>
+          <button class="btn sm" data-buy="${i}">${instant(s) ? "Order by mobile money or other method" : "Unlock these pages"}</button>
         </div>
         <div data-open="${i}">${have && s.pagesText ? unlockedHtml(s, Math.min(have, s.pagesText.length)) : ""}</div>
       </article>`;
