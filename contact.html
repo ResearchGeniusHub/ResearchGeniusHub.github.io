@@ -317,9 +317,9 @@ body{background:var(--paper)}
 .chat-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .chat{transition:bottom .2s}.chat.lifted{bottom:calc(max(16px,env(safe-area-inset-bottom,0px)) + 80px)}
 .chat-actions .wa-btn{background:#1FA855;border-color:#1FA855;color:#fff}.chat-actions .wa-btn:hover{background:#178a45;border-color:#178a45;color:#fff}
-.brand-mark{height:42px;width:auto;background:#fff;border-radius:10px;padding:2px 4px;object-fit:contain;flex:none}
-.site-footer .brand-mark{height:48px}
-@media (max-width:560px){.brand-mark{height:34px}.brand{font-size:1.1rem}}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.brand-mark{height:60px;width:auto;background:#fff;border-radius:10px;padding:2px 4px;object-fit:contain;flex:none}
+.site-footer .brand-mark{height:60px}
+@media (max-width:560px){.brand-mark{height:48px}.brand{font-size:1.1rem}}
 .chat-chips{display:flex;gap:6px;flex-wrap:wrap;padding:0 14px 10px}
 .chat-chips button{border:1.5px solid var(--ink);background:#fff;border-radius:999px;padding:4px 11px;font:500 .85rem var(--sans);cursor:pointer;color:var(--ink)}
 .chat-chips button:hover{background:var(--hi)}
@@ -385,7 +385,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 </head>
 <body>
 <header class="site-header"><div class="wrap">
-  <a class="brand" href="index.html"><img class="brand-mark" src="logo-mark.png" width="68" height="42" alt="Research Genius Hub logo"><b>Research <span class="hl">Genius</span> Hub</b></a>
+  <a class="brand" href="index.html"><img class="brand-mark" src="logo-rgh.svg" width="64" height="64" alt="Research Genius Hub"><span class="sr-only">Research Genius Hub</span></a>
   <nav class="nav" aria-label="Main"><a href="index.html" data-nav="index">Home</a><a href="research-support.html" data-nav="research-support">Research Support</a><a href="data-services.html" data-nav="data-services">Data Services</a><a href="editing.html" data-nav="editing">Editing</a><a href="coaching.html" data-nav="coaching">Coaching</a><a href="help.html" data-nav="help">Help</a><a href="samples.html" data-nav="samples">Samples</a><a href="account.html" data-signin-link>Sign in</a></nav>
   <div class="hdr-actions"><a data-signin href="account.html" style="font-weight:600;color:var(--ink)">Sign in</a><a class="btn sm" href="account.html#new">Start an order</a></div>
   <button class="menu-toggle" aria-expanded="false">Menu</button>
@@ -419,7 +419,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 <section class="ctaband"><div class="wrap"><h2>Ready to turn your worry into results?</h2><div><a class="btn yellow" href="account.html#new">Order now</a> <a class="btn alt" href="contact.html">Ask a question</a></div></div></section><section class="related"><div class="wrap"><h2>Related</h2><ul><li><a href="services.html">See our services</a></li><li><a href="faq.html">Read the FAQ</a></li><li><a href="pricing.html">Check prices</a></li></ul></div></section>
 <footer class="site-footer"><div class="wrap">
   <div class="grid">
-    <div><a class="brand" href="index.html"><img class="brand-mark" src="logo-mark.png" width="68" height="42" alt="Research Genius Hub logo"><b>Research Genius Hub</b></a>
+    <div><a class="brand" href="index.html"><img class="brand-mark" src="logo-rgh.svg" width="64" height="64" alt="Research Genius Hub"><span class="sr-only">Research Genius Hub</span></a>
       <p class="small" style="margin-top:10px">Research support, assignment guides and editing for university students worldwide.</p><p class="small" style="font-family:var(--serif);font-style:italic;font-size:1.05rem">Turning your research worries into academic results</p></div>
     <div><h4>Services</h4><ul><li><a href="services.html">What we do</a></li><li><a href="coaching.html">Online coaching</a></li><li><a href="pricing.html">Pricing</a></li><li><a href="samples.html">Samples</a></li></ul></div>
     <div><h4>Learn</h4><ul><li><a href="guides.html">Assignment guides</a></li><li><a href="faq.html">FAQ</a></li><li><a href="about.html">About us</a></li><li><a href="review.html">Share your experience</a></li><li><a href="terms.html">Terms and academic integrity</a></li></ul></div>

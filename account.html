@@ -317,9 +317,9 @@ body{background:var(--paper)}
 .chat-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .chat{transition:bottom .2s}.chat.lifted{bottom:calc(max(16px,env(safe-area-inset-bottom,0px)) + 80px)}
 .chat-actions .wa-btn{background:#1FA855;border-color:#1FA855;color:#fff}.chat-actions .wa-btn:hover{background:#178a45;border-color:#178a45;color:#fff}
-.brand-mark{height:42px;width:auto;background:#fff;border-radius:10px;padding:2px 4px;object-fit:contain;flex:none}
-.site-footer .brand-mark{height:48px}
-@media (max-width:560px){.brand-mark{height:34px}.brand{font-size:1.1rem}}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.brand-mark{height:60px;width:auto;background:#fff;border-radius:10px;padding:2px 4px;object-fit:contain;flex:none}
+.site-footer .brand-mark{height:60px}
+@media (max-width:560px){.brand-mark{height:48px}.brand{font-size:1.1rem}}
 .chat-chips{display:flex;gap:6px;flex-wrap:wrap;padding:0 14px 10px}
 .chat-chips button{border:1.5px solid var(--ink);background:#fff;border-radius:999px;padding:4px 11px;font:500 .85rem var(--sans);cursor:pointer;color:var(--ink)}
 .chat-chips button:hover{background:var(--hi)}
@@ -397,7 +397,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 </head>
 <body>
 <header class="site-header"><div class="wrap">
-  <a class="brand" href="index.html"><img class="brand-mark" src="logo-mark.png" width="68" height="42" alt="Research Genius Hub logo"><b>Research <span class="hl">Genius</span> Hub</b></a>
+  <a class="brand" href="index.html"><img class="brand-mark" src="logo-rgh.svg" width="64" height="64" alt="Research Genius Hub"><span class="sr-only">Research Genius Hub</span></a>
   <nav class="nav" aria-label="Main"><a href="index.html" data-nav="index">Home</a><a href="research-support.html" data-nav="research-support">Research Support</a><a href="data-services.html" data-nav="data-services">Data Services</a><a href="editing.html" data-nav="editing">Editing</a><a href="coaching.html" data-nav="coaching">Coaching</a><a href="help.html" data-nav="help">Help</a><a href="samples.html" data-nav="samples">Samples</a><a href="account.html" data-signin-link>Sign in</a></nav>
   <div class="hdr-actions"><a data-signin href="account.html" style="font-weight:600;color:var(--ink)">Sign in</a><a class="btn sm" href="account.html#new">Start an order</a></div>
   <button class="menu-toggle" aria-expanded="false">Menu</button>
@@ -486,7 +486,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
           <div class="f" id="tier-wrap"><label for="o-tier">Deadline</label><select id="o-tier" name="tier"></select></div>
           <div class="f"><label for="o-due" id="due-label">Exact due date and time (optional)</label><input type="datetime-local" id="o-due" name="due"><div class="hint">Use your local time and tell us your time zone in the instructions.</div></div>
           <div class="f"><label for="o-ins">Instructions</label><textarea id="o-ins" name="instructions" placeholder="Paste your brief, marking criteria, and anything your tutor asked for."></textarea></div>
-          <div class="f"><label for="o-files">Attach your requirements</label><input type="file" id="o-files" name="files_in" multiple accept=".pdf,.doc,.docx,.txt,.rtf,.ppt,.pptx,.xls,.xlsx,.png,.jpg,.jpeg"><div class="hint" id="file-hint">Up to 10 files. Brief, marking criteria, readings, your draft.</div><div class="small" id="file-msg" aria-live="polite"></div></div>
+          <div class="f"><label for="o-files">Attach your requirements</label><input type="file" id="o-files" name="files_in" multiple accept=".pdf,.doc,.docx,.odt,.rtf,.txt,.ppt,.pptx,.odp,.xls,.xlsx,.csv,.png,.jpg,.jpeg,.gif,.webp,.heic,.mp3,.m4a,.wav,.aac,.ogg,.mp4,.mov,.webm,.m4v"><div class="hint" id="file-hint">Up to 10 files. Brief, marking criteria, readings, your draft. Accepted: PDF, Word, PowerPoint, Excel, text, images, audio and video, up to 50 MB each.</div><div class="small" id="file-msg" aria-live="polite"></div></div>
           <div class="f"><label for="o-pm">Price</label><select id="o-pm" name="pricemode"><option value="fixed">Standard price (shown below)</option><option value="neg">I have a negotiated price</option></select>
             <div class="hint"><strong>Prices are negotiable.</strong> <a id="neg-wa" href="#" target="_blank" rel="noopener">WhatsApp us</a> to negotiate, then choose "negotiated price" and enter the amount we agreed. Our team checks it before you pay.</div></div>
           <div id="neg-wrap" hidden style="border:1.5px dashed var(--ink);border-radius:10px;padding:14px;margin-bottom:14px">
@@ -515,7 +515,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 
 <footer class="site-footer"><div class="wrap">
   <div class="grid">
-    <div><a class="brand" href="index.html"><img class="brand-mark" src="logo-mark.png" width="68" height="42" alt="Research Genius Hub logo"><b>Research Genius Hub</b></a>
+    <div><a class="brand" href="index.html"><img class="brand-mark" src="logo-rgh.svg" width="64" height="64" alt="Research Genius Hub"><span class="sr-only">Research Genius Hub</span></a>
       <p class="small" style="margin-top:10px">Research support, assignment guides and editing for university students worldwide.</p><p class="small" style="font-family:var(--serif);font-style:italic;font-size:1.05rem">Turning your research worries into academic results</p></div>
     <div><h4>Services</h4><ul><li><a href="services.html">What we do</a></li><li><a href="coaching.html">Online coaching</a></li><li><a href="pricing.html">Pricing</a></li><li><a href="samples.html">Samples</a></li></ul></div>
     <div><h4>Learn</h4><ul><li><a href="guides.html">Assignment guides</a></li><li><a href="faq.html">FAQ</a></li><li><a href="about.html">About us</a></li><li><a href="review.html">Share your experience</a></li><li><a href="terms.html">Terms and academic integrity</a></li></ul></div>
@@ -707,7 +707,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
   const LIVE = !!(C.supabase.url && C.supabase.anonKey);
   const $ = (s, r) => (r || document).querySelector(s);
   const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  const MAX_FILES = 10, MAX_MB = 15;
+  const MAX_FILES = 10, MAX_MB = 50;
 
   /* ---------- storage adapters ---------- */
   const store = {
@@ -727,6 +727,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     }
   };
 
+  const fnError = async e => { try { const j = await e.context.json(); return j.error || e.message; } catch (x) { return (e && e.message) || "Could not open the file."; } };
   let sb = null;
   const live = {
     async init() {
@@ -763,19 +764,40 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       if (error) throw error;
       return data.map(r => Object.assign({}, r.data, { id: r.id, order_no: r.order_no, status: r.status, created: r.created_at }));
     },
+    async uploadAll(user, prefix, files) {
+      await this.init();
+      const names = [], failed = [];
+      await Promise.all(files.map(async f => {
+        const bad = RGHDocs.check(f);
+        if (bad) { failed.push(bad); return; }
+        const path = prefix + Date.now() + "-" + RGHDocs.safe(f.name);
+        const r = await sb.storage.from("requirements").upload(path, f, { cacheControl: "3600" });
+        if (r.error) failed.push(f.name + " (" + r.error.message + ")"); else names.push({ name: f.name, path });
+      }));
+      return { names, failed };
+    },
     async createOrder(user, order, files) {
       await this.init();
       const { data, error } = await sb.from("orders").insert({ data: order, total: order.total, status: order.status }).select().single();
-      if (error) throw error;
-      const names = [];
-      for (const f of files) {
-        const path = `${user.id}/${data.id}/${Date.now()}-${f.name.replace(/[^\w.\-]+/g, "_")}`;
-        const up = await sb.storage.from("requirements").upload(path, f);
-        if (up.error) throw up.error; names.push(f.name);
+      if (error) {
+        const m = /row-level security/i.test(error.message) ? "our order system needs a short update. We have been told; nothing has been charged." : error.message;
+        const x = new Error(m); x.orderNotSaved = true; throw x;
       }
-      order.files = names;
+      const up = await this.uploadAll(user, user.id + "/" + data.id + "/", files);
+      order.files = up.names.map(x => x.name);
       await sb.from("orders").update({ data: order }).eq("id", data.id);
-      return Object.assign({}, order, { id: data.id, status: data.status, created: data.created_at });
+      if (up.failed.length) {
+        const x = new Error("Your order " + (data.order_no || data.id) + " was saved, but these files did not upload: " + up.failed.join(", ") + ". Open the order below and use 'Add instructions, feedback or documents' to send them again.");
+        x.orderSaved = true; throw x;
+      }
+      return Object.assign({}, order, { id: data.id, order_no: data.order_no, status: data.status, created: data.created_at });
+    },
+    async saveDraft(user, order, files, reason) {
+      await this.init();
+      const { data, error } = await sb.from("order_drafts").insert({ email: user.email, name: user.name || "", data: order, problem: reason, files: files.map(f => ({ name: f.name })) }).select().single();
+      if (error) throw error;
+      const up = await this.uploadAll(user, user.id + "/drafts/" + data.id + "/", files);
+      return { id: data.id, failed: up.failed };
     },
     async deliveries(user, id) {
       await this.init();
@@ -847,15 +869,31 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       fx("order_placed", r.id, null, [(order.status === "awaiting_quote" ? "Quote request: " : "New order: ") + user.email, user.name + " (" + user.email + ") placed order " + r.id + ": " + (order.service || "") + ", " + (order.title || "") + ". Files are in your staff page."]);
       return r;
     };
-    live.addEvent = async (user, orderId, kind, summary, message, files) => {
-      await live.init(); const saved = [];
-      for (const f of files) {
-        const path = `${user.id}/${orderId}/events/${Date.now()}-${f.name.replace(/[^\w.\-]+/g, "_")}`;
-        const up = await sb.storage.from("requirements").upload(path, f); if (up.error) throw up.error; saved.push({ name: f.name, path });
-      }
-      const { data, error } = await sb.from("order_events").insert({ order_id: orderId, kind, summary, message, files: saved, author_role: "student" }).select().single();
+    live.addEvent = async (user, orderId, kind, summary, message, files, hold) => {
+      await live.init();
+      const up = await live.uploadAll(user, user.id + "/" + orderId + "/events/", files);
+      if (up.failed.length) throw new Error("These files did not upload: " + up.failed.join(", ") + ". Check the file types and sizes, then try again.");
+      const { data, error } = await sb.rpc("student_add_update", { p_order: orderId, p_kind: kind, p_summary: summary, p_message: message, p_hold: !!hold, p_files: up.names });
       if (error) throw error;
-      fx("student_update", orderId, data.id, ["Student update: " + user.email, user.name + " added to order " + orderId + ": " + summary + "\n\n" + message]);
+      fx("student_update", orderId, data, ["Student update: " + user.email, user.name + " added to order " + orderId + ": " + summary + "\n\n" + message]);
+    };
+    live.listFiles = async orderId => {
+      await live.init();
+      const { data, error } = await sb.functions.invoke("rgh-order-files", { body: { action: "list", order_id: orderId } });
+      if (error) throw new Error(await fnError(error));
+      return data;
+    };
+    live.fileUrl = async (orderId, item, mode) => {
+      await live.init();
+      const { data, error } = await sb.functions.invoke("rgh-order-files", { body: { action: mode === "download" ? "download" : "view", order_id: orderId, bucket: item.bucket, path: item.path } });
+      if (error) throw new Error(await fnError(error));
+      return URL.createObjectURL(data);
+    };
+    live.markComplete = async id => {
+      await live.init();
+      const { error } = await sb.rpc("student_mark_complete", { p_order: id });
+      if (error) throw error;
+      notifyFallback("Order marked complete: " + id, "The student marked order " + id + " complete.");
     };
   }
   const api = LIVE ? live : emailApi;
@@ -1093,8 +1131,12 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
   form.addEventListener("submit", async e => {
     e.preventDefault();
     const err = $("#o-err"); err.textContent = "";
-    const q = formQuote(); if (!q.pages) return;
-    if (!form.title.value.trim() || !form.subject.value.trim()) { err.textContent = "Please add the assignment title and the subject."; return; }
+    const q = formQuote(); const bad = [];
+    if (!q.pages) bad.push("Length: enter the number of pages (or hours for coaching). It must be at least 1.");
+    if (!form.title.value.trim()) bad.push("Assignment title: type the title, for example 'Impact of social media on teenagers'.");
+    if (!form.subject.value.trim()) bad.push("Subject: type the subject, for example 'Psychology'.");
+    Array.from(fileIn.files).forEach(f => { const p = RGHDocs.check(f); if (p) bad.push("Files: " + p); });
+    if (bad.length) { err.innerHTML = "<strong>Please fix these before placing the order:</strong><ul>" + bad.map(x => "<li>" + esc(x) + "</li>").join("") + "</ul>"; return; }
     if (!LIVE) {
       if (!form.gname.value.trim()) { err.textContent = "Please add your name."; return; }
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.gemail.value.trim())) { err.textContent = "Please add a valid email so we can reply."; return; }
@@ -1137,7 +1179,17 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       if (window.__closeOrderForm) window.__closeOrderForm();
       await renderOrders(saved.id);
       $("#orders").scrollIntoView({ behavior: "smooth" });
-    } catch (x) { err.textContent = "Your order was not saved: " + x.message; }
+    } catch (x) {
+      if (x.orderSaved) { err.textContent = x.message; await renderOrders(); }
+      else {
+        const reason = x.message || "unknown problem";
+        try {
+          const d = await api.saveDraft(me, order, Array.from(fileIn.files), reason);
+          err.innerHTML = "<strong>We could not place this order automatically.</strong> Reason: " + esc(reason) + "<br>Nothing has been charged. We have saved your brief as draft <strong>" + esc(String(d.id).slice(0, 8).toUpperCase()) + "</strong>" + (d.failed.length ? " (these files did not save: " + esc(d.failed.join(", ")) + ". Please email them to " + esc(C.email) + ")" : "") + ". Our team will check the draft and contact you. You can also email " + esc(C.email) + " with this number.";
+          await renderOrders();
+        } catch (y) { err.innerHTML = "Your order was not saved: " + esc(reason) + ". We could not save a draft either, so please email " + esc(C.email) + " with your brief."; }
+      }
+    }
     $("#o-submit").textContent = "Place order"; $("#o-submit").disabled = false;
   });
 
@@ -1225,15 +1277,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 
   /* shared: derive the order status and payment status shown in the rows */
   const rowStatus = (o, evs, paid, total, pendingPay) => {
-    const st = o.status, DAYS = (C.completeAfterDays || 7);
-    let phase;
-    if (st === "complete") phase = "Complete";
-    else if (st === "awaiting_quote") phase = "Awaiting quote";
-    else if (st === "awaiting_payment" || st === "payment_reported") phase = "Awaiting payment";
-    else if (st === "delivered") {
-      const mine = (evs || []).filter(e => e.order_id === o.id), last = mine.length ? new Date(mine[mine.length - 1].created_at) : new Date(o.created || o.created_at);
-      const lastE = mine.length ? mine[mine.length - 1] : null; phase = (lastE && lastE.author_role === "student" && /^marked complete/i.test(lastE.summary || "")) || ((Date.now() - last.getTime()) > DAYS * 864e5 && !(lastE && lastE.author_role === "student")) ? "Complete" : "Reviewing";
-    } else phase = "In progress";
+    const phase = RGHStatus.phase(o, evs);
     const pay = total > 0 && paid >= total ? "Paid in full" : paid > 0 ? "Part paid " + money(paid) + " of " + money(total) : (pendingPay ? "Reported, checking" : "Unpaid");
     return { phase, pay: pendingPay && paid < total && paid > 0 ? pay + " (more reported)" : pay };
   };
@@ -1281,15 +1325,17 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       const isQuote = o.status === "awaiting_quote", owing = Math.max(0, o.total - o.paid);
       const canDelete = ["awaiting_payment", "awaiting_quote"].includes(o.status) && !o.paid && !op.length;
       const dup = canDelete && cnt[sig(o)] > 1;
-      const st = statusText[o.status] || [o.status, ""];
+      const ph = RGHStatus.phase(o, evs), st = [ph, RGHStatus.badge(ph)];
       const showDl = o.access !== "none" && ["delivered", "revision_requested", "in_progress"].includes(o.status);
-      const needPay = o.status === "awaiting_payment" || (o.paid > 0 && owing > 0 && !pending && !isQuote);
+      const needPay = owing > 0 && !pending && !isQuote;
+      const shareTxt = o.total > 0 ? Math.round(Math.min(1, o.paid / o.total) * 100) : 0;
+      const accessNote = o.paid > 0 ? (owing <= 0 ? `<p class="small" style="margin:10px 0 0"><span class="badge paid">Full access</span> You can view and download your full work in the Documents section.</p>` : `<p class="small" style="margin:10px 0 0"><span class="badge due">Part access ${shareTxt}%</span> You can view ${shareTxt}% of your work now, watermarked. Pay the balance to remove the watermark and download.</p>`) : "";
       const myEvs = evs.filter(e => e.order_id === o.id);
       const delivered = ["delivered", "revision_requested"].includes(o.status);
       const payBadge = o.paid >= o.total && o.total > 0 ? `<span class="badge paid">Paid in full</span>` : o.paid > 0 ? `<span class="badge due">Part paid ${money(o.paid)}, balance ${money(owing)}</span>` : "";
       const rs = rowStatus(o, evs, o.paid, o.total, pending), dueTxt = o.due ? String(o.due).replace("T", " ") : (o.tier || "");
       const head = rowHead([esc(me.email), esc(o.service), esc(o.order_no || o.id), new Date(o.created).toLocaleDateString(), esc(dueTxt || "-"), esc(rs.pay), esc(rs.phase), ""], rowHeaderLabels);
-      const markDone = (delivered || o.status === "in_progress") && rs.phase !== "Complete" && o.status !== "awaiting_quote" ? `<p style="margin:12px 0 0"><button class="btn sm" data-markdone="${esc(o.id)}">Mark this order complete</button> <span class="small muted">Or it completes by itself after ${C.completeAfterDays || 7} days with no feedback. You can still request a revision.</span></p>` : "";
+      const markDone = (delivered || o.status === "in_progress" || o.status === "revision_requested") && rs.phase !== "Complete" && o.status !== "awaiting_quote" ? `<p style="margin:12px 0 0"><button class="btn sm" data-markdone="${esc(o.id)}">Mark this order complete</button> <span class="small muted">Or it completes by itself after ${C.completeAfterDays || 7} days with no feedback. You can still request a revision.</span></p>` : "";
       const reopen = ["Reviewing", "Complete"].includes(rs.phase) ? `<p style="margin:12px 0 0"><button class="btn sm" data-reactivate="${esc(o.id)}">Reactivate this order (I need changes)</button></p>` : "";
       return `<article class="order orow" data-id="${esc(o.id)}">${head}<div class="orow-body">
         <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:start">
@@ -1300,38 +1346,36 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
         ${dup ? `<p class="small" style="margin:10px 0 0"><strong>Possible duplicate:</strong> you have another unpaid order with the same details. Delete the extra one if you placed it by mistake.</p>` : ""}
         ${isQuote && o.negotiated ? `<p class="small" style="margin:10px 0 0">Negotiated price proposed (${esc(o.negotiated.type)}${o.negotiated.referral ? ", referral " + esc(o.negotiated.referral) : ""}). Standard price ${money(o.negotiated.list)}. We will check it and email you before you pay.</p>` : ""}
         ${pending ? `<p class="small muted" style="margin:10px 0 0">Your payment report is with our team. We will email you when it is confirmed.</p>` : ""}
-        ${showDl ? `<div class="paybox" data-dl="${esc(o.id)}" data-access="${o.access}"><p class="small muted">Loading your work...</p></div>` : (delivered ? `<div class="paybox"><p class="small muted">Your work is ready. Complete payment to unlock access. Email ${esc(C.email)} if you need help.</p></div>` : "")}
+        ${accessNote}
         ${needPay ? `<div class="paybox" data-pay="${esc(o.id)}"${o.id === openId ? "" : " hidden"}></div>
         <button class="btn sm alt" style="margin-top:12px" data-topay="${esc(o.id)}">${o.id === openId ? "Hide payment options" : (o.paid > 0 ? "Complete payment: pay the balance " + money(owing) : "Pay now (full or part payment)")}</button>` : ""}
         ${canDelete ? `<button class="btn sm alt" style="margin-top:12px" data-del="${esc(o.id)}">Delete this order</button>` : (isQuote || o.status === "awaiting_payment" ? "" : `<p class="small muted" style="margin:10px 0 0">Orders with payment can only be removed by our team.</p>`)}
         ${myEvs.length ? `<details style="margin-top:12px"><summary>Messages and updates (${myEvs.length})</summary>${myEvs.map(e => `<div style="border-left:3px solid var(--ink);padding:2px 10px;margin:8px 0"><div class="small muted">${e.author_role === "staff" ? "Research Genius Hub" : "You"} · ${new Date(e.created_at).toLocaleString()}${e.kind === "confirmation" ? " · Confirmation" : ""}</div>${e.summary && e.author_role === "student" ? `<div><strong>Added: ${esc(e.summary)}</strong></div>` : ""}<div style="white-space:pre-wrap">${esc(e.message || "")}</div>${(e.files || []).length ? `<div class="small muted">Files: ${e.files.map(f => esc(f.name)).join(", ")}</div>` : ""}</div>`).join("")}</details>` : ""}
+        ${isQuote ? "" : `<details style="margin-top:12px"><summary>Documents for this order</summary><div data-docs="${esc(o.id)}" style="margin-top:10px"></div></details>`}
         ${isQuote ? "" : `<details style="margin-top:12px"><summary>${delivered ? "Not happy? Send feedback or request a revision" : "Add instructions, feedback or documents"}</summary>
           <form data-add="${esc(o.id)}" novalidate style="margin-top:10px">
             <p class="small muted" style="margin:0 0 8px">This stays open for as long as you need it. Our team is emailed straight away.</p>
-            <div class="f"><label>Type</label><select name="kind"><option value="extra">Additional instructions or documents</option><option value="feedback"${delivered ? " selected" : ""}>Revision feedback on delivered work</option></select></div>
+            <div class="f"><label>Type</label><select name="kind"><option value="extra">Additional instructions or documents</option><option value="feedback"${delivered ? " selected" : ""}>Revision feedback on delivered work</option><option value="hold">Please wait: I will send more details (on hold)</option></select></div>
             <div class="f"><label>What are you adding?</label><input type="text" name="summary" maxlength="120" placeholder="e.g. Lecturer comments, new marking rubric, fix chapter 3"></div>
             <div class="f"><label>Details</label><textarea name="message" placeholder="Explain what should change or what the new document is for."></textarea></div>
-            <div class="f"><label>Upload documents (optional)</label><input type="file" name="files" multiple accept=".pdf,.doc,.docx,.txt,.rtf,.ppt,.pptx,.xls,.xlsx,.png,.jpg,.jpeg"></div>
+            <div class="f"><label>Upload documents (optional)</label><input type="file" name="files" multiple accept=".pdf,.doc,.docx,.odt,.rtf,.txt,.ppt,.pptx,.odp,.xls,.xlsx,.csv,.png,.jpg,.jpeg,.gif,.webp,.heic,.mp3,.m4a,.wav,.aac,.ogg,.mp4,.mov,.webm,.m4v"></div>
             <p class="err" role="alert"></p><button class="btn sm" type="submit">Send to our team</button>
           </form></details>`}
         ${markDone}${reopen}
       </div></article>`;
     }).join("");
     wireRows(box);
+    box.querySelectorAll("details").forEach(d => { const el = d.querySelector("[data-docs]"); if (!el) return; d.addEventListener("toggle", async () => {
+      if (!d.open || el.dataset.ready) return; el.dataset.ready = 1;
+      const oid = el.dataset.docs, ord = list.find(x => x.id === oid);
+      try { const r = await live.listFiles(oid); RGHDocs.render(el, sb, me.id, ord, evs, { items: r.items, full: r.full, view: (item, mode) => live.fileUrl(oid, item, mode) }); }
+      catch (x) { el.innerHTML = '<p class="err">' + esc(x.message) + '</p>'; }
+    }); });
     box.querySelectorAll("[data-markdone]").forEach(b => b.addEventListener("click", async () => {
       if (!confirm("Mark this order as complete? You can still ask for a revision later.")) return; b.disabled = true;
-      try { await api.addEvent(me, b.dataset.markdone, "extra", "Marked complete", "The student marked this order complete.", []); await sb.from("orders").update({ status: "complete" }).eq("id", b.dataset.markdone); await renderOrders(); } catch (x) { alert("Could not update: " + x.message); b.disabled = false; }
+      try { await api.markComplete(b.dataset.markdone); await renderOrders(); } catch (x) { alert("Could not update: " + x.message); b.disabled = false; }
     }));
     box.querySelectorAll("[data-reactivate]").forEach(b => b.addEventListener("click", () => { const art = b.closest("article"), det = art.querySelector("form[data-add]").closest("details"); det.open = true; const f = art.querySelector("form[data-add]"); f.kind.value = "feedback"; if (!f.summary.value) f.summary.value = "Reactivating this order"; f.scrollIntoView({ behavior: "smooth", block: "center" }); f.message.focus(); }));
-    box.querySelectorAll("[data-dl]").forEach(async el => {
-      const acc = el.dataset.access, o = list.find(x => x.id === el.dataset.dl), owing = Math.max(0, o.total - o.paid);
-      try {
-        const fs = await api.deliveries(me, o.id, acc);
-        if (!fs.length) { el.innerHTML = `<p class="small muted">Your work is being prepared. We will email you when it is ready to view.</p>`; return; }
-        if (acc === "full") el.innerHTML = `<h4 style="margin:0 0 6px">Your finished work</h4>` + fs.map(f => `<p style="margin:4px 0"><a class="btn sm alt" href="${esc(f.url)}" target="_blank" rel="noopener">View ${esc(f.name)} online</a> <a class="btn sm" href="${esc(f.dl || f.url)}">Download</a></p>`).join("");
-        else el.innerHTML = `<h4 style="margin:0 0 6px">Preview of your work</h4><p class="small"><strong>You are seeing the first part only.</strong> Pay the balance of ${money(owing)} to unlock the full document and download it.</p>` + fs.map(f => `<p class="small" style="margin:4px 0">${esc(f.name)}</p><iframe src="${esc(f.url)}#toolbar=0&navpanes=0" title="Preview" style="width:100%;height:460px;border:1.5px solid var(--ink);border-radius:8px;background:#fff"></iframe><p class="small muted"><a href="${esc(f.url)}" target="_blank" rel="noopener">Open the preview in a new tab</a></p>`).join("");
-      } catch (x) { el.innerHTML = `<p class="err">Could not load your files. Refresh the page.</p>`; }
-    });
     box.querySelectorAll("[data-topay]").forEach(b => b.addEventListener("click", () => {
       const id = b.dataset.topay, pb = box.querySelector(`[data-pay="${id}"]`), o = list.find(x => x.id === id);
       pb.hidden = !pb.hidden; b.textContent = pb.hidden ? (o.paid > 0 ? "Complete payment: pay the balance " + money(o.total - o.paid) : "Pay now (full or part payment)") : "Hide payment options";
@@ -1349,7 +1393,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       if (!message && !files.length) { err.textContent = "Add some details or upload a document."; return; }
       if (files.length > MAX_FILES || files.some(x => x.size > MAX_MB * 1048576)) { err.textContent = `Up to ${MAX_FILES} files, ${MAX_MB} MB each.`; return; }
       btn.disabled = true; btn.textContent = "Sending...";
-      try { await api.addEvent(me, f.dataset.add, f.kind.value, summary, message, files); await renderOrders(); }
+      try { await api.addEvent(me, f.dataset.add, f.kind.value === "feedback" ? "feedback" : "extra", summary, message, files, f.kind.value === "hold"); await renderOrders(); }
       catch (x) { err.textContent = "Not sent: " + x.message; btn.disabled = false; btn.textContent = "Send to our team"; }
     }));
     if (openId) { const ar = box.querySelector(`article[data-id="${openId}"]`); if (ar) ar.classList.add("open"); const pb = box.querySelector(`[data-pay="${openId}"]`); if (pb) { buildPay(pb, list.find(x => x.id === openId)); pb.dataset.ready = 1; } }

@@ -445,7 +445,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
   }
   let svc = "all";
   const fnErr = async e => { try { const j = await e.context.json(); return j.error || e.message; } catch (x) { return /Failed to send|Failed to fetch/i.test(e.message || "") ? "Supabase function not reachable. Deploy it in Supabase > Edge Functions (see UPDATE-STEPS.md), then try again." : e.message; } };
-  let orders = [], pays = [], evs = [];
+  let orders = [], pays = [], evs = [], drafts = [], charges = [];
   const label = { awaiting_quote: "Quote requested", awaiting_payment: "Awaiting payment", payment_reported: "Payment reported", in_progress: "In progress", delivered: "Delivered", revision_requested: "Revision requested" };
 
   async function email(order_id, event_id) {
@@ -455,8 +455,8 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       const o = oR.data, e = eR.data; if (!o || !e) return; const d = o.data || {}, to = d.customerEmail; if (!to) return;
       const gbp = n => "\u00a3" + Number(n || 0).toFixed(2), paid = Number(o.paid_amount || 0), total = Number(o.total || 0), bal = Math.max(0, total - paid);
       let head, line;
-      if (e.kind === "full" || (e.kind === "partial" && total && paid >= total)) { head = "Payment complete"; line = "Your payment is COMPLETE (" + gbp(paid) + " received). Your task is complete and your full work is now available in your account (sign in and open the order to view and download it). Thank you."; }
-      else if (e.kind === "partial") { head = "Part payment received"; line = "We have received a PART payment of " + gbp(paid) + " of " + gbp(total) + ". Balance remaining: " + gbp(bal) + "."; }
+      if (e.kind === "full" || ((e.kind === "partial" || e.kind === "confirmation") && total && paid >= total)) { head = "Payment complete"; line = "Your payment is COMPLETE (" + gbp(paid) + " received). Your task is complete and your full work is now available in your account (sign in and open the order to view and download it). Thank you."; }
+      else if (e.kind === "partial" || e.kind === "confirmation") { head = "Part payment received"; line = "We have received a PART payment of " + gbp(paid) + " of " + gbp(total) + ". Balance remaining: " + gbp(bal) + "."; }
       else if (e.kind === "received") { head = "We have received your order details"; line = "Your documents or feedback were received and your order is being worked on."; }
       else { head = "A message about your order"; line = ""; }
       const body = "Hello " + (d.customer || "") + ",\n\n" + head + " for your order \"" + (d.title || o.order_no || o.id) + "\".\n" + line + (e.message ? "\n\nNext step from us:\n" + e.message : "") + "\n\nSign in to see your order: " + location.origin + "/account.html\n\nResearch Genius Hub";
@@ -464,9 +464,9 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     } catch (x) { /* the confirmation itself is already saved */ }
   }
   async function reload() {
-    const [o, p, e] = await Promise.all([sb.from("orders").select("*").order("created_at", { ascending: false }), sb.from("payments").select("*"), sb.from("order_events").select("*").order("created_at")]);
+    const [o, p, e, dr, ch] = await Promise.all([sb.from("orders").select("*").order("created_at", { ascending: false }), sb.from("payments").select("*"), sb.from("order_events").select("*").order("created_at"), sb.from("order_drafts").select("*").eq("status", "open").order("created_at", { ascending: false }), sb.from("order_charges").select("*").order("created_at")]);
     if (o.error) { $("#top-err").textContent = o.error.message; return; }
-    orders = o.data; pays = p.data || []; evs = e.data || []; render();
+    orders = o.data; pays = p.data || []; evs = e.data || []; drafts = dr.data || []; charges = ch.data || []; render();
     $("#tabs-wrap").hidden = false; if (!isAdmin) document.querySelectorAll("[data-admin]").forEach(x => x.remove());
   }
   const needsAttn = o => {
@@ -474,6 +474,28 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     const mine = evs.filter(e => e.order_id === o.id), last = mine[mine.length - 1];
     return o.status === "awaiting_quote" || o.status === "payment_reported" || o.status === "revision_requested" || pays.some(p => p.order_id === o.id && !p.confirmed) || (last && last.author_role === "student");
   };
+  const draftsHtml = () => drafts.length ? `<div class="panel" style="margin-bottom:14px"><h3 style="margin:0 0 6px">Orders saved as drafts (${drafts.length} to follow up)</h3><p class="small muted" style="margin:0 0 8px">The student could not place these automatically. Contact them, then mark the draft as followed up.</p>` + drafts.map(d => {
+    const x = d.data || {}, fl = d.files || [];
+    return `<article class="order" style="margin-top:8px" data-draft-id="${esc(d.id)}" data-draft-user="${esc(d.user_id || "")}"><strong>${esc(d.name || x.customer || "")}</strong> · <a href="mailto:${esc(d.email)}">${esc(d.email)}</a> · <span class="small muted">Draft ${esc(String(d.id).slice(0, 8).toUpperCase())} · ${esc(new Date(d.created_at).toLocaleString())}</span>
+      <div class="small"><strong>${esc(x.service || "")}</strong> · ${esc(x.title || "")} · ${esc(x.pages || "")} pages · ${money(x.total || 0)}</div>
+      <div class="small" style="color:var(--pen)"><strong>Problem:</strong> ${esc(d.problem || "unknown")}</div>
+      <div class="small">Files: ${fl.length ? fl.map(f => esc(f.name)).join(", ") : "none"} ${fl.length ? `<button class="btn sm alt" data-dfiles>Open files</button>` : ""}</div>
+      <p class="small" style="white-space:pre-wrap">${esc(x.instructions || "")}</p>
+      <button class="btn sm" data-dfollow>Mark followed up</button></article>`;
+  }).join("") + `</div>` : "";
+  function wireDrafts() {
+    $("#list").querySelectorAll("[data-dfollow]").forEach(b => b.addEventListener("click", async () => {
+      const id = b.closest("[data-draft-id]").dataset.draftId, note = prompt("Short note on what you did (optional):", "") || "";
+      const r = await sb.from("order_drafts").update({ status: "followed_up", notes: note }).eq("id", id); if (r.error) return alert(r.error.message); reload();
+    }));
+    $("#list").querySelectorAll("[data-dfiles]").forEach(b => b.addEventListener("click", async () => {
+      const el = b.closest("[data-draft-id]"), du = el.dataset.draftUser, did = el.dataset.draftId, pre = du + "/drafts/" + did + "/";
+      const r = await sb.storage.from("requirements").list(pre);
+      const links = await Promise.all((r.data || []).filter(f => f.id).map(async f => { const s = await sb.storage.from("requirements").createSignedUrl(pre + f.name, 600, { download: f.name.replace(/^\d+-/, "") }); return s.data ? `<a href="${s.data.signedUrl}" target="_blank" rel="noopener">${esc(f.name.replace(/^\d+-/, ""))}</a>` : ""; }));
+      b.insertAdjacentHTML("afterend", " " + (links.filter(Boolean).join(" · ") || "No files were saved for this draft."));
+      b.disabled = true;
+    }));
+  }
   function render() {
     const f = $("#flt").value, q = $("#q").value.trim().toLowerCase();
     const base = orders.filter(o => (f === "all" || (f === "attn" ? needsAttn(o) : o.status === f)) &&
@@ -486,21 +508,16 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     $("#chips").querySelectorAll("[data-svc]").forEach(b => b.addEventListener("click", () => { svc = b.dataset.svc; render(); }));
     const rows = svc === "all" ? base : base.filter(o => ((o.data && o.data.service) || "Other") === svc);
     const html = rows.length ? rowsHeader + rows.map(card).join("") : "";
-    $("#list").innerHTML = html || `<p class="muted">Nothing here.</p>`; wireRows($("#list"));
+    $("#list").innerHTML = draftsHtml() + (html || `<p class="muted">Nothing here.</p>`); wireRows($("#list")); wireDrafts();
     $("#list").querySelectorAll("article").forEach(wire);
   }
 
+  const autoMsgFor = (paidNow, total) => paidNow >= total - 0.005
+    ? "We have received full payment, and you will get to review and download of your document at the earliest possible time."
+    : "We have received " + Math.round(paidNow / (total || 1) * 100) + "% of your payment. Please note you will access a watermarked document based on the percentage of payment, but when you make full payment, the watermark will be removed, and you can access and/or download your full document without a watermark.";
   /* shared: derive the order status and payment status shown in the rows */
   const rowStatus = (o, evs, paid, total, pendingPay) => {
-    const st = o.status, DAYS = (C.completeAfterDays || 7);
-    let phase;
-    if (st === "complete") phase = "Complete";
-    else if (st === "awaiting_quote") phase = "Awaiting quote";
-    else if (st === "awaiting_payment" || st === "payment_reported") phase = "Awaiting payment";
-    else if (st === "delivered") {
-      const mine = (evs || []).filter(e => e.order_id === o.id), last = mine.length ? new Date(mine[mine.length - 1].created_at) : new Date(o.created || o.created_at);
-      phase = (mine.length && mine[mine.length - 1].author_role === "student" && /^marked complete/i.test(mine[mine.length - 1].summary || "")) || ((Date.now() - last.getTime()) > DAYS * 864e5 && !(mine.length && mine[mine.length - 1].author_role === "student")) ? "Complete" : "Reviewing";
-    } else phase = "In progress";
+    const phase = RGHStatus.phase(o, evs);
     const pay = total > 0 && paid >= total ? "Paid in full" : paid > 0 ? "Part paid " + money(paid) + " of " + money(total) : (pendingPay ? "Reported, checking" : "Unpaid");
     return { phase, pay: pendingPay && paid < total && paid > 0 ? pay + " (more reported)" : pay };
   };
@@ -510,7 +527,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
   const wireRows = box => box.querySelectorAll(".orow-head").forEach(h => h.addEventListener("click", () => { const r = h.closest(".orow"), open = !r.classList.contains("open"); r.classList.toggle("open", open); h.setAttribute("aria-expanded", open); }));
   function card(o) {
     const d = o.data || {}, op = pays.filter(p => p.order_id === o.id), my = evs.filter(e => e.order_id === o.id), owing = Math.max(0, o.total - o.paid_amount);
-    const pendingPay = op.filter(p => !p.confirmed), defAmt = pendingPay.length && pendingPay[0].portion === "part" ? pendingPay[0].amount : Math.round(o.total * (C.partPayPercent || 50)) / 100;
+    const pendingPay = op.filter(p => !p.confirmed), defAmt = pendingPay.length ? Number(pendingPay[0].amount) : owing, autoDef = autoMsgFor(Number(o.paid_amount || 0) + defAmt, Number(o.total || 0)), waitTxt = pendingPay.length ? pendingPay.map(p => (p.reference || "no code") + " (" + money(p.amount) + ", " + (p.portion || "full") + ")").join("; ") : "none reported", myCharges = charges.filter(c => c.order_id === o.id);
     const rs = rowStatus(Object.assign({}, o, { created: o.created_at }), evs, Number(o.paid_amount || 0), Number(o.total || 0), pendingPay.length > 0), dueTxt = d.due ? String(d.due).replace("T", " ") : (d.tier || "");
     const head = rowHead([esc(d.customerEmail || ""), esc(d.service || ""), esc(o.order_no || o.id), new Date(o.created_at).toLocaleDateString(), esc(dueTxt || "-"), esc(rs.pay), esc(rs.phase), ""], rowHeaderLabels);
     return `<article class="order orow" data-id="${esc(o.id)}" data-user="${esc(o.user_id)}">${head}<div class="orow-body">
@@ -518,7 +535,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
         <div><h4>${esc(d.title || d.service)}</h4><div class="muted small">${esc(o.order_no || o.id)} · ${esc(d.service)} · ${esc(d.level)} · ${d.coaching ? d.pages + " h" : d.pages + " pages"}${d.due ? " · due " + esc(String(d.due).replace("T", " ")) : ""}</div>
           <div class="small"><strong>${esc(d.customer)}</strong> · <a href="mailto:${esc(d.customerEmail)}">${esc(d.customerEmail)}</a>${d.phone ? " · " + esc(d.phone) : ""}</div></div>
         <div style="text-align:right"><strong style="font-family:var(--serif);font-size:1.3rem">${o.status === "awaiting_quote" ? "Quote needed" : money(o.total)}</strong><br>
-          <span class="badge ${o.status === "delivered" ? "paid" : "due"}">${esc(label[o.status] || o.status)}</span>
+          <span class="badge ${RGHStatus.badge(rs.phase)}">${esc(rs.phase)}</span>
           <div class="small muted">Paid ${money(o.paid_amount)} · Balance ${money(owing)} · Student access: ${esc(o.access)}</div></div>
       </div>
       <details style="margin-top:10px"><summary>Brief, files and history</summary>
@@ -531,17 +548,34 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       ${o.status === "awaiting_quote" ? `<form data-quote class="panel" style="margin-top:12px"><h4 style="margin:0 0 8px">${d.negotiated ? "Approve or change the price" : "Send a quote"}</h4>
         <div class="f"><label>Final price (GBP)</label><input type="number" min="1" step="0.01" name="price" value="${d.negotiated ? d.negotiated.agreed : ""}"></div>
         <div class="f"><label>Message to student</label><textarea name="msg" placeholder="What the price covers and how to pay.">${d.negotiated ? "Your negotiated price of " + money(d.negotiated.agreed) + " is approved. You can pay from your account: you may pay in full, or half now to start and the balance before download." : ""}</textarea></div><p class="err"></p><button class="btn sm">${d.negotiated ? "Approve price and email student" : "Send quote and email student"}</button></form>` : ""}
-      <form data-confirm class="panel" style="margin-top:12px"><h4 style="margin:0 0 8px">Confirm and email the student</h4>
-        <div class="f"><label>Action</label><select name="kind"><option value="received">Received: documents or feedback received, being worked on</option><option value="partial"${pendingPay.length && pendingPay[0].portion === "part" ? " selected" : ""}>Partial payment confirmed</option><option value="full"${pendingPay.length && pendingPay[0].portion !== "part" ? " selected" : ""}>Full payment confirmed</option><option value="note">Message only (no confirmation)</option></select></div>
-        <div class="f" data-code hidden><label>Payment code from PayPal / mobile money (must match what the student entered)</label><input name="pcode" autocomplete="off" placeholder="e.g. QSRDUSVT2"></div>
-        <div class="f" data-amt hidden><label>Amount received (GBP)</label><input type="number" name="amount" min="0.01" step="0.01" value="${defAmt}"></div>
-        <div class="f"><label>Next step for the student (required, emailed immediately)</label><textarea name="msg" placeholder="e.g. We have your documents and are working on them. Expect the first draft by Friday 5pm UK time."></textarea></div>
-        <p class="err"></p><button class="btn sm" disabled>Confirm and send email</button></form>
+      <form data-confirm class="panel" style="margin-top:12px"><h4 style="margin:0 0 8px">Confirm a payment or send an update</h4>
+        <div class="f"><label>Action</label><select name="kind"><option value="pay">Confirm a payment (the student gave us a code)</option><option value="received">Documents or feedback received (no payment)</option><option value="note">Message only</option></select></div>
+        <div data-pay>
+          <div class="f"><label>Payment code from PayPal or mobile money. It must match a payment the student reported. Each code can be used once.</label><input name="pcode" autocomplete="off" placeholder="e.g. QSRDUSVT2"></div>
+          <p class="small muted" style="margin:0 0 8px">Reported and waiting: ${esc(waitTxt)}. Balance left: ${money(owing)}.</p>
+          <div class="f"><label>Amount received (GBP). Cannot be more than the balance.</label><input type="number" name="amount" min="0.01" step="0.01" max="${owing}" value="${defAmt}"></div>
+        </div>
+        <div class="f"><label>Message to the student (filled in automatically; edit if needed)</label><textarea name="msg">${esc(autoDef)}</textarea></div>
+        <p class="err"></p><button class="btn sm" disabled>Confirm and email the student</button></form>
+      <form data-charge class="panel" style="margin-top:12px"><h4 style="margin:0 0 8px">Additional charge for new instructions</h4>
+        <p class="small muted" style="margin:0 0 8px">Use this when the student asks for work that was not in the brief. The total goes up, and the student is emailed the amount and your reason.</p>
+        <div class="f"><label>Amount (GBP)</label><input type="number" name="amount" min="1" step="0.01"></div>
+        <div class="f"><label>Reason, shown to the student</label><textarea name="reason" placeholder="e.g. Added a second set of readings and a marking rubric to analyse."></textarea></div>
+        <p class="err"></p><button class="btn sm">Add charge and tell the student</button></form>
+      ${myCharges.length ? `<div class="panel" style="margin-top:8px"><strong>Additional charges on this order</strong>${myCharges.map(c => `<div class="small" style="margin:6px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center">${c.status === "active" ? `<span>${money(c.amount)}: ${esc(c.reason)}</span> <button class="btn sm alt" data-chdel="${esc(c.id)}">Delete (added by mistake)</button>` : `<span style="text-decoration:line-through">${money(c.amount)}: ${esc(c.reason)}</span> <span class="muted">removed: ${esc(c.removed_reason)}</span>`}</div>`).join("")}</div>` : ""}
       ${o.status !== "awaiting_quote" ? `<form data-deliver class="panel" style="margin-top:12px"><h4 style="margin:0 0 8px">Upload completed work</h4>
         <p class="small muted" style="margin:0 0 8px">${o.paid_amount >= o.total ? "Fully paid: the student can view online and download." : "Not fully paid: the student will only see a preview (first half of each PDF) until the balance of " + money(owing) + " is confirmed. Word and other files need a PDF preview below."}</p>
         <div class="f"><label>Final files</label><input type="file" name="files" multiple></div>
         ${o.paid_amount < o.total ? `<div class="f"><label>Preview PDF (only if a final file is not a PDF)</label><input type="file" name="prev" accept=".pdf" multiple></div>` : ""}
         <div class="f"><label>Message to student (required)</label><textarea name="msg" placeholder="What is attached and anything they should check."></textarea></div><p class="err"></p><button class="btn sm">Upload and email student</button></form>` : ""}
+      ${o.status !== "awaiting_quote" && o.status !== "complete" ? `<form data-phase class="panel" style="margin-top:12px"><h4 style="margin:0 0 8px">Set the status the student sees</h4>
+        <p class="small muted" style="margin:0 0 8px">Current: <strong>${esc(rs.phase)}</strong>. Use <em>On hold</em> while you wait for the student (details or payment). Use <em>In progress</em> when work is moving again.</p>
+        <div class="f"><label>Status</label><select name="phase"><option value="hold">On hold: waiting for the student</option><option value="in_progress">In progress</option></select></div>
+        <div class="f"><label>Note to the student (optional)</label><textarea name="msg" placeholder="e.g. Please send the marking criteria so we can start."></textarea></div><p class="err"></p><button class="btn sm alt">Set status</button></form>
+      <form data-draft class="panel" style="margin-top:12px"><h4 style="margin:0 0 8px">Send a draft for review</h4>
+        <p class="small muted" style="margin:0 0 8px">The student sees the status <strong>Reviewing</strong> and can open the draft as a preview.</p>
+        <div class="f"><label>Draft files (PDF recommended)</label><input type="file" name="files" multiple></div>
+        <div class="f"><label>Message to the student (required)</label><textarea name="msg" placeholder="What the draft covers and what you need from them."></textarea></div><p class="err"></p><button class="btn sm">Send draft</button></form>` : ""}
       ${isAdmin ? `<p style="margin:12px 0 0"><button class="btn sm alt" data-del>Delete order (admin only)</button></p>` : ""}
     </div></article>`;
   }
@@ -552,32 +586,52 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     const fail = (f, x) => { f.querySelector(".err").textContent = x.message; };
     a.querySelector("details").addEventListener("toggle", async ev => {
       if (!ev.target.open || ev.target.dataset.done) return; ev.target.dataset.done = 1;
-      const box = a.querySelector("[data-files]"), out = [];
-      const { data } = await sb.storage.from("requirements").list(uid + "/" + id + "/");
-      const dl = await sb.storage.from("deliveries").list(uid + "/" + id + "/"), pv = await sb.storage.from("previews").list(uid + "/" + id + "/");
-      for (const f of data || []) if (f.id) { const p = uid + "/" + id + "/" + f.name; out.push(`<a href="#" data-sign="${esc(p)}">${esc(f.name.replace(/^\d+-/, ""))}</a>`); }
-      const fileLink = (bucket, f) => `<a href="#" data-bucket="${bucket}" data-sign="${esc(uid + "/" + id + "/" + f.name)}">${esc(f.name.replace(/^\d+-/, ""))}</a>`;
-      const dOut = (dl.data || []).filter(f => f.id).map(f => fileLink("deliveries", f)), pOut = (pv.data || []).filter(f => f.id).map(f => fileLink("previews", f));
-      box.innerHTML = "<div>Student files: " + (out.length ? out.join(" · ") : "none") + "</div><div>Delivered to student: " + (dOut.length ? dOut.join(" · ") : "nothing yet") + "</div>" + (pOut.length ? "<div>Previews: " + pOut.join(" · ") + "</div>" : "");
+      await RGHDocs.render(a.querySelector("[data-files]"), sb, uid, o, evs);
     });
     a.addEventListener("click", async e => {
       const t = e.target.closest("[data-sign]"); if (!t) return; e.preventDefault();
       const { data } = await sb.storage.from(t.dataset.bucket || "requirements").createSignedUrl(t.dataset.sign, 600); if (data) window.open(data.signedUrl, "_blank");
     });
     const cf = a.querySelector("[data-confirm]");
-    const sync = () => { cf.querySelector("[data-amt]").hidden = cf.kind.value !== "partial"; cf.querySelector("[data-code]").hidden = !["partial", "full"].includes(cf.kind.value); cf.querySelector("button").disabled = cf.msg.value.trim().length < 10; };
-    cf.addEventListener("input", sync); cf.addEventListener("change", sync); sync();
+    const autoFor = amt => autoMsgFor(Number(o.paid_amount || 0) + Number(amt || 0), Number(o.total || 0));
+    let lastAuto = cf.msg.value;
+    const sync = () => {
+      const isPay = cf.kind.value === "pay";
+      cf.querySelector("[data-pay]").hidden = !isPay;
+      cf.querySelector("button").disabled = cf.msg.value.trim().length < 10 || (isPay && !cf.pcode.value.trim());
+    };
+    cf.amount.addEventListener("input", () => {
+      if (!cf.msg.value.trim() || cf.msg.value.trim() === lastAuto.trim()) { lastAuto = autoFor(cf.amount.value); cf.msg.value = lastAuto; }
+      sync();
+    });
+    cf.kind.addEventListener("change", () => { if (cf.kind.value !== "pay" && cf.msg.value.trim() === lastAuto.trim()) cf.msg.value = ""; if (cf.kind.value === "pay") { lastAuto = autoFor(cf.amount.value); cf.msg.value = lastAuto; } sync(); });
+    cf.addEventListener("input", sync); sync();
     cf.addEventListener("submit", async e => {
       e.preventDefault(); const btn = cf.querySelector("button"); cf.querySelector(".err").textContent = ""; busy(btn, true, "Sending...");
       try {
         const msg = cf.msg.value.trim(); let eid;
-        if (cf.kind.value === "note") { const r = await sb.from("order_events").insert({ order_id: id, kind: "note", author_role: "staff", summary: "note", message: msg }).select().single(); if (r.error) throw r.error; eid = r.data.id; }
-        else {
-          if (["partial", "full"].includes(cf.kind.value)) { const refs = (pays || []).filter(p => p.order_id === id && !p.confirmed).map(p => String(p.reference || "").trim().toUpperCase()).filter(Boolean), pc = cf.pcode.value.trim().toUpperCase(); if (!refs.length) throw new Error("The student has not reported a payment with a code yet, so payment cannot be confirmed."); if (!pc || !refs.includes(pc)) throw new Error("The payment code does not match the one the student entered. Payment NOT confirmed."); }
-          const r = await sb.rpc("staff_confirm", { p_order: id, p_kind: cf.kind.value, p_amount: Number(cf.amount.value) || null, p_message: msg }); if (r.error) throw r.error; eid = r.data; }
+        if (cf.kind.value === "pay") {
+          const r = await sb.rpc("staff_confirm_payment", { p_order: id, p_code: cf.pcode.value.trim(), p_amount: Number(cf.amount.value) || null, p_message: msg });
+          if (r.error) throw r.error; eid = r.data;
+        } else {
+          const r = await sb.from("order_events").insert({ order_id: id, kind: "note", author_role: "staff", summary: cf.kind.value === "received" ? "Received" : "Message", message: msg }).select().single();
+          if (r.error) throw r.error; eid = r.data.id;
+        }
         await email(id, eid); await reload();
       } catch (x) { fail(cf, x); busy(btn, false); sync(); await reload().catch(() => {}); }
     });
+    const chf = a.querySelector("[data-charge]");
+    if (chf) chf.addEventListener("submit", async e => {
+      e.preventDefault(); const btn = chf.querySelector("button"); busy(btn, true, "Sending...");
+      try { const r = await sb.rpc("staff_add_charge", { p_order: id, p_amount: Number(chf.amount.value), p_reason: chf.reason.value.trim() }); if (r.error) throw r.error; await email(id, r.data); await reload(); }
+      catch (x) { fail(chf, x); busy(btn, false); }
+    });
+    a.querySelectorAll("[data-chdel]").forEach(b => b.addEventListener("click", async () => {
+      const why = prompt("Why is this charge being removed? (shown to the student)", "Added by mistake"); if (!why || why.trim().length < 5) return;
+      b.disabled = true;
+      try { const r = await sb.rpc("staff_remove_charge", { p_charge: b.dataset.chdel, p_reason: why.trim() }); if (r.error) throw r.error; await email(id, r.data); await reload(); }
+      catch (x) { alert(x.message || "Could not remove the charge."); b.disabled = false; }
+    }));
     const qf = a.querySelector("[data-quote]");
     if (qf) qf.addEventListener("submit", async e => {
       e.preventDefault(); const btn = qf.querySelector("button"); busy(btn, true, "Sending...");
@@ -595,7 +649,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       busy(btn, true, "Uploading...");
       try {
         const base = uid + "/" + id + "/", ts = Date.now(), safe = n => n.replace(/[^\w.\-]+/g, "_");
-        for (const f of files) { const u = await sb.storage.from("deliveries").upload(base + ts + "-" + safe(f.name), f); if (u.error) throw u.error; }
+        await Promise.all(files.map(f => sb.storage.from("deliveries").upload(base + ts + "-" + (isAdmin ? "Admin" : "Staff") + "__" + safe(f.name), f).then(u => { if (u.error) throw u.error; })));
         if (!full) {
           if (files.some(f => /\.pdf$/i.test(f.name))) await load("https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js");
           for (const f of files.filter(f => /\.pdf$/i.test(f.name))) {
@@ -610,6 +664,27 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
         const r = await sb.rpc("staff_deliver", { p_order: id, p_message: msg }); if (r.error) throw r.error;
         await email(id, r.data); await reload();
       } catch (x) { fail(df, x); busy(btn, false); }
+    });
+    const ph = a.querySelector("[data-phase]");
+    if (ph) ph.addEventListener("submit", async e => {
+      e.preventDefault(); const btn = ph.querySelector("button"); busy(btn, true, "Saving...");
+      try { const r = await sb.rpc("staff_set_phase", { p_order: id, p_phase: ph.phase.value, p_message: ph.msg.value.trim() }); if (r.error) throw r.error; await reload(); }
+      catch (x) { fail(ph, x); busy(btn, false); }
+    });
+    const dr = a.querySelector("[data-draft]");
+    if (dr) dr.addEventListener("submit", async e => {
+      e.preventDefault(); const btn = dr.querySelector("button"); dr.querySelector(".err").textContent = "";
+      const files = Array.from(dr.files.files), msg = dr.msg.value.trim();
+      if (!files.length) return fail(dr, new Error("Choose the draft file(s)."));
+      if (msg.length < 10) return fail(dr, new Error("Add a message to the student."));
+      const bad = files.map(f => RGHDocs.check(f)).filter(Boolean); if (bad.length) return fail(dr, new Error(bad.join(" ")));
+      busy(btn, true, "Uploading...");
+      try {
+        const base = uid + "/" + id + "/", ts = Date.now(), who = isAdmin ? "Admin" : "Staff";
+        await Promise.all(files.map(f => sb.storage.from("previews").upload(base + ts + "-preview-" + who + "__" + RGHDocs.safe(f.name), f).then(u => { if (u.error) throw u.error; })));
+        const r = await sb.rpc("staff_set_phase", { p_order: id, p_phase: "draft", p_message: msg }); if (r.error) throw r.error;
+        await reload();
+      } catch (x) { fail(dr, x); busy(btn, false); }
     });
     const del = a.querySelector("[data-del]");
     if (del) del.addEventListener("click", async () => {

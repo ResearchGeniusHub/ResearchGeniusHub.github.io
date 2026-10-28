@@ -111,3 +111,125 @@ window.RGH = {
     { title: "Literature review",   subject: "Nursing", level: "Masters", pages: 10, style: "APA 7", introFile: "", introText: "" }
   ]
 };
+
+/* ---------- Shared order status (same rules on the student and staff pages) ---------- */
+(function () {
+  var DAYS = function () { return (window.RGH && window.RGH.completeAfterDays) || 7; };
+  var BADGE = { "On hold": "due", "Reviewing": "due", "In progress": "", "Complete": "paid" };
+  function phase(o, evs) {
+    var st = o.status, mine = (evs || []).filter(function (e) { return e.order_id === o.id; });
+    var last = mine.length ? mine[mine.length - 1] : null;
+    var when = new Date(last ? last.created_at : (o.created || o.created_at || Date.now()));
+    if (st === "complete") return "Complete";
+    if (st === "awaiting_quote" || st === "awaiting_payment") return "On hold";
+    if (st === "payment_reported") return "Reviewing";
+    if (st === "delivered") {
+      if (last && last.phase === "hold") return "On hold";
+      var idle = Date.now() - when.getTime() > DAYS() * 864e5;
+      return idle && !(last && last.author_role === "student") ? "Complete" : "Reviewing";
+    }
+    if (last && last.phase === "hold") return "On hold";
+    if (last && last.phase === "draft") return "Reviewing";
+    return "In progress";
+  }
+  window.RGHStatus = { phase: phase, badge: function (p) { return BADGE[p] || ""; } };
+})();
+
+/* ---------- Shared document lists (student and staff pages) ---------- */
+(function () {
+  var OK = ["pdf","doc","docx","odt","rtf","txt","ppt","pptx","odp","xls","xlsx","csv","png","jpg","jpeg","gif","webp","heic","mp3","m4a","wav","aac","ogg","mp4","mov","webm","m4v"];
+  var PREVIEWABLE = ["pdf","png","jpg","jpeg","gif","webp","txt","mp3","m4a","wav","mp4","mov","webm"];
+  var MAX = 50 * 1048576;
+  var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
+  var ext = function (n) { var m = /\.([a-z0-9]+)$/i.exec(n || ""); return m ? m[1].toLowerCase() : ""; };
+  var safe = function (n) { return String(n).replace(/[^\w.\-]+/g, "_"); };
+  function checkFile(f) {
+    if (OK.indexOf(ext(f.name)) < 0) return f.name + " is not an accepted type. Use PDF, Word, PowerPoint, Excel, text, image, audio or video.";
+    if (f.size > MAX) return f.name + " is " + Math.round(f.size / 1048576) + " MB. The limit is 50 MB per file: compress it or split it.";
+    if (!f.size) return f.name + " is empty.";
+    return "";
+  }
+  function parse(name) {
+    var m = /^(\d{10,13})-(.*)$/.exec(name), ts = m ? Number(m[1]) : 0, rest = m ? m[2] : name, who = "";
+    var preview = /^preview-/.test(rest); rest = rest.replace(/^preview-/, "");
+    var w = /^(Staff|Admin)__(.*)$/.exec(rest); if (w) { who = w[1]; rest = w[2]; }
+    return { ts: ts, title: rest, who: who, preview: preview };
+  }
+  // The note shown beside a team file: the event saved with the file, or the first team update after it
+  function noteFor(ts, mine, path) {
+    var byFile = path && mine.find(function (e) { return (e.files || []).some(function (x) { return x.path === path; }); });
+    var ev = byFile || (ts ? mine.find(function (e) { return e.author_role === "staff" && new Date(e.created_at).getTime() >= ts - 60000; }) : null);
+    if (!ev) return "";
+    return (ev.author_role === "student" && ev.summary ? ev.summary + ". " : "") + (ev.message || "");
+  }
+  async function collect(sb, uid, id, evs, opts) {
+    var base = uid + "/" + id + "/", mine = (evs || []).filter(function (e) { return e.order_id === id; });
+    var list = async function (b, p) { var r = await sb.storage.from(b).list(p); return (r.data || []).filter(function (f) { return f.id; }); };
+    var out = { student: [], team: [] };
+    var sFiles = (await list("requirements", base)).map(function (f) { return { path: base + f.name, name: f.name }; })
+      .concat((await list("requirements", base + "events/")).map(function (f) { return { path: base + "events/" + f.name, name: f.name }; }));
+    sFiles.forEach(function (f) { var p = parse(f.name); out.student.push({ bucket: "requirements", path: f.path, title: p.title, ts: p.ts, note: noteFor(p.ts, mine, f.path) }); });
+    if (opts && opts.items) {
+      opts.items.forEach(function (it) { out.team.push({ bucket: it.bucket, path: it.path, title: it.title, ts: it.ts, who: it.who || "Team", note: noteFor(it.ts, mine, it.path), fn: true }); });
+    } else {
+      var dl = await list("deliveries", base), pv = await list("previews", base);
+      var prev = pv.map(function (f) { return { name: f.name, p: parse(f.name) }; });
+      dl.forEach(function (f) {
+        var p = parse(f.name), pm = prev.find(function (x) { return x.p.title === p.title; });
+        out.team.push({ bucket: "deliveries", path: base + f.name, title: p.title, ts: p.ts, who: p.who || "Team", note: noteFor(p.ts, mine, base + f.name), previewPath: pm ? base + pm.name : "" });
+      });
+    }
+    out.student.sort(function (a, b) { return a.ts - b.ts; });
+    out.team.sort(function (a, b) { return a.ts - b.ts; });
+    return out;
+  }
+  var css = ".rgh-docs h5{margin:14px 0 6px;font-size:1rem}.rgh-docs table{width:100%;border-collapse:collapse;font-size:.9rem}.rgh-docs th,.rgh-docs td{border-bottom:1px solid #d9dee8;padding:7px 6px;text-align:left;vertical-align:top}.rgh-docs th{font-size:.8rem;text-transform:uppercase;letter-spacing:.04em;color:#5b6577}.rgh-docs .code{font-family:monospace;font-size:.82rem;white-space:nowrap}.rgh-docs .lnk{background:none;border:0;padding:0;color:inherit;text-decoration:underline;cursor:pointer;font:inherit}.rgh-docs .muted{color:#5b6577}.rgh-docs .note{white-space:pre-wrap}.rgh-docs .wrap{overflow-x:auto}";
+  function style() { if (document.getElementById("rgh-docs-css")) return; var s = document.createElement("style"); s.id = "rgh-docs-css"; s.textContent = css; document.head.appendChild(s); }
+  var dt = function (ts) { return ts ? new Date(ts).toLocaleString() : ""; };
+  // opts.items + opts.view: student page (files come from the Edge Function). Without them: staff page (direct storage).
+  async function render(box, sb, uid, o, evs, opts) {
+    style(); opts = opts || {};
+    box.innerHTML = "<p class=\"small muted\">Loading documents...</p>";
+    var data;
+    try { data = await collect(sb, uid, o.id, evs, opts); } catch (e) { box.innerHTML = "<p class=\"err\">Could not load documents. Refresh the page.</p>"; return; }
+    var rows = [];
+    var urlFor = async function (item, mode) {
+      if (item.fn && opts.view) return opts.view(item, mode);
+      var r = await sb.storage.from(item.bucket).createSignedUrl(item.path, 600, mode === "download" ? { download: item.title } : undefined);
+      return r.data ? r.data.signedUrl : "";
+    };
+    var btn = function (item, mode, label) { rows.push({ item: item, mode: mode }); return "<button class=\"lnk\" data-i=\"" + (rows.length - 1) + "\">" + esc(label) + "</button>"; };
+    var canOpen = function (item) { return !item.fn || opts.full || ext(item.title) === "pdf"; };
+    var attach = function (item) {
+      var out = btn(item, "download", item.title);
+      if (PREVIEWABLE.indexOf(ext(item.title)) >= 0 && canOpen(item)) out += " &middot; " + btn(item, "view", "Preview");
+      else if (!canOpen(item)) out += " <span class=\"muted\">(pay the balance to open)</span>";
+      return out + (canOpen(item) ? " &middot; " + btn(item, "download", "Download") : "");
+    };
+    var code = function (n) { return esc((o.order_no || o.id) + "-T" + String(n).padStart(2, "0")); };
+    var s1 = data.student.map(function (d) {
+      return "<tr><td>" + esc(d.title) + "</td><td>" + esc(dt(d.ts)) + "</td><td class=\"note\">" + esc(d.note || "-") + "</td><td>" + attach({ bucket: d.bucket, path: d.path, title: d.title }) + "</td></tr>";
+    }).join("");
+    var s2 = data.team.map(function (d, i) {
+      var item = { bucket: d.bucket, path: d.path, title: d.title, fn: !!d.fn };
+      var prev = "";
+      if (d.previewPath) prev = " &middot; " + btn({ bucket: "previews", path: d.previewPath, title: d.title }, "view", "Preview");
+      return "<tr><td>" + esc(d.title) + "</td><td>" + esc(dt(d.ts)) + "</td><td>" + esc(d.who) + "</td><td class=\"note\">" + esc(d.note || "-") + "</td><td>" + attach(item) + prev + "</td><td class=\"code\">" + code(i + 1) + "</td></tr>";
+    }).join("");
+    box.innerHTML = "<div class=\"rgh-docs\">" +
+      "<h5>Student uploads</h5><div class=\"wrap\">" + (s1 ? "<table><thead><tr><th>Document title</th><th>Date</th><th>Instructions</th><th>Attachment (preview)</th></tr></thead><tbody>" + s1 + "</tbody></table>" : "<p class=\"muted small\">No student uploads yet.</p>") + "</div>" +
+      "<h5>Staff and admin uploads</h5><div class=\"wrap\">" + (s2 ? "<table><thead><tr><th>Document title</th><th>Date</th><th>Uploaded by</th><th>Instructions / comments</th><th>Attachment (preview)</th><th>Code</th></tr></thead><tbody>" + s2 + "</tbody></table>" : "<p class=\"muted small\">No documents from the team yet.</p>") + "</div>" +
+      (opts.items && !opts.full ? "<p class=\"small muted\">Your work is shown in the share you have paid for. Pay the balance to remove the watermark and download.</p>" : "") + "</div>";
+    box.querySelectorAll("[data-i]").forEach(function (b) {
+      b.addEventListener("click", async function () {
+        var r = rows[+b.dataset.i], mode = r.mode, w = mode === "view" ? window.open("", "_blank") : null, url = "";
+        try { url = await urlFor(r.item, mode); }
+        catch (x) { if (w) w.close(); alert(x.message || "That file could not be opened."); return; }
+        if (!url) { if (w) w.close(); alert("That file could not be opened. Refresh the page and try again."); return; }
+        if (mode === "download") { var a = document.createElement("a"); a.href = url; a.download = r.item.title; document.body.appendChild(a); a.click(); a.remove(); }
+        else if (w) w.location = url; else window.open(url, "_blank");
+      });
+    });
+  }
+  window.RGHDocs = { check: checkFile, render: render, ext: ext, safe: safe };
+})();
