@@ -24,6 +24,16 @@ create table if not exists public.staff_profiles (
   pending_email text, pending_phone text,
   created_at timestamptz not null default now()
 );
+alter table public.staff_profiles add column if not exists full_name text;
+alter table public.staff_profiles add column if not exists services text[] not null default '{}';
+alter table public.staff_profiles add column if not exists active boolean not null default true;
+alter table public.staff_profiles add column if not exists must_confirm boolean not null default true;
+alter table public.staff_profiles add column if not exists contact_email text;
+alter table public.staff_profiles add column if not exists contact_phone text;
+alter table public.staff_profiles add column if not exists contact_approved boolean not null default false;
+alter table public.staff_profiles add column if not exists pending_email text;
+alter table public.staff_profiles add column if not exists pending_phone text;
+alter table public.staff_profiles add column if not exists created_at timestamptz not null default now();
 alter table public.staff_profiles enable row level security;
 
 create or replace function public.my_role() returns text
@@ -44,7 +54,8 @@ end $$;
 drop policy if exists "staff read own profile" on public.staff_profiles;
 create policy "staff read own profile" on public.staff_profiles for select to authenticated using (user_id = auth.uid() or public.my_role() = 'admin');
 
-create or replace function public.my_staff_profile() returns setof public.staff_profiles
+drop function if exists public.my_staff_profile();
+create function public.my_staff_profile() returns setof public.staff_profiles
 language sql stable security definer set search_path = public as $$ select * from public.staff_profiles where user_id = auth.uid() $$;
 
 create or replace function public.staff_set_contact(p_email text, p_phone text) returns text
@@ -131,6 +142,8 @@ alter table public.sample_access add column if not exists pay_option text not nu
 alter table public.sample_access add column if not exists due_now numeric(10,2);
 alter table public.sample_access add column if not exists paid_amount numeric(10,2);
 alter table public.sample_access add column if not exists unlocked_pages integer;
+alter table public.sample_access add column if not exists balance_reference text;
+alter table public.sample_access add column if not exists balance_reported_at timestamptz;
 alter table public.sample_access enable row level security;
 
 drop policy if exists "rgh staff manage access" on public.sample_access;
@@ -165,13 +178,16 @@ create policy "rgh admin samples files" on storage.objects for all to authentica
 
 
 -- 5. NEW: confirm a sample payment WITHOUT any Edge Function ---------------------
-create or replace function public.admin_approve_sample(p_access uuid, p_amount numeric) returns json
+drop function if exists public.admin_approve_sample(uuid, numeric);
+create or replace function public.admin_approve_sample(p_access uuid, p_amount numeric, p_code text) returns json
 language plpgsql security definer set search_path = public as $$
 declare a public.sample_access; s public.samples; c text := ''; i int; ch text := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; unl int; tot numeric;
 begin
   if public.my_role() not in ('admin','staff') then raise exception 'Staff only'; end if;
   select * into a from public.sample_access where id = p_access; if not found then raise exception 'Request not found'; end if;
   if a.status <> 'requested' then raise exception 'This request is already %.', a.status; end if;
+  if upper(trim(coalesce(p_code,''))) = '' or upper(trim(p_code)) <> upper(trim(coalesce(a.reference,''))) then
+    raise exception 'The payment code does not match the one the student entered. Payment NOT confirmed. Check the code from PayPal or M-Pesa.'; end if;
   select * into s from public.samples where id = a.sample_id;
   if p_amount is null or p_amount <= 0 then raise exception 'Enter the amount received'; end if;
   for i in 1..8 loop c := c || substr(ch, 1 + floor(random() * length(ch))::int, 1); end loop;
@@ -179,9 +195,9 @@ begin
   unl := least(a.pages, greatest(1, floor(p_amount / greatest(coalesce(s.price_per_page, 2), 0.01))::int));
   if p_amount >= tot then unl := a.pages; end if;
   update public.sample_access set status = 'approved', code = c, approved_at = now(), opens_used = 0, download_used = 0, last_session = null, paid_amount = p_amount, unlocked_pages = unl where id = p_access;
-  return json_build_object('code', c, 'email', a.email, 'title', s.title, 'unlocked', unl);
+  return json_build_object('code', c, 'email', a.email, 'title', s.title, 'unlocked', unl, 'paid', p_amount, 'total', tot, 'complete', p_amount >= tot);
 end $$;
-grant execute on function public.admin_approve_sample(uuid, numeric) to authenticated;
+grant execute on function public.admin_approve_sample(uuid, numeric, text) to authenticated;
 
 create or replace function public.admin_sample_code(p_access uuid) returns json
 language plpgsql security definer set search_path = public as $$
@@ -191,9 +207,49 @@ begin
   select * into a from public.sample_access where id = p_access; if not found then raise exception 'Request not found'; end if;
   if a.status <> 'approved' or a.code is null then raise exception 'Only an approved code can be sent. Confirm payment first.'; end if;
   select title into t from public.samples where id = a.sample_id;
-  return json_build_object('code', a.code, 'email', a.email, 'title', t, 'unlocked', coalesce(a.unlocked_pages, a.pages));
+  return json_build_object('code', a.code, 'email', a.email, 'title', t, 'unlocked', coalesce(a.unlocked_pages, a.pages), 'paid', coalesce(a.paid_amount, a.amount), 'total', a.amount, 'complete', coalesce(a.paid_amount, a.amount) >= coalesce(a.amount, 0));
 end $$;
 grant execute on function public.admin_sample_code(uuid) to authenticated;
+
+-- 5b. NEW: confirm the BALANCE of a sample (removes the watermark, opens the full copy) ----
+drop function if exists public.admin_confirm_balance(uuid, numeric);
+create or replace function public.admin_confirm_balance(p_access uuid, p_amount numeric, p_code text) returns json
+language plpgsql security definer set search_path = public as $$
+declare a public.sample_access; s public.samples; tot numeric; paid numeric; unl int; done boolean;
+begin
+  if public.my_role() not in ('admin','staff') then raise exception 'Staff only'; end if;
+  select * into a from public.sample_access where id = p_access; if not found then raise exception 'Request not found'; end if;
+  if a.status not in ('approved','closed') then raise exception 'Confirm the first payment before confirming a balance.'; end if;
+  if coalesce(a.balance_reference,'') = '' then raise exception 'The student has not reported a balance payment yet. Payment NOT confirmed.'; end if;
+  if upper(trim(coalesce(p_code,''))) <> upper(trim(a.balance_reference)) then
+    raise exception 'The payment code does not match the one the student entered. Balance NOT confirmed. Check the code from PayPal or M-Pesa.'; end if;
+  if p_amount is null or p_amount <= 0 then raise exception 'Enter the amount received'; end if;
+  select * into s from public.samples where id = a.sample_id;
+  tot := coalesce(a.amount, a.pages * coalesce(s.price_per_page, 2));
+  paid := coalesce(a.paid_amount, 0) + p_amount;
+  done := paid >= tot;
+  unl := case when done then a.pages else least(a.pages, greatest(1, floor(paid / greatest(coalesce(s.price_per_page, 2), 0.01))::int)) end;
+  update public.sample_access set paid_amount = paid, unlocked_pages = unl, status = 'approved', opens_used = 0, download_used = 0, last_session = null, balance_reference = null, balance_reported_at = null where id = p_access;
+  return json_build_object('code', a.code, 'email', a.email, 'title', s.title, 'unlocked', unl, 'paid', paid, 'total', tot, 'complete', done);
+end $$;
+grant execute on function public.admin_confirm_balance(uuid, numeric, text) to authenticated;
+
+-- student reports that they paid the balance (after a part payment). Anyone with the right email + code can report it.
+create or replace function public.request_sample_balance(p_sample uuid, p_email text, p_code text, p_reference text) returns json
+language plpgsql security definer set search_path = public as $$
+declare a public.sample_access; tot numeric; s public.samples;
+begin
+  select * into a from public.sample_access where sample_id = p_sample and lower(email) = lower(trim(p_email)) and upper(code) = upper(trim(p_code));
+  if not found then raise exception 'That email and code do not match.'; end if;
+  if a.status not in ('approved','closed') then raise exception 'Your first payment has not been confirmed yet.'; end if;
+  if coalesce(trim(p_reference),'') = '' then raise exception 'Enter the payment reference for the balance.'; end if;
+  select * into s from public.samples where id = p_sample;
+  tot := coalesce(a.amount, a.pages * coalesce(s.price_per_page, 2));
+  if coalesce(a.paid_amount, tot) >= tot then raise exception 'This sample is already paid in full.'; end if;
+  update public.sample_access set balance_reference = left(trim(p_reference), 120), balance_reported_at = now() where id = a.id;
+  return json_build_object('ok', true, 'owing', tot - coalesce(a.paid_amount, 0), 'email', a.email, 'title', s.title, 'code', a.code);
+end $$;
+grant execute on function public.request_sample_balance(uuid, text, text, text) to anon, authenticated;
 
 -- 6. NEW: add staff and reset staff passwords WITHOUT any Edge Function ----------
 create extension if not exists pgcrypto with schema extensions;

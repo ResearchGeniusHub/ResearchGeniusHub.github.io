@@ -454,8 +454,9 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
   <div id="dash" hidden>
     <div class="topbar" data-live-only><strong id="hello"></strong><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" id="livechat" type="button">Live chat</button><button class="btn sm alt" id="signout">Sign out</button></span></div>
     <p class="small muted" data-live-only style="margin:0 0 14px">Browse the site: <a href="services.html">Services</a> · <a href="coaching.html">Coaching</a> · <a href="pricing.html">Pricing</a> · <a href="samples.html">Samples</a> · <a href="faq.html">FAQ</a> · <a href="contact.html">Contact</a></p>
-    <div class="dash-grid">
-      <div>
+    <div id="order-cta" data-live-only style="margin:0 0 18px"><button type="button" class="btn block" id="open-order" style="font-size:1.3rem;padding:18px 16px">+ Place a new order</button></div>
+    <div class="dash-grid" id="dgrid">
+      <div id="order-col">
         <h2 id="new" style="font-size:1.8rem">New order</h2>
         <form id="order-form" class="panel" novalidate>
           <div data-email-only hidden>
@@ -1133,6 +1134,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     try {
       const saved = await api.createOrder(me, order, Array.from(fileIn.files));
       form.reset(); updatePrice(); $("#file-msg").textContent = "";
+      if (window.__closeOrderForm) window.__closeOrderForm();
       await renderOrders(saved.id);
       $("#orders").scrollIntoView({ behavior: "smooth" });
     } catch (x) { err.textContent = "Your order was not saved: " + x.message; }
@@ -1208,7 +1210,15 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
   async function enterDash() {
     show("dash"); $("#hello").textContent = "Signed in as " + me.name;
     if (window.RGHChat) { RGHChat.identify(me.name, me.email); RGHChat.refresh(); }
-    prefill(); updatePrice(); updateNeg(); await renderOrders(); showReferral();
+    prefill(); updatePrice(); updateNeg();
+    const og = $("#order-col"), dg = $("#dgrid"), ob = $("#open-order");
+    if (og && dg && ob) {   // one clear Order button; the form opens only when needed so the orders list gets the space
+      dg.style.gridTemplateColumns = "1fr";
+      const setOpen = o => { og.hidden = !o; ob.textContent = o ? "Close the order form" : "+ Place a new order"; ob.classList.toggle("alt", o); };
+      setOpen(location.hash === "#new"); ob.onclick = () => { setOpen(og.hidden); if (!og.hidden) form.scrollIntoView({ behavior: "smooth" }); };
+      window.__closeOrderForm = () => setOpen(false);
+    }
+    await renderOrders(); showReferral();
     if (location.hash === "#new") form.scrollIntoView();
   }
 
@@ -1221,7 +1231,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     else if (st === "awaiting_payment" || st === "payment_reported") phase = "Awaiting payment";
     else if (st === "delivered") {
       const mine = (evs || []).filter(e => e.order_id === o.id), last = mine.length ? new Date(mine[mine.length - 1].created_at) : new Date(o.created || o.created_at);
-      phase = (Date.now() - last.getTime()) > DAYS * 864e5 && !(mine.length && mine[mine.length - 1].author_role === "student") ? "Complete" : "Reviewing";
+      const lastE = mine.length ? mine[mine.length - 1] : null; phase = (lastE && lastE.author_role === "student" && /^marked complete/i.test(lastE.summary || "")) || ((Date.now() - last.getTime()) > DAYS * 864e5 && !(lastE && lastE.author_role === "student")) ? "Complete" : "Reviewing";
     } else phase = "In progress";
     const pay = total > 0 && paid >= total ? "Paid in full" : paid > 0 ? "Part paid " + money(paid) + " of " + money(total) : (pendingPay ? "Reported, checking" : "Unpaid");
     return { phase, pay: pendingPay && paid < total && paid > 0 ? pay + " (more reported)" : pay };
@@ -1240,10 +1250,19 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
         const t = (a.samples && a.samples.title) || "Sample", st = a.status;
         const left = Math.max(0, (a.open_limit || 2) - (a.opens_used || 0));
         return `<article class="order"><strong>${esc(t)}</strong> <span class="small muted">· ${a.pages} extra page${a.pages > 1 ? "s" : ""}</span><br>` +
-          (st === "approved" ? `<span class="badge paid">Payment confirmed</span> Your access code: <b style="font-size:1.3rem;letter-spacing:3px">${esc(a.code || "")}</b><br><span class="small muted">Online readings left: ${left} of ${a.open_limit || 2} · Download: ${a.download_used ? "used" : "1 available"}. Open it on the <a href="samples.html#open=${esc(a.sample_id)}">Samples page</a> with this code and your email.</span>`
+          ((st === "approved" || st === "closed") && a.paid_amount != null && Number(a.paid_amount) < Number(a.amount || 0) ? `<span class="badge due">Part paid ${money(a.paid_amount)} of ${money(a.amount)}</span> Code <b style="letter-spacing:3px">${esc(a.code || "")}</b> opens ${a.unlocked_pages || 1} page(s) with a part-payment watermark.<br><span class="small">${a.balance_reference ? "Balance reported (reference " + esc(a.balance_reference) + "). We will confirm it soon." : "Pay the balance of <b>" + money(Number(a.amount) - Number(a.paid_amount)) + "</b>, then enter the payment reference:"}</span>${a.balance_reference ? "" : `<br><input data-bref placeholder="Balance payment reference" style="max-width:260px"> <button class="btn sm" data-balsend="${esc(a.sample_id)}" data-code="${esc(a.code || "")}" data-email="${esc(a.email)}" data-title="${esc(t)}" data-owing="${Number(a.amount) - Number(a.paid_amount)}">I paid the balance</button>`}`
+          : st === "approved" ? `<span class="badge paid">Payment confirmed</span> Your access code: <b style="font-size:1.3rem;letter-spacing:3px">${esc(a.code || "")}</b><br><span class="small muted">Online readings left: ${left} of ${a.open_limit || 2} · Download: ${a.download_used ? "used" : "1 available"}. Open it on the <a href="samples.html#open=${esc(a.sample_id)}">Samples page</a> with this code and your email.</span>`
           : st === "closed" ? `<span class="badge">Finished</span> <span class="small muted">The document was downloaded, so this code has ended.</span>`
           : `<span class="badge due">Waiting for payment confirmation</span> <span class="small muted">Your code appears here and is emailed to you once we confirm.</span>`) + `</article>`;
       }).join("");
+      box.querySelectorAll("[data-balsend]").forEach(b => b.addEventListener("click", async () => {
+        const ref = b.parentElement.querySelector("[data-bref]").value.trim(); if (!ref) { alert("Enter the payment reference for the balance."); return; } b.disabled = true;
+        try {
+          const r = await sb.rpc("request_sample_balance", { p_sample: b.dataset.balsend, p_email: b.dataset.email, p_code: b.dataset.code, p_reference: ref }); if (r.error) throw r.error;
+          notifyFallback("Balance paid for sample: " + b.dataset.email, b.dataset.email + " says they paid the BALANCE for a sample. Confirm in Admin > Sample access.\n\nSample: " + b.dataset.title + "\nAccess code: " + b.dataset.code + "\nBalance reference: " + ref + "\nBalance: " + money(b.dataset.owing));
+          loadMyCodes();
+        } catch (x) { alert(x.message || "Could not send."); b.disabled = false; }
+      }));
     } catch (e) { box.innerHTML = ""; }
   }
   async function renderOrders(openId) {
@@ -1269,6 +1288,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       const payBadge = o.paid >= o.total && o.total > 0 ? `<span class="badge paid">Paid in full</span>` : o.paid > 0 ? `<span class="badge due">Part paid ${money(o.paid)}, balance ${money(owing)}</span>` : "";
       const rs = rowStatus(o, evs, o.paid, o.total, pending), dueTxt = o.due ? String(o.due).replace("T", " ") : (o.tier || "");
       const head = rowHead([esc(me.email), esc(o.service), esc(o.id), new Date(o.created).toLocaleDateString(), esc(dueTxt || "-"), esc(rs.pay), esc(rs.phase), ""], rowHeaderLabels);
+      const markDone = (delivered || o.status === "in_progress") && rs.phase !== "Complete" && o.status !== "awaiting_quote" ? `<p style="margin:12px 0 0"><button class="btn sm" data-markdone="${esc(o.id)}">Mark this order complete</button> <span class="small muted">Or it completes by itself after ${C.completeAfterDays || 7} days with no feedback. You can still request a revision.</span></p>` : "";
       const reopen = ["Reviewing", "Complete"].includes(rs.phase) ? `<p style="margin:12px 0 0"><button class="btn sm" data-reactivate="${esc(o.id)}">Reactivate this order (I need changes)</button></p>` : "";
       return `<article class="order orow" data-id="${esc(o.id)}">${head}<div class="orow-body">
         <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:start">
@@ -1293,10 +1313,14 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
             <div class="f"><label>Upload documents (optional)</label><input type="file" name="files" multiple accept=".pdf,.doc,.docx,.txt,.rtf,.ppt,.pptx,.xls,.xlsx,.png,.jpg,.jpeg"></div>
             <p class="err" role="alert"></p><button class="btn sm" type="submit">Send to our team</button>
           </form></details>`}
-        ${reopen}
+        ${markDone}${reopen}
       </div></article>`;
     }).join("");
     wireRows(box);
+    box.querySelectorAll("[data-markdone]").forEach(b => b.addEventListener("click", async () => {
+      if (!confirm("Mark this order as complete? You can still ask for a revision later.")) return; b.disabled = true;
+      try { await api.addEvent(me, b.dataset.markdone, "extra", "Marked complete", "The student marked this order complete.", []); await renderOrders(); } catch (x) { alert("Could not update: " + x.message); b.disabled = false; }
+    }));
     box.querySelectorAll("[data-reactivate]").forEach(b => b.addEventListener("click", () => { const art = b.closest("article"), det = art.querySelector("form[data-add]").closest("details"); det.open = true; const f = art.querySelector("form[data-add]"); f.kind.value = "feedback"; if (!f.summary.value) f.summary.value = "Reactivating this order"; f.scrollIntoView({ behavior: "smooth", block: "center" }); f.message.focus(); }));
     box.querySelectorAll("[data-dl]").forEach(async el => {
       const acc = el.dataset.access, o = list.find(x => x.id === el.dataset.dl), owing = Math.max(0, o.total - o.paid);

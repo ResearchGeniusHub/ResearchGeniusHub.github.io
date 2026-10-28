@@ -26,6 +26,28 @@
   .sa-box iframe{flex:1;border:0;width:100%}.sa-box .txt{flex:1;overflow:auto;padding:16px 20px;font-family:Georgia,serif;line-height:1.6}`;
   document.head.appendChild(css);
 
+  /* Shows a PDF page by page (same look as the original document: images, figures, tables). Falls back to the browser's own viewer. */
+  let pdfLib = null;
+  const loadPdfjs = () => pdfLib ? Promise.resolve(pdfLib) : new Promise((res, rej) => { const sc = document.createElement("script"); sc.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"; sc.onload = () => { try { window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"; pdfLib = window.pdfjsLib; res(pdfLib); } catch (e) { rej(e); } }; sc.onerror = rej; document.head.appendChild(sc); });
+  async function showPdf(host, blob) {
+    host.innerHTML = '<p class="muted">Loading pages...</p>';
+    try {
+      const L = await loadPdfjs(), doc = await L.getDocument({ data: await blob.arrayBuffer() }).promise; host.innerHTML = "";
+      const w = Math.max(280, (host.clientWidth || 600) - 8), dpr = Math.min(2, window.devicePixelRatio || 1);
+      for (let i = 1; i <= doc.numPages; i++) {
+        const pg = await doc.getPage(i), v1 = pg.getViewport({ scale: 1 }), sc = (w / v1.width) * dpr, vp = pg.getViewport({ scale: sc }), cv = document.createElement("canvas");
+        cv.width = vp.width; cv.height = vp.height; cv.style.cssText = "width:100%;height:auto;border:1px solid #ccc;margin:0 0 10px;display:block;background:#fff"; host.appendChild(cv);
+        await pg.render({ canvasContext: cv.getContext("2d"), viewport: vp }).promise;
+      }
+    } catch (e) { const u = URL.createObjectURL(blob); host.innerHTML = '<iframe src="' + u + '" title="Document" style="width:100%;height:75vh;border:0"></iframe><p class="small muted"><a href="' + u + '" target="_blank" rel="noopener">Open in a new tab</a></p>'; }
+  }
+  function openViewer(title, note, blob, extra) {
+    const modal = document.createElement("div"); modal.className = "sa-modal";
+    modal.innerHTML = '<div class="sa-box"><header><strong></strong><span class="small muted"></span><span><button class="btn sm" data-x>Close</button></span></header><div class="txt" data-host style="font-family:inherit;padding:12px"></div></div>';
+    modal.querySelector("strong").textContent = title; modal.querySelector(".small").textContent = note || ""; document.body.appendChild(modal);
+    modal.querySelector("[data-x]").onclick = () => modal.remove(); if (blob) showPdf(modal.querySelector("[data-host]"), blob); return modal;
+  }
+
   let all = [], st = { q: "", level: "", field: "", per: 50, page: 1 };
   const lvSet = s => { if (s.all_levels || /all levels|any level/i.test(s.level || "")) return ["undergraduate", "master", "phd"]; const t = ((s.levels || []).join(" ") + " " + (s.level || "")).toLowerCase(), o = []; if (/undergrad|bachelor|bsc|year|college/.test(t)) o.push("undergraduate"); if (/master|postgrad|msc|mba/.test(t)) o.push("master"); if (/phd|doctor/.test(t)) o.push("phd"); return o; };
   const levelText = s => s.all_levels ? "All levels" : ((s.levels && s.levels.length) ? s.levels.join(", ") : (s.level || ""));
@@ -95,7 +117,8 @@
     const pay = (C.manualPay || []).map(m => "<li><b>" + esc(m.label) + ":</b> " + m.lines.map(l => esc(l[0]) + " " + esc(l[1])).join(", ") + "</li>").join("");
     const det = row.querySelector(".sa-det"), def = Math.min(2, paid);
     det.innerHTML = `<p class="small muted" style="margin:10px 0">${esc(s.subject || "")} · ${esc(levelText(s))} · ${s.pages} pages · ${esc(s.style || "")} referencing</p>
-      ${s.intro ? `<details class="intro"><summary>Read the introduction (free)</summary>${paras(s.intro)}</details>` : ""}
+      ${s.file_path ? `<p style="margin:8px 0"><button class="btn sm alt" data-free>View the free page${free > 1 ? "s" : ""} (exactly as in the document)</button></p><div data-freemsg role="status"></div>` : ""}
+      ${s.intro && !s.file_path ? `<details class="intro"><summary>Read the introduction (free)</summary>${paras(s.intro)}</details>` : ""}
       <div class="locked"><strong>Get the full sample</strong> <span class="small muted">${money(rate)} per page. ${paid} more page${paid > 1 ? "s" : ""} available after the free page${free > 1 ? "s" : ""}.</span>
         <ol class="small" style="margin:6px 0;padding-left:18px"><li>Choose how many pages</li><li>Pay with the details below</li><li>Send your email and payment reference</li><li>When we confirm, your access code is emailed to you and appears in your account</li></ol>
         <details class="intro"><summary>Payment details</summary><ul class="small" style="margin:8px 0">${pay}</ul></details>
@@ -108,7 +131,10 @@
       <details class="intro" data-paid ${mine.email ? "open" : ""}><summary>Already paid? Open my pages</summary>
         <p class="small muted">Enter your email and the access code we sent you. Reading online: 2 sessions (each reopening after closing the tab counts as one). Download: once, then the code ends.</p>
         <label class="small">Your email</label><input type="email" data-e2 value="${esc(mine.email || "")}" style="width:100%"><label class="small">Access code</label><input data-c autocapitalize="characters" autocomplete="off" style="max-width:220px;text-transform:uppercase">
-        <p><button class="btn sm" data-read>Read online</button> <button class="btn sm alt" data-dl>Download</button></p><div data-msg role="status"></div></details>`;
+        <p><button class="btn sm" data-read>Read online</button> <button class="btn sm alt" data-dl>Download</button></p><div data-msg role="status"></div>
+        <div class="panel" style="padding:12px;margin-top:10px"><strong>Paid half? Pay the balance here</strong>
+          <p class="small muted" style="margin:6px 0">Pay the balance with the details above, then enter your payment reference. When we confirm it, the watermark is removed and you can open the full copy with the same code.</p>
+          <input data-bref placeholder="Balance payment reference (PayPal or M-Pesa ID)" autocomplete="off" style="width:100%"> <p><button class="btn sm" data-bal>I have paid the balance</button></p><div data-balmsg role="status"></div></div></details>`;
     const q = x => det.querySelector(x), n = () => Math.min(paid, Math.max(1, Math.floor(Number(q("[data-n]").value) || 1)));
     const payNow = () => q("[data-pay]").value, upd = () => { const t = n() * rate; q("[data-price]").textContent = payNow() === "part" ? money(t / 2) + " now (of " + money(t) + ")" : money(t); };
     q("[data-n]").oninput = upd; q("[data-pay]").onchange = upd;
@@ -125,6 +151,22 @@
         out.innerHTML = '<p class="ok"><b>Received.</b> Once we confirm your payment, your access code is emailed to <b>' + esc(email) + '</b> and also appears in your <a href="account.html">account</a> (sign in with the same email). Then come back here and use <b>Already paid?</b></p>';
       } catch (e) { out.innerHTML = '<p class="err">' + esc(e.message) + "</p>"; }
     };
+    const fb = q("[data-free]"); if (fb) fb.onclick = async () => {
+      const m = q("[data-freemsg]"); m.textContent = "Opening...";
+      try { const r = await fetch(SB.url + "/functions/v1/super-worker", { method: "POST", headers: H, body: JSON.stringify({ action: "preview", sample_id: s.id }) }); if (!r.ok) throw new Error(); const b = await r.blob(); m.textContent = ""; openViewer(s.title + " (free pages)", "Free preview", b); }
+      catch (e) { m.innerHTML = '<p class="err">Could not open the preview right now. Try again in a minute.</p>'; }
+    };
+    q("[data-bal]").onclick = async () => {
+      const email = q("[data-e2]").value.trim(), code = q("[data-c]").value.trim(), ref = q("[data-bref]").value.trim(), m = q("[data-balmsg]");
+      if (!email || !code) { m.innerHTML = '<p class="err">Enter your email and access code above first.</p>'; return; } if (!ref) { m.innerHTML = '<p class="err">Enter the payment reference for the balance.</p>'; return; }
+      m.textContent = "Sending...";
+      try {
+        const r = await fetch(SB.url + "/rest/v1/rpc/request_sample_balance", { method: "POST", headers: H, body: JSON.stringify({ p_sample: s.id, p_email: email, p_code: code, p_reference: ref }) });
+        const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.message || "Could not send. Check your email and code.");
+        try { fetch("https://formsubmit.co/ajax/" + C.email, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ _subject: "Balance paid for sample: " + email, _captcha: "false", _template: "box", message: email + " says they paid the BALANCE for a sample. Confirm in Admin > Sample access (Confirm balance payment).\n\nSample: " + s.title + "\nAccess code: " + code.toUpperCase() + "\nBalance reference: " + ref + "\nBalance: " + money(j.owing || 0) }) }).catch(() => {}); } catch (e) {}
+        m.innerHTML = '<p class="ok"><b>Thank you.</b> We have been told you paid the balance. When we confirm it, the full copy opens without a watermark using the same code.</p>';
+      } catch (e) { m.innerHTML = '<p class="err">' + esc(e.message) + "</p>"; }
+    };
     const call = async action => {
       const email = q("[data-e2]").value.trim(), code = q("[data-c]").value.trim(), m = q("[data-msg]");
       if (!email || !code) { m.innerHTML = '<p class="err">Enter your email and access code.</p>'; return null; }
@@ -134,13 +176,9 @@
       m.textContent = ""; return r;
     };
     q("[data-read]").onclick = async () => {
-      const r = await call("view"); if (!r) return; const left = r.headers.get("x-opens-left");
-      const kind = r.headers.get("x-kind"), modal = document.createElement("div"); modal.className = "sa-modal";
-      let body, url = "";
-      if (kind === "text") { const j = await r.json(); body = `<div class="txt"><h2>${esc(j.title)}</h2>${paras(j.text)}</div>`; }
-      else { url = URL.createObjectURL(await r.blob()); body = `<iframe src="${url}" title="${esc(s.title)}"></iframe>`; }
-      modal.innerHTML = `<div class="sa-box"><header><strong>${esc(s.title)}</strong><span class="small muted">Online readings left after this one: ${esc(left)}. Closing the tab ends this session.</span><span>${url ? `<a class="btn sm alt" target="_blank" rel="noopener" href="${url}">Open full screen</a> ` : ""}<button class="btn sm" data-x>Close</button></span></header>${body}</div>`;
-      document.body.appendChild(modal); modal.querySelector("[data-x]").onclick = () => { modal.remove(); if (url) URL.revokeObjectURL(url); };
+      const r = await call("view"); if (!r) return; const left = r.headers.get("x-opens-left"), kind = r.headers.get("x-kind");
+      if (kind === "text") { const j = await r.json(), modal = document.createElement("div"); modal.className = "sa-modal"; modal.innerHTML = `<div class="sa-box"><header><strong>${esc(s.title)}</strong><span class="small muted">Online readings left after this one: ${esc(left)}. Closing the tab ends this session.</span><span><button class="btn sm" data-x>Close</button></span></header><div class="txt"><h2>${esc(j.title)}</h2>${paras(j.text)}</div></div>`; document.body.appendChild(modal); modal.querySelector("[data-x]").onclick = () => modal.remove(); return; }
+      openViewer(s.title, "Online readings left after this one: " + left + ". Closing the tab ends this session.", await r.blob());
     };
     q("[data-dl]").onclick = async () => {
       if (!confirm("Download now? You can download only once, and the code stops working after this.")) return;

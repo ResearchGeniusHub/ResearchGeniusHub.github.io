@@ -396,13 +396,14 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 <body>
 <main class="wrap" style="max-width:980px;margin:0 auto;padding:20px 16px">
 <div class="topbar"><strong id="who">Staff</strong><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm alt" id="reload">Refresh</button><button class="btn sm alt" id="out">Sign out</button></span></div>
-<div class="tabs" id="tabs-wrap" hidden role="tablist"><button type="button" aria-selected="true" data-view="orders">Orders</button><button type="button" aria-selected="false" data-view="access">Sample access</button><button type="button" aria-selected="false" data-view="samples" data-admin>Samples</button><button type="button" aria-selected="false" data-view="staff" data-admin>Staff</button></div>
+<div class="tabs" id="tabs-wrap" hidden role="tablist"><button type="button" aria-selected="true" data-view="orders">Orders</button><button type="button" aria-selected="false" data-view="balances">Balances</button><button type="button" aria-selected="false" data-view="access">Sample access</button><button type="button" aria-selected="false" data-view="samples" data-admin>Samples</button><button type="button" aria-selected="false" data-view="staff" data-admin>Staff</button></div>
 <section id="v-orders"><h1 style="font-size:2rem">Orders by service</h1>
 <div id="chips" style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px"></div>
 <div class="two"><div class="f"><label>Show</label><select id="flt"><option value="attn">Needs attention</option><option value="all">All orders</option><option value="awaiting_quote">Quote requests</option><option value="awaiting_payment">Awaiting payment</option><option value="payment_reported">Payment reported</option><option value="in_progress">In progress</option><option value="revision_requested">Revision requested</option><option value="delivered">Delivered</option></select></div>
 <div class="f"><label>Search</label><input id="q" placeholder="Order number, name, email or title"></div></div>
 <p class="err" id="top-err" role="alert"></p>
 <div id="list"><p class="muted">Loading...</p></div></section>
+<section id="v-balances" hidden></section>
 <section id="v-access" hidden></section>
 <section id="v-samples" hidden></section>
 <section id="v-staff" hidden></section>
@@ -448,8 +449,19 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
   const label = { awaiting_quote: "Quote requested", awaiting_payment: "Awaiting payment", payment_reported: "Payment reported", in_progress: "In progress", delivered: "Delivered", revision_requested: "Revision requested" };
 
   async function email(order_id, event_id) {
-    const { error } = await sb.functions.invoke("rgh-notify", { body: { type: "staff_message", order_id, event_id } });
-    if (error) throw new Error("Saved, but the email to the student failed (" + error.message + "). The order is saved. Email the student yourself if needed.");
+    // Tells the student by email what was confirmed (partial or complete payment, or a message). Works without any Edge Function.
+    try {
+      const [oR, eR] = await Promise.all([sb.from("orders").select("*").eq("id", order_id).single(), sb.from("order_events").select("*").eq("id", event_id).single()]);
+      const o = oR.data, e = eR.data; if (!o || !e) return; const d = o.data || {}, to = d.customerEmail; if (!to) return;
+      const gbp = n => "\u00a3" + Number(n || 0).toFixed(2), paid = Number(o.paid_amount || 0), total = Number(o.total || 0), bal = Math.max(0, total - paid);
+      let head, line;
+      if (e.kind === "full" || (e.kind === "partial" && total && paid >= total)) { head = "Payment complete"; line = "Your payment is COMPLETE (" + gbp(paid) + " received). Your task is complete and your full work is now available in your account (sign in and open the order to view and download it). Thank you."; }
+      else if (e.kind === "partial") { head = "Part payment received"; line = "We have received a PART payment of " + gbp(paid) + " of " + gbp(total) + ". Balance remaining: " + gbp(bal) + "."; }
+      else if (e.kind === "received") { head = "We have received your order details"; line = "Your documents or feedback were received and your order is being worked on."; }
+      else { head = "A message about your order"; line = ""; }
+      const body = "Hello " + (d.customer || "") + ",\n\n" + head + " for your order \"" + (d.title || o.id) + "\".\n" + line + (e.message ? "\n\nNext step from us:\n" + e.message : "") + "\n\nSign in to see your order: " + location.origin + "/account.html\n\nResearch Genius Hub";
+      await fetch("https://formsubmit.co/ajax/" + (C.email || "researchgeniushub@gmail.com"), { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ _subject: head + " - Research Genius Hub", _captcha: "false", _template: "box", _autoresponse: body, email: to, name: d.customer || to, message: head + ": " + (d.title || o.id) + " (" + to + "). " + line }) });
+    } catch (x) { /* the confirmation itself is already saved */ }
   }
   async function reload() {
     const [o, p, e] = await Promise.all([sb.from("orders").select("*").order("created_at", { ascending: false }), sb.from("payments").select("*"), sb.from("order_events").select("*").order("created_at")]);
@@ -485,7 +497,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     else if (st === "awaiting_payment" || st === "payment_reported") phase = "Awaiting payment";
     else if (st === "delivered") {
       const mine = (evs || []).filter(e => e.order_id === o.id), last = mine.length ? new Date(mine[mine.length - 1].created_at) : new Date(o.created || o.created_at);
-      phase = (Date.now() - last.getTime()) > DAYS * 864e5 && !(mine.length && mine[mine.length - 1].author_role === "student") ? "Complete" : "Reviewing";
+      phase = (mine.length && mine[mine.length - 1].author_role === "student" && /^marked complete/i.test(mine[mine.length - 1].summary || "")) || ((Date.now() - last.getTime()) > DAYS * 864e5 && !(mine.length && mine[mine.length - 1].author_role === "student")) ? "Complete" : "Reviewing";
     } else phase = "In progress";
     const pay = total > 0 && paid >= total ? "Paid in full" : paid > 0 ? "Part paid " + money(paid) + " of " + money(total) : (pendingPay ? "Reported, checking" : "Unpaid");
     return { phase, pay: pendingPay && paid < total && paid > 0 ? pay + " (more reported)" : pay };
@@ -519,6 +531,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
         <div class="f"><label>Message to student</label><textarea name="msg" placeholder="What the price covers and how to pay.">${d.negotiated ? "Your negotiated price of " + money(d.negotiated.agreed) + " is approved. You can pay from your account: you may pay in full, or half now to start and the balance before download." : ""}</textarea></div><p class="err"></p><button class="btn sm">${d.negotiated ? "Approve price and email student" : "Send quote and email student"}</button></form>` : ""}
       <form data-confirm class="panel" style="margin-top:12px"><h4 style="margin:0 0 8px">Confirm and email the student</h4>
         <div class="f"><label>Action</label><select name="kind"><option value="received">Received: documents or feedback received, being worked on</option><option value="partial"${pendingPay.length && pendingPay[0].portion === "part" ? " selected" : ""}>Partial payment confirmed</option><option value="full"${pendingPay.length && pendingPay[0].portion !== "part" ? " selected" : ""}>Full payment confirmed</option><option value="note">Message only (no confirmation)</option></select></div>
+        <div class="f" data-code hidden><label>Payment code from PayPal / M-Pesa (must match what the student entered)</label><input name="pcode" autocomplete="off" placeholder="e.g. QSRDUSVT2"></div>
         <div class="f" data-amt hidden><label>Amount received (GBP)</label><input type="number" name="amount" min="0.01" step="0.01" value="${defAmt}"></div>
         <div class="f"><label>Next step for the student (required, emailed immediately)</label><textarea name="msg" placeholder="e.g. We have your documents and are working on them. Expect the first draft by Friday 5pm UK time."></textarea></div>
         <p class="err"></p><button class="btn sm" disabled>Confirm and send email</button></form>
@@ -547,14 +560,16 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       const { data } = await sb.storage.from("requirements").createSignedUrl(t.dataset.sign, 600); if (data) window.open(data.signedUrl, "_blank");
     });
     const cf = a.querySelector("[data-confirm]");
-    const sync = () => { cf.querySelector("[data-amt]").hidden = cf.kind.value !== "partial"; cf.querySelector("button").disabled = cf.msg.value.trim().length < 10; };
+    const sync = () => { cf.querySelector("[data-amt]").hidden = cf.kind.value !== "partial"; cf.querySelector("[data-code]").hidden = !["partial", "full"].includes(cf.kind.value); cf.querySelector("button").disabled = cf.msg.value.trim().length < 10; };
     cf.addEventListener("input", sync); cf.addEventListener("change", sync); sync();
     cf.addEventListener("submit", async e => {
       e.preventDefault(); const btn = cf.querySelector("button"); cf.querySelector(".err").textContent = ""; busy(btn, true, "Sending...");
       try {
         const msg = cf.msg.value.trim(); let eid;
         if (cf.kind.value === "note") { const r = await sb.from("order_events").insert({ order_id: id, kind: "note", author_role: "staff", summary: "note", message: msg }).select().single(); if (r.error) throw r.error; eid = r.data.id; }
-        else { const r = await sb.rpc("staff_confirm", { p_order: id, p_kind: cf.kind.value, p_amount: Number(cf.amount.value) || null, p_message: msg }); if (r.error) throw r.error; eid = r.data; }
+        else {
+          if (["partial", "full"].includes(cf.kind.value)) { const refs = (pays || []).filter(p => p.order_id === id && !p.confirmed).map(p => String(p.reference || "").trim().toUpperCase()).filter(Boolean), pc = cf.pcode.value.trim().toUpperCase(); if (!refs.length) throw new Error("The student has not reported a payment with a code yet, so payment cannot be confirmed."); if (!pc || !refs.includes(pc)) throw new Error("The payment code does not match the one the student entered. Payment NOT confirmed."); }
+          const r = await sb.rpc("staff_confirm", { p_order: id, p_kind: cf.kind.value, p_amount: Number(cf.amount.value) || null, p_message: msg }); if (r.error) throw r.error; eid = r.data; }
         await email(id, eid); await reload();
       } catch (x) { fail(cf, x); busy(btn, false); sync(); await reload().catch(() => {}); }
     });
@@ -604,8 +619,8 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
   /* ---------- staff management (admin only) ---------- */
   document.querySelectorAll("[data-view]").forEach(b => b.addEventListener("click", () => {
     document.querySelectorAll("[data-view]").forEach(x => x.setAttribute("aria-selected", x === b));
-    ["orders", "access", "samples", "staff"].forEach(v => { $("#v-" + v).hidden = b.dataset.view !== v; });
-    if (b.dataset.view === "staff") loadStaff(); if (b.dataset.view === "samples") loadSamples(); if (b.dataset.view === "access") loadAccess();
+    ["orders", "balances", "access", "samples", "staff"].forEach(v => { $("#v-" + v).hidden = b.dataset.view !== v; });
+    if (b.dataset.view === "staff") loadStaff(); if (b.dataset.view === "samples") loadSamples(); if (b.dataset.view === "access") loadAccess(); if (b.dataset.view === "balances") loadBalances();
   }));
   /* ---------- samples (admin) and sample access codes (admin + staff) ---------- */
   const LEVELS = ["Undergraduate", "Masters", "PhD"];
@@ -704,14 +719,14 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
           <div class="f"><label>Level</label>${lvBoxes(sm, "e")}</div><div class="two"><div class="f"><label>Style</label><input name="style" value="${esc(sm.style || "")}"></div><div class="f"><label>Charge per page (from £2)</label><input name="rate" type="number" min="2" step="0.5" value="${sm.price_per_page}"></div></div>
           <div class="two"><div class="f"><label>Free pages</label><input name="free" type="number" min="1" value="${sm.free_pages || 1}"></div><div class="f"><label>Total pages</label><input name="pages" type="number" min="2" value="${sm.pages}"></div></div>
           <div class="f"><label>Free introduction text</label><textarea name="intro" rows="3">${esc(sm.intro || "")}</textarea></div>
-          ${sm.file_path ? `<div class="f"><label>Replace the PDF (optional)</label><input type="file" name="file" accept=".pdf"></div>` : ""}
+          <div class="f"><label>${sm.file_path ? "Replace the PDF (optional)" : "Attach a PDF so images, diagrams and tables show (optional)"}</label><input type="file" name="file" accept=".pdf"></div>
           <label style="font-weight:400"><input type="checkbox" name="pub"${sm.published ? " checked" : ""}> Published</label><p class="err"></p><button class="btn sm">Save changes</button></form>`;
         const ef = h.querySelector("form"); ef.addEventListener("submit", async e => {
           e.preventDefault(); const er = ef.querySelector(".err"), lv = readLv(ef, "e"), rate = Number(ef.rate.value); er.textContent = "";
           if (!(rate >= 2)) { er.textContent = "The charge per page starts from £2."; return; } if (!lv.all_levels && !lv.levels.length) { er.textContent = "Choose a level or Fits all levels."; return; }
           const upd = { title: ef.title.value.trim(), subject: ef.subject.value.trim(), style: ef.style.value.trim(), price_per_page: rate, free_pages: Math.max(1, +ef.free.value || 1), pages: Math.floor(+ef.pages.value) || sm.pages, intro: ef.intro.value.trim(), published: ef.pub.checked, ...lv };
           try {
-            const nf = ef.file && ef.file.files[0]; if (nf) { const p = (crypto.randomUUID ? crypto.randomUUID() : Date.now()) + ".pdf", up = await sb.storage.from("samples").upload(p, nf, { contentType: "application/pdf" }); if (up.error) throw up.error; await sb.storage.from("samples").remove([sm.file_path]); upd.file_path = p; upd.file_name = nf.name; }
+            const nf = ef.file && ef.file.files[0]; if (nf) { const p = (crypto.randomUUID ? crypto.randomUUID() : Date.now()) + ".pdf", up = await sb.storage.from("samples").upload(p, nf, { contentType: "application/pdf" }); if (up.error) throw up.error; if (sm.file_path) await sb.storage.from("samples").remove([sm.file_path]); upd.file_path = p; upd.file_name = nf.name; try { const L = await pdfjs(), d2 = await L.getDocument({ data: await nf.arrayBuffer() }).promise; if (d2.numPages >= 2 && Math.floor(+ef.pages.value) === sm.pages) upd.pages = d2.numPages; } catch (e2) {} }
             const r = await sb.from("samples").update(upd).eq("id", sm.id); if (r.error) throw r.error; loadSamples();
           } catch (x) { er.textContent = x.message || String(x); }
         });
@@ -723,6 +738,35 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       e.preventDefault(); const ids = Array.from(L.querySelectorAll("article")).filter(x => x.querySelector("[data-pick]").checked).map(x => x.dataset.sid), lv = readLv(bf, "b"), m = bf.querySelector("[data-m]");
       if (!ids.length) { m.textContent = "Tick at least one sample."; return; } if (!lv.all_levels && !lv.levels.length) { m.textContent = "Choose a level or Fits all levels."; return; }
       const r = await sb.from("samples").update(lv).in("id", ids); m.textContent = r.error ? r.error.message : "Updated " + ids.length + " sample(s)."; if (!r.error) setTimeout(loadSamples, 700);
+    });
+  }
+  async function loadBalances() {
+    const box = $("#v-balances"); box.innerHTML = '<p class="muted">Loading balances...</p>';
+    const [o, p] = await Promise.all([sb.from("orders").select("*").order("created_at", { ascending: false }), sb.from("payments").select("*")]);
+    if (o.error) { box.innerHTML = `<p class="err">${esc(o.error.message)}</p>`; return; }
+    pays = p.data || [];
+    const due = (o.data || []).filter(x => x.status !== "awaiting_quote" && Number(x.paid_amount || 0) > 0 && Number(x.paid_amount) < Number(x.total));
+    box.innerHTML = `<h1 style="font-size:2rem">Balances</h1><p class="small muted">Students who paid part of an order. When the other part arrives, enter the payment code from PayPal or M-Pesa. If it matches what the student entered, the order is marked fully paid, the student can open and download everything, and they get an email saying the task is complete.</p><div id="blist"></div>`;
+    const L = $("#blist"); if (!due.length) { L.innerHTML = '<p class="muted">No balances waiting.</p>'; return; }
+    due.forEach(x => {
+      const d = x.data || {}, owing = Math.round((Number(x.total) - Number(x.paid_amount)) * 100) / 100, reported = pays.filter(q => q.order_id === x.id && !q.confirmed), a = document.createElement("article"); a.className = "order";
+      a.innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><h4 style="margin:0">${esc(d.title || d.service || x.id)}</h4><div class="small"><strong>${esc(d.customer || "")}</strong> · ${esc(d.customerEmail || "")} · ${esc(x.id)}</div></div>
+        <div style="text-align:right"><strong>Balance ${money(owing)}</strong><div class="small muted">Paid ${money(x.paid_amount)} of ${money(x.total)}</div></div></div>
+        ${reported.length ? reported.map(q => `<p class="small" style="margin:6px 0"><b>Student reported</b> ${money(q.amount)} via ${esc(q.method)}, payment code <b>${esc(q.reference || "none")}</b></p>`).join("") : '<p class="small muted" style="margin:6px 0">The student has not reported the balance payment yet.</p>'}
+        <form class="panel" style="padding:12px;margin-top:8px"><div class="f"><label>Payment code from PayPal / M-Pesa</label><input name="pcode" autocomplete="off"></div>
+          <div class="f"><label>Message to the student (required, emailed)</label><textarea name="msg" rows="2">Your balance payment is confirmed. Your task is complete. Sign in to your account, open the order and view or download your full work.</textarea></div>
+          <p class="err"></p><button class="btn sm"${reported.length ? "" : " disabled"}>Confirm balance, complete order and email student</button></form>`;
+      const f = a.querySelector("form"); f.addEventListener("submit", async e => {
+        e.preventDefault(); const er = f.querySelector(".err"), btn = f.querySelector("button"); er.textContent = ""; btn.disabled = true;
+        try {
+          const refs = reported.map(q => String(q.reference || "").trim().toUpperCase()).filter(Boolean), pc = f.pcode.value.trim().toUpperCase();
+          if (!pc || !refs.includes(pc)) throw new Error("The payment code does not match the one the student entered. Balance NOT confirmed.");
+          if (f.msg.value.trim().length < 10) throw new Error("Write a short message to the student.");
+          const r = await sb.rpc("staff_confirm", { p_order: x.id, p_kind: "full", p_amount: null, p_message: f.msg.value.trim() }); if (r.error) throw r.error;
+          await email(x.id, r.data); alert("Balance confirmed. The student has been emailed that the task is complete."); loadBalances();
+        } catch (x2) { er.textContent = x2.message || String(x2); btn.disabled = false; }
+      });
+      L.append(a);
     });
   }
   let accFilter = "requested";
@@ -737,12 +781,18 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     rows.forEach(r => {
       const a = document.createElement("article"), amt = r.amount != null ? r.amount : r.pages * ((r.samples && r.samples.price_per_page) || 2); a.className = "order";
       a.innerHTML = `<strong>${esc(r.email)}</strong> <span class="badge ${r.status === "approved" ? "paid" : "due"}">${esc(r.status)}</span><div class="small">${esc((r.samples && r.samples.title) || "")} · ${r.pages} page(s) · <b>${money(amt)}</b> (${r.pay_option === "part" ? "half" : "full"} option, due now ${money(r.due_now ?? amt)}${r.paid_amount != null ? ", received " + money(r.paid_amount) + ", unlocked " + (r.unlocked_pages || 0) + " page(s)" : ""}) · ${esc(r.format || "")} · reference: <b>${esc(r.reference || "none")}</b> · ${new Date(r.created_at).toLocaleDateString()}</div>
-        ${r.code ? `<div class="small">Code <b style="letter-spacing:2px">${esc(r.code)}</b> · readings used ${r.opens_used}/${r.open_limit} · downloads ${r.download_used}/${r.download_limit}</div>` : ""}
-        <p style="margin:10px 0 0">${r.status === "requested" ? '<button class="btn sm" data-ap>Confirm payment and send code</button> ' : ""}${r.status !== "requested" ? '<button class="btn sm alt" data-rs>Resend code</button> <button class="btn sm alt" data-rst>Reset uses</button> ' : ""}${r.status === "approved" ? '<button class="btn sm alt" data-rv>Revoke</button> ' : ""}<button class="btn sm alt" data-dl>Delete</button></p><p class="err"></p>`;
+        ${r.balance_reference ? `<div class="small" style="color:#8a4b00"><b>Balance reported by student</b> · payment code: <b>${esc(r.balance_reference)}</b> · ${new Date(r.balance_reported_at).toLocaleString()}</div>` : ""}${r.code ? `<div class="small">Code <b style="letter-spacing:2px">${esc(r.code)}</b> · readings used ${r.opens_used}/${r.open_limit} · downloads ${r.download_used}/${r.download_limit}</div>` : ""}
+        <p style="margin:10px 0 0">${r.status === "requested" ? '<button class="btn sm" data-ap>Confirm payment and send code</button> ' : ""}${r.status !== "requested" ? '<button class="btn sm alt" data-rs>Resend code</button> <button class="btn sm alt" data-rst>Reset uses</button> ' : ""}${(r.status === "approved" || r.status === "closed") && r.paid_amount != null && Number(r.paid_amount) < Number(amt) ? '<button class="btn sm" data-bal>Confirm balance payment (full copy, no watermark)</button> ' : ""}${r.status === "approved" ? '<button class="btn sm alt" data-rv>Revoke</button> ' : ""}<button class="btn sm alt" data-dl>Delete</button></p><p class="err"></p>`;
       const er = a.querySelector(".err"), run = async fn => { er.textContent = ""; try { await fn(); } catch (x) { er.textContent = x.message || String(x); } };
-      const mailCode = async d => { try { const R = await fetch("https://formsubmit.co/ajax/" + (C.email || "researchgeniushub@gmail.com"), { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ _subject: "Your sample access code - Research Genius Hub", _captcha: "false", _template: "box", _autoresponse: "Thank you. Your payment for the sample \"" + d.title + "\" is confirmed.\n\nYour access code: " + d.code + "\n\nGo to " + location.origin + "/samples.html, open the sample, choose Already paid? and enter this email and the code. Read online: 2 sessions. Download: once. The code is also in your account (sign in with this email).\n\nResearch Genius Hub", email: d.email, name: d.email, message: "Code " + d.code + " sent to " + d.email + " for " + d.title }) }); return R.ok; } catch (x) { return false; } };
-      const send = (action, amount) => run(async () => { const res = action === "approve" ? await sb.rpc("admin_approve_sample", { p_access: r.id, p_amount: amount }) : await sb.rpc("admin_sample_code", { p_access: r.id }); if (res.error) throw new Error(res.error.message); const d = res.data, ok = await mailCode(d); alert(ok ? "Code " + d.code + " created and emailed to " + d.email + ". It also shows in their account." : "Code " + d.code + " created and shown in their account. The email could not be sent, so please send the code to " + d.email + " yourself."); loadAccess(); });
-      const ap = a.querySelector("[data-ap]"); if (ap) ap.onclick = () => { const got = prompt("Amount received from " + r.email + " (reference " + (r.reference || "none") + ")?\nOption chosen: " + (r.pay_option === "part" ? "half" : "full") + ". Full = " + money(amt) + ", half = " + money(amt / 2) + ".", String(r.due_now ?? amt)); if (got === null) return; const n = Number(got); if (!(n > 0)) { alert("Enter the amount received."); return; } send("approve", n); };
+      const mailCode = async d => { try {
+        const L = "Research Genius Hub", site = location.origin + "/samples.html", gbp = n => "\u00a3" + Number(n || 0).toFixed(2);
+        const body = d.complete
+          ? "Thank you. Your payment for the sample \"" + d.title + "\" is now COMPLETE (" + gbp(d.paid) + " received). You can open the full copy without any watermark.\n\nYour access code: " + d.code + "\n\nGo to " + site + ", open the sample, choose Already paid? and enter this email and the code. Read online: 2 sessions. Download: once."
+          : "Thank you. We have received a PART payment for the sample \"" + d.title + "\": " + gbp(d.paid) + " of " + gbp(d.total) + ". Balance: " + gbp(d.total - d.paid) + ". You can open " + d.unlocked + " paid page(s) now; the copy carries a part-payment watermark until the balance is paid and confirmed.\n\nYour access code: " + d.code + "\n\nGo to " + site + ", open the sample, choose Already paid? and enter this email and the code. Read online: 2 sessions. Download: once.";
+        const R = await fetch("https://formsubmit.co/ajax/" + (C.email || "researchgeniushub@gmail.com"), { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ _subject: (d.complete ? "Payment complete: " : "Part payment received: ") + d.title + " - " + L, _captcha: "false", _template: "box", _autoresponse: body + "\n\n" + L, email: d.email, name: d.email, message: (d.complete ? "COMPLETE" : "PART") + " payment confirmed. Code " + d.code + " sent to " + d.email + " for " + d.title }) }); return R.ok; } catch (x) { return false; } };
+      const send = (action, amount, pcode) => run(async () => { const res = action === "approve" ? await sb.rpc("admin_approve_sample", { p_access: r.id, p_amount: amount, p_code: pcode }) : action === "balance" ? await sb.rpc("admin_confirm_balance", { p_access: r.id, p_amount: amount, p_code: pcode }) : await sb.rpc("admin_sample_code", { p_access: r.id }); if (res.error) throw new Error(res.error.message); const d = res.data, ok = await mailCode(d); alert((d.complete ? "Payment COMPLETE. The student can now open the full copy with no watermark. " : "Part payment recorded. ") + "Code " + d.code + (ok ? " and a notice were emailed to " + d.email + "." : " is in their account. The email could not be sent, so please tell " + d.email + " yourself.")); loadAccess(); });
+      const ap = a.querySelector("[data-ap]"); if (ap) ap.onclick = () => { const got = prompt("Amount received from " + r.email + " (reference " + (r.reference || "none") + ")?\nOption chosen: " + (r.pay_option === "part" ? "half" : "full") + ". Full = " + money(amt) + ", half = " + money(amt / 2) + ".", String(r.due_now ?? amt)); if (got === null) return; const n = Number(got); if (!(n > 0)) { alert("Enter the amount received."); return; } const pc = prompt("Type the payment code you see in PayPal / M-Pesa for this payment.\nIt must match what the student entered, or the payment is NOT confirmed."); if (pc === null) return; send("approve", n, pc); };
+      const bal = a.querySelector("[data-bal]"); if (bal) bal.onclick = () => { const left = Math.max(0, Number(amt) - Number(r.paid_amount || 0)), got = prompt("Balance received from " + r.email + "?\nBalance due: " + money(left), String(left)); if (got === null) return; const n = Number(got); if (!(n > 0)) { alert("Enter the amount received."); return; } const pc = prompt("Type the payment code you see in PayPal / M-Pesa for the BALANCE payment.\nIt must match what the student entered, or it is NOT confirmed."); if (pc === null) return; send("balance", n, pc); };
       const rs = a.querySelector("[data-rs]"); if (rs) rs.onclick = () => send("resend");
       const rst = a.querySelector("[data-rst]"); if (rst) rst.onclick = () => run(async () => { const x = await sb.from("sample_access").update({ opens_used: 0, download_used: 0, last_session: null, status: "approved" }).eq("id", r.id); if (x.error) throw x.error; loadAccess(); });
       const rv = a.querySelector("[data-rv]"); if (rv) rv.onclick = () => run(async () => { const x = await sb.from("sample_access").update({ status: "closed" }).eq("id", r.id); if (x.error) throw x.error; loadAccess(); });

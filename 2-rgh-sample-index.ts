@@ -1,9 +1,7 @@
-// rgh-sample (OPTIONAL: only needed so students can READ/DOWNLOAD the PDF). Turn OFF 'Verify JWT'. Needs NO email secrets.
-// Old note: Deploy WITH --no-verify-jwt (students are not signed in; the access code is the check).
-// Staff/admin actions (approve, resend) check the caller's login inside this function.
-// Secrets (same as rgh-notify): RESEND_API_KEY, FROM_EMAIL, ADMIN_EMAIL, SITE_URL
-import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+// Function name in Supabase: super-worker   (file name must stay index.ts)
+// Settings: Verify JWT = OFF. No secrets needed. Test: open  <your-project-url>/functions/v1/super-worker?ping=1  -> should show {"ok":true}
+import { PDFDocument, StandardFonts, rgb, degrees } from "npm:pdf-lib@1.17.1";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -48,6 +46,7 @@ async function emailCode(a: any, title: string, code: string): Promise<{ emailed
 
 Deno.serve(async req => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  if (req.method === "GET") return json({ ok: true, service: "samples" });
   try {
     const b = await req.json();
 
@@ -73,6 +72,21 @@ Deno.serve(async req => {
 
       const mail = await emailCode({ ...a, amount: a.amount ?? 0 }, title, code);
       return json({ ok: true, code, emailed: mail.emailed, why: mail.why || "" });
+    }
+
+    // ---- Free preview: the free pages exactly as in the document (images, diagrams, tables), no code needed ----
+    if (b.action === "preview") {
+      const { data: s } = await admin.from("samples").select("title,file_path,free_pages,published").eq("id", b.sample_id).single();
+      if (!s || s.published === false || !s.file_path) return json({ error: "No document preview for this sample." }, 404);
+      const { data: blob } = await admin.storage.from("samples").download(s.file_path);
+      if (!blob) return json({ error: "Document missing." }, 500);
+      const src = await PDFDocument.load(await blob.arrayBuffer(), { ignoreEncryption: true });
+      const n = Math.min(src.getPageCount(), s.free_pages || 1);
+      const out = await PDFDocument.create();
+      const pgs = await out.copyPages(src, Array.from({ length: n }, (_, i) => i));
+      const font = await out.embedFont(StandardFonts.Helvetica);
+      pgs.forEach(p => { out.addPage(p); p.drawText("Free preview - Research Genius Hub", { x: 24, y: 12, size: 8, font, color: rgb(0.45, 0.45, 0.45) }); });
+      return new Response(await out.save(), { headers: { ...cors, "Content-Type": "application/pdf", "Cache-Control": "no-store", "x-kind": "pdf" } });
     }
 
     // ---- Student actions: view online or download with the access code -----
@@ -116,7 +130,15 @@ Deno.serve(async req => {
       const out = await PDFDocument.create();
       const pages = await out.copyPages(src, Array.from({ length: upto }, (_, i) => i));
       const font = await out.embedFont(StandardFonts.Helvetica);
-      pages.forEach(p => { out.addPage(p); p.drawText(`Licensed to ${email}`, { x: 24, y: 12, size: 8, font, color: rgb(0.45, 0.45, 0.45) }); });
+      const full = Number(a.paid_amount ?? a.amount ?? 0) >= Number(a.amount ?? 0);   // balance paid: no watermark at all
+      pages.forEach(p => {
+        out.addPage(p);
+        if (!full) {
+          const { width, height } = p.getSize();
+          p.drawText("PART PAYMENT - BALANCE UNPAID", { x: width * 0.12, y: height * 0.32, size: Math.max(24, width / 14), font, color: rgb(0.8, 0.1, 0.1), opacity: 0.18, rotate: degrees(40) });
+          p.drawText(`Part copy for ${email}. Balance not yet paid.`, { x: 24, y: 12, size: 8, font, color: rgb(0.7, 0.1, 0.1) });
+        }
+      });
       const bytes = await out.save();
       headers["Content-Type"] = "application/pdf";
       headers["Content-Disposition"] = b.action === "download"
