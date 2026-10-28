@@ -12,11 +12,15 @@
   var nav = document.querySelector(".nav");
   if (nav) {
     document.querySelectorAll(".hdr-actions [data-signin]").forEach(function (a) { a.style.display = "none"; });
-    var anchor = nav.querySelector('a[href="contact.html"]') || nav.lastElementChild;
-    var a = document.createElement("a"); a.href = "account.html"; a.setAttribute("data-auth-nav", "");
+    var a = nav.querySelector('a[data-signin-link]');
+    if (!a) {
+      var anchor = nav.querySelector('a[href="contact.html"]') || nav.lastElementChild;
+      a = document.createElement("a"); a.href = "account.html"; a.setAttribute("data-auth-nav", "");
+      anchor.insertAdjacentElement("afterend", a);
+    }
+    a.setAttribute("data-auth-nav", "");
     a.textContent = signedIn ? "My account" : "Sign in / Sign up"; a.style.fontWeight = "700";
     if (/account\.html$/.test(location.pathname)) a.setAttribute("aria-current", "page");
-    anchor.insertAdjacentElement("afterend", a);
     if (signedIn) {
       var o = document.createElement("a"); o.href = "#"; o.textContent = "Log out"; o.setAttribute("data-logout", "");
       o.addEventListener("click", function (e) {

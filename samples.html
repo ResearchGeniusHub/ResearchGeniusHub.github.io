@@ -386,7 +386,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 <body>
 <header class="site-header"><div class="wrap">
   <a class="brand" href="index.html"><img class="brand-mark" src="logo-mark.png" width="68" height="42" alt="Research Genius Hub logo"><b>Research <span class="hl">Genius</span> Hub</b></a>
-  <nav class="nav" aria-label="Main"><a href="services.html" data-nav="services">Services</a><a href="coaching.html" data-nav="coaching">Coaching</a><a href="pricing.html" data-nav="pricing">Pricing</a><a href="guides.html" data-nav="guides">Guides</a><a href="samples.html" data-nav="samples">Samples</a><a href="about.html" data-nav="about">About</a><a href="faq.html" data-nav="faq">FAQ</a><a href="contact.html" data-nav="contact">Contact</a></nav>
+  <nav class="nav" aria-label="Main"><a href="index.html" data-nav="index">Home</a><a href="research-support.html" data-nav="research-support">Research Support</a><a href="data-services.html" data-nav="data-services">Data Services</a><a href="editing.html" data-nav="editing">Editing</a><a href="coaching.html" data-nav="coaching">Coaching</a><a href="help.html" data-nav="help">Help</a><a href="samples.html" data-nav="samples">Samples</a><a href="account.html" data-signin-link>Sign in</a></nav>
   <div class="hdr-actions"><a data-signin href="account.html" style="font-weight:600;color:var(--ink)">Sign in</a><a class="btn sm" href="account.html#new">Start an order</a></div>
   <button class="menu-toggle" aria-expanded="false">Menu</button>
 </div></header>
@@ -403,7 +403,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
   </ol>
 </div></section>
 <section class="s tint"><div class="wrap">
-  <div id="sample-app"></div>
+  <div class="chips-row" style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px"><button type="button" class="btn sm alt" data-q="essay">Essays</button><button type="button" class="btn sm alt" data-q="report">Reports</button><button type="button" class="btn sm alt" data-q="business plan">Business plans</button><button type="button" class="btn sm alt" data-q="presentation">Presentations</button><button type="button" class="btn sm alt" data-q="proposal">Proposals</button><button type="button" class="btn sm alt" data-q="concept paper">Concept papers</button><button type="button" class="btn sm alt" data-q="dissertation">Dissertations</button></div><script>document.addEventListener("click",function(e){var b=e.target.closest("[data-q]");if(!b)return;var i=document.querySelector("#sample-app .sa-q");if(!i)return;i.value=b.dataset.q;i.dispatchEvent(new Event("input"));});</script><div id="sample-app"></div>
   <div class="samples" data-samples></div>
   <p class="muted" style="margin-top:26px">Samples are for reference only and show how we structure, argue and reference. Want to see something in your subject? Email <a data-email></a> or <a href="contact.html">contact us</a>.</p>
 </div></section>

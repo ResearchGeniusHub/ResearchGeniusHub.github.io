@@ -388,7 +388,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 <body>
 <header class="site-header"><div class="wrap">
   <a class="brand" href="index.html"><img class="brand-mark" src="logo-mark.png" width="68" height="42" alt="Research Genius Hub logo"><b>Research <span class="hl">Genius</span> Hub</b></a>
-  <nav class="nav" aria-label="Main"><a href="services.html" data-nav="services">Services</a><a href="coaching.html" data-nav="coaching">Coaching</a><a href="pricing.html" data-nav="pricing">Pricing</a><a href="guides.html" data-nav="guides">Guides</a><a href="samples.html" data-nav="samples">Samples</a><a href="about.html" data-nav="about">About</a><a href="faq.html" data-nav="faq">FAQ</a><a href="contact.html" data-nav="contact">Contact</a></nav>
+  <nav class="nav" aria-label="Main"><a href="index.html" data-nav="index">Home</a><a href="research-support.html" data-nav="research-support">Research Support</a><a href="data-services.html" data-nav="data-services">Data Services</a><a href="editing.html" data-nav="editing">Editing</a><a href="coaching.html" data-nav="coaching">Coaching</a><a href="help.html" data-nav="help">Help</a><a href="samples.html" data-nav="samples">Samples</a><a href="account.html" data-signin-link>Sign in</a></nav>
   <div class="hdr-actions"><a data-signin href="account.html" style="font-weight:600;color:var(--ink)">Sign in</a><a class="btn sm" href="account.html#new">Start an order</a></div>
   <button class="menu-toggle" aria-expanded="false">Menu</button>
 </div></header>
@@ -446,6 +446,13 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
   <p style="margin-top:26px"><a class="btn" href="account.html#new">Order now</a></p>
 </div></section>
 
+<section class="s" id="services-brief"><div class="wrap"><h2>Our services</h2><p class="lede">Choose a service to see what is included.</p><ul class="chips"><li><a href="research-support.html">Research support</a></li><li><a href="research-support.html">Essay guidance and model answers</a></li><li><a href="research-support.html">Reports and business plans</a></li><li><a href="research-support.html">Assignment guides</a></li><li><a href="research-support.html">PowerPoint presentations</a></li><li><a href="editing.html">Editing and proofreading</a></li><li><a href="editing.html">AI content removal</a></li><li><a href="data-services.html">Data analysis (SPSS, Excel, Jamovi, NVivo)</a></li><li><a href="coaching.html">Dissertation or proposal support</a></li><li><a href="coaching.html">Online coaching</a></li><li><a href="coaching.html">Journal publication guidance</a></li><li><a href="samples.html">Full sample access</a></li></ul></div></section>
+<section class="s tint" id="pricing-brief"><div class="wrap"><h2>Price list</h2><p class="lede">Prices per page in GBP. The full price list and instant quote are on <a href="pricing.html">the pricing page</a>.</p><div style="overflow-x:auto"><table><thead><tr><th>Deadline</th><th>Undergraduate and Masters</th><th>PhD</th></tr></thead><tbody><tr><td>Under 24 hours</td><td>£15</td><td>£20</td></tr><tr><td>1 to 2 days</td><td>£13</td><td>£17</td></tr><tr><td>2 to 4 days</td><td>£12</td><td>£15</td></tr><tr><td>5 days or more</td><td>£10</td><td>£13</td></tr></tbody></table></div><ul class="plain" style="margin-top:14px"><li>AI content removal: £7 per page</li><li>Samples: from £2 per page</li><li>Online coaching: £15 first hour, then £13 for each extra hour</li></ul></div></section>
+<section class="s tint" id="reviews"><div class="wrap">
+      <div class="sec-head"><h2>What students say</h2></div>
+      <div class="reviews">${T.map(t => `<figure><blockquote>${esc(t.text)}</blockquote><figcaption>${esc(t.name)}${t.country ? ", " + esc(t.country) : ""}${t.service ? " · " + esc(t.service) : ""}</figcaption></figure>`).join("")}</div>
+      <p style="margin-top:22px"><a class="btn alt" href="review.html">Share your experience</a></p>
+    </div></section>
 <section class="s" id="subjects"><div class="wrap">
   <div class="sec-head"><h2>Subjects we cover</h2></div>
   <ul class="chips">
@@ -1066,11 +1073,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
   const slot = document.querySelector("[data-reviews-slot]");
   const T = (window.RGH_TESTIMONIALS && window.RGH_TESTIMONIALS.length ? window.RGH_TESTIMONIALS : C.testimonials) || [];
   if (slot && T.length) {
-    slot.outerHTML = `<section class="s tint" id="reviews"><div class="wrap">
-      <div class="sec-head"><h2>What students say</h2></div>
-      <div class="reviews">${T.map(t => `<figure><blockquote>${esc(t.text)}</blockquote><figcaption>${esc(t.name)}${t.country ? ", " + esc(t.country) : ""}${t.service ? " · " + esc(t.service) : ""}</figcaption></figure>`).join("")}</div>
-      <p style="margin-top:22px"><a class="btn alt" href="review.html">Share your experience</a></p>
-    </div></section>`;
+    slot.outerHTML = ``;
   } else if (slot) slot.remove();
 
   // Contact form: email app, Gmail in the browser, or copy
