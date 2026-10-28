@@ -448,11 +448,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 
 <section class="s" id="services-brief"><div class="wrap"><h2>Our services</h2><p class="lede">Choose a service to see what is included.</p><ul class="chips"><li><a href="research-support.html">Research support</a></li><li><a href="research-support.html">Essay guidance and model answers</a></li><li><a href="research-support.html">Reports and business plans</a></li><li><a href="research-support.html">Assignment guides</a></li><li><a href="research-support.html">PowerPoint presentations</a></li><li><a href="editing.html">Editing and proofreading</a></li><li><a href="editing.html">AI content removal</a></li><li><a href="data-services.html">Data analysis (SPSS, Excel, Jamovi, NVivo)</a></li><li><a href="coaching.html">Dissertation or proposal support</a></li><li><a href="coaching.html">Online coaching</a></li><li><a href="coaching.html">Journal publication guidance</a></li><li><a href="samples.html">Full sample access</a></li></ul></div></section>
 <section class="s tint" id="pricing-brief"><div class="wrap"><h2>Price list</h2><p class="lede">Prices per page in GBP. The full price list and instant quote are on <a href="pricing.html">the pricing page</a>.</p><div style="overflow-x:auto"><table><thead><tr><th>Deadline</th><th>Undergraduate and Masters</th><th>PhD</th></tr></thead><tbody><tr><td>Under 24 hours</td><td>£15</td><td>£20</td></tr><tr><td>1 to 2 days</td><td>£13</td><td>£17</td></tr><tr><td>2 to 4 days</td><td>£12</td><td>£15</td></tr><tr><td>5 days or more</td><td>£10</td><td>£13</td></tr></tbody></table></div><ul class="plain" style="margin-top:14px"><li>AI content removal: £7 per page</li><li>Samples: from £2 per page</li><li>Online coaching: £15 first hour, then £13 for each extra hour</li></ul></div></section>
-<section class="s tint" id="reviews"><div class="wrap">
-      <div class="sec-head"><h2>What students say</h2></div>
-      <div class="reviews">${T.map(t => `<figure><blockquote>${esc(t.text)}</blockquote><figcaption>${esc(t.name)}${t.country ? ", " + esc(t.country) : ""}${t.service ? " · " + esc(t.service) : ""}</figcaption></figure>`).join("")}</div>
-      <p style="margin-top:22px"><a class="btn alt" href="review.html">Share your experience</a></p>
-    </div></section>
+<div data-reviews-slot></div>
 <section class="s" id="subjects"><div class="wrap">
   <div class="sec-head"><h2>Subjects we cover</h2></div>
   <ul class="chips">
@@ -512,7 +508,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
   <p style="margin-top:18px"><a class="btn alt" href="faq.html">More answers</a></p>
 </div></section>
 
-<div data-reviews-slot></div>
+
 
 <section class="motto"><div class="wrap"><div>
   <p>Ready to turn your worry into results?</p>
@@ -1073,7 +1069,11 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
   const slot = document.querySelector("[data-reviews-slot]");
   const T = (window.RGH_TESTIMONIALS && window.RGH_TESTIMONIALS.length ? window.RGH_TESTIMONIALS : C.testimonials) || [];
   if (slot && T.length) {
-    slot.outerHTML = ``;
+    slot.outerHTML = `<section class="s tint" id="reviews"><div class="wrap">
+      <div class="sec-head"><h2>What students say</h2></div>
+      <div class="reviews">${T.map(t => `<figure><blockquote>${esc(t.text)}</blockquote><figcaption>${esc(t.name)}${t.country ? ", " + esc(t.country) : ""}${t.service ? " · " + esc(t.service) : ""}</figcaption></figure>`).join("")}</div>
+      <p style="margin-top:22px"><a class="btn alt" href="review.html">Share your experience</a></p>
+    </div></section>`;
   } else if (slot) slot.remove();
 
   // Contact form: email app, Gmail in the browser, or copy

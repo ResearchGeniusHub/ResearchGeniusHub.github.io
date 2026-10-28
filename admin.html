@@ -422,7 +422,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
   const { data: role } = await sb.rpc("my_role");
   if (!/^(admin|staff|staff_pending)$/.test(role)) { location.href = "account.html"; return; }
   if (role === "staff_pending") { await pendingScreen(); return; }
-  const isAdmin = role === "admin"; $("#who").textContent = "Signed in as " + (session.user.email) + " (" + role + ")";
+  const isAdmin = role === "admin"; $("#who").textContent = "Signed in as " + (isAdmin ? "Admin" : "Staff");
   async function pendingScreen() {
     const { data: p } = await sb.rpc("my_staff_profile"), pr = Array.isArray(p) ? p[0] : p || {};
     const msg = !pr.contact_email ? "Welcome. For accountability, enter your email address and phone number to activate your account."
@@ -470,13 +470,14 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     $("#tabs-wrap").hidden = false; if (!isAdmin) document.querySelectorAll("[data-admin]").forEach(x => x.remove());
   }
   const needsAttn = o => {
+    if (o.status === "complete") return false;
     const mine = evs.filter(e => e.order_id === o.id), last = mine[mine.length - 1];
     return o.status === "awaiting_quote" || o.status === "payment_reported" || o.status === "revision_requested" || pays.some(p => p.order_id === o.id && !p.confirmed) || (last && last.author_role === "student");
   };
   function render() {
     const f = $("#flt").value, q = $("#q").value.trim().toLowerCase();
     const base = orders.filter(o => (f === "all" || (f === "attn" ? needsAttn(o) : o.status === f)) &&
-      (!q || [o.id, o.data && o.data.customer, o.data && o.data.customerEmail, o.data && o.data.title].join(" ").toLowerCase().includes(q)));
+      (!q || [o.order_no, o.id, o.data && o.data.customer, o.data && o.data.customerEmail, o.data && o.data.title].join(" ").toLowerCase().includes(q)));
     const counts = {}; base.forEach(o => { const k = (o.data && o.data.service) || "Other"; counts[k] = (counts[k] || 0) + 1; });
     const names = Object.keys(counts).sort();
     if (svc !== "all" && !counts[svc]) svc = "all";
@@ -493,7 +494,8 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
   const rowStatus = (o, evs, paid, total, pendingPay) => {
     const st = o.status, DAYS = (C.completeAfterDays || 7);
     let phase;
-    if (st === "awaiting_quote") phase = "Awaiting quote";
+    if (st === "complete") phase = "Complete";
+    else if (st === "awaiting_quote") phase = "Awaiting quote";
     else if (st === "awaiting_payment" || st === "payment_reported") phase = "Awaiting payment";
     else if (st === "delivered") {
       const mine = (evs || []).filter(e => e.order_id === o.id), last = mine.length ? new Date(mine[mine.length - 1].created_at) : new Date(o.created || o.created_at);
@@ -510,10 +512,10 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     const d = o.data || {}, op = pays.filter(p => p.order_id === o.id), my = evs.filter(e => e.order_id === o.id), owing = Math.max(0, o.total - o.paid_amount);
     const pendingPay = op.filter(p => !p.confirmed), defAmt = pendingPay.length && pendingPay[0].portion === "part" ? pendingPay[0].amount : Math.round(o.total * (C.partPayPercent || 50)) / 100;
     const rs = rowStatus(Object.assign({}, o, { created: o.created_at }), evs, Number(o.paid_amount || 0), Number(o.total || 0), pendingPay.length > 0), dueTxt = d.due ? String(d.due).replace("T", " ") : (d.tier || "");
-    const head = rowHead([esc(d.customerEmail || ""), esc(d.service || ""), esc(o.id), new Date(o.created_at).toLocaleDateString(), esc(dueTxt || "-"), esc(rs.pay), esc(rs.phase), ""], rowHeaderLabels);
+    const head = rowHead([esc(d.customerEmail || ""), esc(d.service || ""), esc(o.order_no || o.id), new Date(o.created_at).toLocaleDateString(), esc(dueTxt || "-"), esc(rs.pay), esc(rs.phase), ""], rowHeaderLabels);
     return `<article class="order orow" data-id="${esc(o.id)}" data-user="${esc(o.user_id)}">${head}<div class="orow-body">
       <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
-        <div><h4>${esc(d.title || d.service)}</h4><div class="muted small">${esc(o.id)} · ${esc(d.service)} · ${esc(d.level)} · ${d.coaching ? d.pages + " h" : d.pages + " pages"}${d.due ? " · due " + esc(String(d.due).replace("T", " ")) : ""}</div>
+        <div><h4>${esc(d.title || d.service)}</h4><div class="muted small">${esc(o.order_no || o.id)} · ${esc(d.service)} · ${esc(d.level)} · ${d.coaching ? d.pages + " h" : d.pages + " pages"}${d.due ? " · due " + esc(String(d.due).replace("T", " ")) : ""}</div>
           <div class="small"><strong>${esc(d.customer)}</strong> · <a href="mailto:${esc(d.customerEmail)}">${esc(d.customerEmail)}</a>${d.phone ? " · " + esc(d.phone) : ""}</div></div>
         <div style="text-align:right"><strong style="font-family:var(--serif);font-size:1.3rem">${o.status === "awaiting_quote" ? "Quote needed" : money(o.total)}</strong><br>
           <span class="badge ${o.status === "delivered" ? "paid" : "due"}">${esc(label[o.status] || o.status)}</span>

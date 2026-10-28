@@ -1185,7 +1185,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     const box = $("#orders");
     const paying = o.status !== "awaiting_quote" && o.total > 0 && methods().length;
     box.innerHTML = `<div class="panel">
-      <h3 style="margin-top:0">Order ${esc(o.id)} is ready</h3>
+      <h3 style="margin-top:0">Order ${esc(o.order_no || o.id)} is ready</h3>
       <p><strong>It has not been sent yet.</strong> Tap <b>Send order</b> below, or send it by email and attach your files there. We reply by email.</p>
       <p style="font-family:var(--serif);font-size:1.4rem;margin:8px 0">${o.status === "awaiting_quote" ? "Quote pending" : esc(Q.money(o.total))}</p>
       ${C.formSubmit !== false ? `<p><button type="button" class="btn block" id="send-form">Send order${fileIn.files.length ? " with " + fileIn.files.length + " file" + (fileIn.files.length > 1 ? "s" : "") : ""}</button></p><p class="small muted">Or send it by email instead:</p>` : ""}
@@ -1227,7 +1227,8 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
   const rowStatus = (o, evs, paid, total, pendingPay) => {
     const st = o.status, DAYS = (C.completeAfterDays || 7);
     let phase;
-    if (st === "awaiting_quote") phase = "Awaiting quote";
+    if (st === "complete") phase = "Complete";
+    else if (st === "awaiting_quote") phase = "Awaiting quote";
     else if (st === "awaiting_payment" || st === "payment_reported") phase = "Awaiting payment";
     else if (st === "delivered") {
       const mine = (evs || []).filter(e => e.order_id === o.id), last = mine.length ? new Date(mine[mine.length - 1].created_at) : new Date(o.created || o.created_at);
@@ -1319,7 +1320,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     wireRows(box);
     box.querySelectorAll("[data-markdone]").forEach(b => b.addEventListener("click", async () => {
       if (!confirm("Mark this order as complete? You can still ask for a revision later.")) return; b.disabled = true;
-      try { await api.addEvent(me, b.dataset.markdone, "extra", "Marked complete", "The student marked this order complete.", []); await renderOrders(); } catch (x) { alert("Could not update: " + x.message); b.disabled = false; }
+      try { await api.addEvent(me, b.dataset.markdone, "extra", "Marked complete", "The student marked this order complete.", []); await sb.from("orders").update({ status: "complete" }).eq("id", b.dataset.markdone); await renderOrders(); } catch (x) { alert("Could not update: " + x.message); b.disabled = false; }
     }));
     box.querySelectorAll("[data-reactivate]").forEach(b => b.addEventListener("click", () => { const art = b.closest("article"), det = art.querySelector("form[data-add]").closest("details"); det.open = true; const f = art.querySelector("form[data-add]"); f.kind.value = "feedback"; if (!f.summary.value) f.summary.value = "Reactivating this order"; f.scrollIntoView({ behavior: "smooth", block: "center" }); f.message.focus(); }));
     box.querySelectorAll("[data-dl]").forEach(async el => {

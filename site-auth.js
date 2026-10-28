@@ -21,16 +21,6 @@
     a.setAttribute("data-auth-nav", "");
     a.textContent = signedIn ? "My account" : "Sign in / Sign up"; a.style.fontWeight = "700";
     if (/account\.html$/.test(location.pathname)) a.setAttribute("aria-current", "page");
-    if (signedIn) {
-      var o = document.createElement("a"); o.href = "#"; o.textContent = "Log out"; o.setAttribute("data-logout", "");
-      o.addEventListener("click", function (e) {
-        e.preventDefault(); var t = token();
-        try { if (t && t.access_token) fetch(url + "/auth/v1/logout", { method: "POST", keepalive: true, headers: { apikey: C.supabase.anonKey, Authorization: "Bearer " + t.access_token } }); } catch (x) {}
-        try { localStorage.removeItem(key); sessionStorage.removeItem("rgh_sb_tok"); sessionStorage.removeItem("rgh_role"); } catch (x) {}
-        location.href = "index.html";
-      });
-      a.insertAdjacentElement("afterend", o);
-    }
   }
 
   // Warm up the account page: connection to Supabase and the account page itself, so Order / Sign in opens quickly.
