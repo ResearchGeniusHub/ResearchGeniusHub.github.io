@@ -129,7 +129,7 @@
       const email = q("[data-e2]").value.trim(), code = q("[data-c]").value.trim(), m = q("[data-msg]");
       if (!email || !code) { m.innerHTML = '<p class="err">Enter your email and access code.</p>'; return null; }
       m.textContent = "Checking...";
-      const r = await fetch(SB.url + "/functions/v1/rgh-sample", { method: "POST", headers: H, body: JSON.stringify({ action, sample_id: s.id, email, code, session: sess }) });
+      let r; try { r = await fetch(SB.url + "/functions/v1/rgh-sample", { method: "POST", headers: H, body: JSON.stringify({ action, sample_id: s.id, email, code, session: sess }) }); } catch (e) { m.innerHTML = '<p class="err">The reading service is not switched on yet. Please email ' + esc(C.email) + ' and we will send your pages.</p>'; return null; }
       if (!r.ok) { let t = "Could not open. Try again."; try { t = (await r.json()).error || t; } catch (e) {} m.innerHTML = '<p class="' + (r.status === 202 ? "" : "err") + '">' + esc(t) + "</p>"; return null; }
       m.textContent = ""; return r;
     };

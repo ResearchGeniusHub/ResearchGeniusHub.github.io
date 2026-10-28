@@ -1,4 +1,5 @@
-// rgh-sample. Deploy WITH --no-verify-jwt (students are not signed in; the access code is the check).
+// rgh-sample (OPTIONAL: only needed so students can READ/DOWNLOAD the PDF). Turn OFF 'Verify JWT'. Needs NO email secrets.
+// Old note: Deploy WITH --no-verify-jwt (students are not signed in; the access code is the check).
 // Staff/admin actions (approve, resend) check the caller's login inside this function.
 // Secrets (same as rgh-notify): RESEND_API_KEY, FROM_EMAIL, ADMIN_EMAIL, SITE_URL
 import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
@@ -91,7 +92,7 @@ Deno.serve(async req => {
     if (countsAsOpen && a.opens_used >= a.open_limit) return json({ error: `You have used all ${a.open_limit} online sessions. Download is still available once.` }, 410);
     if (b.action === "download" && a.download_used >= a.download_limit) return json({ error: "This code has already been used to download." }, 410);
     const opensLeft = Math.max(0, a.open_limit - a.opens_used - (countsAsOpen ? 1 : 0));
-    const paidPages = a.pages || 1;
+    const paidPages = a.unlocked_pages || a.pages || 1;
     const freePages = s.free_pages || 1;
     const headers: Record<string, string> = { ...cors, "Cache-Control": "no-store", "x-opens-left": String(opensLeft) };
 
