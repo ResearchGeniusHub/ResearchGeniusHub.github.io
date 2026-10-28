@@ -863,7 +863,7 @@ document.addEventListener("DOMContentLoaded", function () {
           <div data-out role="status"></div>
         </div>
         <details class="intro" ${mine.code ? "open" : ""}><summary>Already paid? Open your pages</summary>
-          <p class="small muted">After we confirm your payment, enter your email above and your access code. Access ends once you download, or 10 minutes after you close the page.</p><label class="small" for="c-${s.id}">Access code</label><input id="c-${s.id}" data-c autocapitalize="characters" value="${esc(mine.code || "")}" style="max-width:160px">
+          <p class="small muted">After we confirm your payment, enter your email above and your access code. Access ends once you download, or when your online reading limit is used up.</p><label class="small" for="c-${s.id}">Access code</label><input id="c-${s.id}" data-c autocapitalize="characters" value="${esc(mine.code || "")}" style="max-width:160px">
           <button class="btn sm alt" data-open>Open my pages</button>
           <div data-pages></div>
         </details>
@@ -897,7 +897,7 @@ document.addEventListener("DOMContentLoaded", function () {
           if (!r.ok) throw new Error(await sbErr(r)); const rows = await r.json();
           if (!rows.length) { box.innerHTML = "<p>Access is not open yet. We open it as soon as your payment is confirmed. Try again in a little while.</p>"; return; }
           const row = rows[0], fmt = (getMine()[id] || {}).fmt || "doc";
-          box.innerHTML = `<p class="ok"><b>Access open</b> (${row.pages} paid page${row.pages > 1 ? "s" : ""}).</p><p class="small muted">Access ends once you download, or 10 minutes after you close this page. Keep this page open while you read.</p><label class="small">Download as</label><select data-df>${FMT}</select> <button class="btn sm" data-dl>Download</button><div class="unlocked" style="margin-top:12px"></div>`;
+          box.innerHTML = `<p class="ok"><b>Access open</b> (${row.pages} paid page${row.pages > 1 ? "s" : ""}).</p><p class="small muted">Access ends once you download, or when your online reading limit is used up. Keep this page open while you read.</p><label class="small">Download as</label><select data-df>${FMT}</select> <button class="btn sm" data-dl>Download</button><div class="unlocked" style="margin-top:12px"></div>`;
           box.querySelector("[data-df]").value = fmt;
           box.querySelector(".unlocked").innerHTML = row.body.split(/\n+/).filter(Boolean).map(p => "<p>" + esc(p) + "</p>").join("");
           const ended = msg => { clearInterval(card._hb); card._hb = null; box.innerHTML = '<p class="muted">' + msg + "</p>"; };
