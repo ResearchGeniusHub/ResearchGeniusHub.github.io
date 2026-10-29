@@ -317,9 +317,9 @@ body{background:var(--paper)}
 .chat-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .chat{transition:bottom .2s}.chat.lifted{bottom:calc(max(16px,env(safe-area-inset-bottom,0px)) + 80px)}
 .chat-actions .wa-btn{background:#1FA855;border-color:#1FA855;color:#fff}.chat-actions .wa-btn:hover{background:#178a45;border-color:#178a45;color:#fff}
-.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.brand-mark{height:60px;width:auto;background:#fff;border-radius:10px;padding:2px 4px;object-fit:contain;flex:none}
-.site-footer .brand-mark{height:60px}
-@media (max-width:560px){.brand-mark{height:48px}.brand{font-size:1.1rem}}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.brand-top{display:inline-flex;flex-direction:column;align-items:center;gap:2px;cursor:default}.rsg-tag{font-family:var(--serif);font-weight:700;font-size:1rem;letter-spacing:.12em;line-height:1;color:inherit}.brand-mark{height:42px;width:auto;background:#fff;border-radius:10px;padding:2px 4px;object-fit:contain;flex:none}
+.site-footer .brand-mark{height:48px}
+@media (max-width:560px){.brand-mark{height:38px}.brand{font-size:1.1rem}}
 .chat-chips{display:flex;gap:6px;flex-wrap:wrap;padding:0 14px 10px}
 .chat-chips button{border:1.5px solid var(--ink);background:#fff;border-radius:999px;padding:4px 11px;font:500 .85rem var(--sans);cursor:pointer;color:var(--ink)}
 .chat-chips button:hover{background:var(--hi)}
@@ -397,7 +397,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 </head>
 <body>
 <header class="site-header"><div class="wrap">
-  <a class="brand" href="index.html"><img class="brand-mark" src="logo-rgh.svg" width="64" height="64" alt="Research Genius Hub"><span class="sr-only">Research Genius Hub</span></a>
+  <span class="brand brand-top" aria-label="Research Genius Hub"><img class="brand-mark" src="logo-mark.png" width="68" height="42" alt="Research Genius Hub logo"><span class="rsg-tag">RSG</span><span class="sr-only">Research Genius Hub</span></span>
   <nav class="nav" aria-label="Main"><a href="index.html" data-nav="index">Home</a><a href="research-support.html" data-nav="research-support">Research Support</a><a href="data-services.html" data-nav="data-services">Data Services</a><a href="editing.html" data-nav="editing">Editing</a><a href="coaching.html" data-nav="coaching">Coaching</a><a href="help.html" data-nav="help">Help</a><a href="samples.html" data-nav="samples">Samples</a><a href="account.html" data-signin-link>Sign in</a></nav>
   <div class="hdr-actions"><a data-signin href="account.html" style="font-weight:600;color:var(--ink)">Sign in</a><a class="btn sm" href="account.html#new">Start an order</a></div>
   <button class="menu-toggle" aria-expanded="false">Menu</button>
@@ -485,6 +485,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
           <p class="hint" id="ai-hint" hidden style="margin:-6px 0 14px">You pay only for the pages or words that need AI content removed, not the whole document. Say which sections to fix in the instructions, or send the full document and we will check it with you.</p>
           <div class="f" id="tier-wrap"><label for="o-tier">Deadline</label><select id="o-tier" name="tier"></select></div>
           <div class="f"><label for="o-due" id="due-label">Exact due date and time (optional)</label><input type="datetime-local" id="o-due" name="due"><div class="hint">Use your local time and tell us your time zone in the instructions.</div></div>
+<div class="f" id="plat-wrap" hidden><label>Coaching platform: choose a first choice and a back-up. If the first does not work, we use the back-up.</label><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><select id="o-plat1" name="plat1" aria-label="First choice"><option value="">First choice</option><option value="We Chat">We Chat</option><option value="Microsoft Teams">Microsoft Teams</option><option value="Zoom">Zoom</option><option value="WhatsApp">WhatsApp</option><option value="Skype">Skype</option></select><select id="o-plat2" name="plat2" aria-label="Back-up"><option value="">Back-up</option><option value="We Chat">We Chat</option><option value="Microsoft Teams">Microsoft Teams</option><option value="Zoom">Zoom</option><option value="WhatsApp">WhatsApp</option><option value="Skype">Skype</option></select></div><div class="hint">Choose two different platforms. You must choose both.</div></div>
           <div class="f"><label for="o-ins">Instructions</label><textarea id="o-ins" name="instructions" placeholder="Paste your brief, marking criteria, and anything your tutor asked for."></textarea></div>
           <div class="f"><label for="o-files">Attach your requirements</label><input type="file" id="o-files" name="files_in" multiple accept=".pdf,.doc,.docx,.odt,.rtf,.txt,.ppt,.pptx,.odp,.xls,.xlsx,.csv,.png,.jpg,.jpeg,.gif,.webp,.heic,.mp3,.m4a,.wav,.aac,.ogg,.mp4,.mov,.webm,.m4v"><div class="hint" id="file-hint">Up to 10 files. Brief, marking criteria, readings, your draft. Accepted: PDF, Word, PowerPoint, Excel, text, images, audio and video, up to 50 MB each.</div><div class="small" id="file-msg" aria-live="polite"></div></div>
           <div class="f"><label for="o-pm">Price</label><select id="o-pm" name="pricemode"><option value="fixed">Standard price (shown below)</option><option value="neg">I have a negotiated price</option></select>
@@ -515,7 +516,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 
 <footer class="site-footer"><div class="wrap">
   <div class="grid">
-    <div><a class="brand" href="index.html"><img class="brand-mark" src="logo-rgh.svg" width="64" height="64" alt="Research Genius Hub"><span class="sr-only">Research Genius Hub</span></a>
+    <div><a class="brand" href="index.html"><img class="brand-mark" src="logo-mark.png" width="68" height="42" alt="Research Genius Hub logo"><b>Research Genius Hub</b></a>
       <p class="small" style="margin-top:10px">Research support, assignment guides and editing for university students worldwide.</p><p class="small" style="font-family:var(--serif);font-style:italic;font-size:1.05rem">Turning your research worries into academic results</p></div>
     <div><h4>Services</h4><ul><li><a href="services.html">What we do</a></li><li><a href="coaching.html">Online coaching</a></li><li><a href="pricing.html">Pricing</a></li><li><a href="samples.html">Samples</a></li></ul></div>
     <div><h4>Learn</h4><ul><li><a href="guides.html">Assignment guides</a></li><li><a href="faq.html">FAQ</a></li><li><a href="about.html">About us</a></li><li><a href="review.html">Share your experience</a></li><li><a href="terms.html">Terms and academic integrity</a></li></ul></div>
@@ -1015,6 +1016,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     $("#qty-label").textContent = q.coaching ? "Hours (1, 1.5, 2...)" : (q.ai ? "Amount of AI-affected text" : "Amount");
     const aiHint = $("#ai-hint"); if (aiHint) aiHint.hidden = !q.ai;
     $("#due-label").textContent = q.coaching ? "Lesson start time (your local time)" : "Exact due date and time (optional)";
+    $("#plat-wrap").hidden = !q.coaching;
     form.due.required = !!q.coaching; form.qty.step = q.coaching ? "0.5" : "1";
     $("#o-total").textContent = q.quote ? "Quote on request" : Q.money(q.total);
     $("#o-total").style.fontSize = q.quote ? "1.5rem" : "";
@@ -1147,10 +1149,11 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
         err.textContent = `Choose a lesson time at least ${C.coaching.noticeHours} hours from now.`; return;
       }
     }
+    if (q.coaching && (!form.plat1.value || !form.plat2.value || form.plat1.value === form.plat2.value)) { err.textContent = "Coaching: choose a first and a different back-up platform."; return; }
     const order = {
       service: form.service.value, title: form.title.value.trim(), subject: form.subject.value.trim(),
       level: form.level.value, country: form.country.value, style: form.style.value,
-      mode: form.mode.value, qty: Number(form.qty.value), pages: q.pages, coaching: !!q.coaching, tier: (q.ai || q.quote || q.sample || q.coaching) ? null : form.tier.value,
+      mode: form.mode.value, qty: Number(form.qty.value), pages: q.pages, coaching: !!q.coaching, platforms: q.coaching ? [form.plat1.value, form.plat2.value] : null, tier: (q.ai || q.quote || q.sample || q.coaching) ? null : form.tier.value,
       ai: q.ai, rate: q.rate, total: q.total, due: form.due.value, instructions: form.instructions.value.trim(),
       customer: me ? me.name : form.gname.value.trim(), customerEmail: me ? me.email : form.gemail.value.trim(), phone: me ? "" : form.gphone.value.trim(), created: new Date().toISOString(), status: q.quote ? "awaiting_quote" : "awaiting_payment"
     };
@@ -1314,14 +1317,14 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     if (!LIVE) return;
     loadMyCodes();
     const box = $("#orders"); let list = [], pays = [], evs = [];
-    try { list = await api.orders(me); lastOrders = list; pays = await api.payments(); evs = await api.events(list.map(o => o.id)); }
-    catch (x) { box.innerHTML = `<p class="err">Could not load your orders: ${esc(x.message)}</p>`; return; }
+    try { list = await api.orders(me); lastOrders = list; pays = await api.payments(); evs = await api.events(list.map(o => o.id)); } catch (x) { box.innerHTML = `<p class="err">Could not load your orders: ${esc(x.message)}</p>`; return; }
+    let rreqs = []; try { const rr = await sb.from("receipt_requests").select("*"); rreqs = rr.data || []; } catch (x) {}
     if (!list.length) { box.innerHTML = `<p class="muted">No orders yet. Fill in the form to place your first one.</p>`; return; }
     const sig = o => [o.service, (o.title || "").toLowerCase(), o.pages, o.total].join("|"), cnt = {};
     list.forEach(o => { cnt[sig(o)] = (cnt[sig(o)] || 0) + 1; });
     const plural = (n, w) => n + " " + w + (n === 1 ? "" : "s");
     box.innerHTML = rowsHeader + list.map(o => {
-      const op = pays.filter(p => p.order_id === o.id), pending = op.some(p => !p.confirmed);
+      const op = pays.filter(p => p.order_id === o.id), pending = op.some(p => !p.confirmed && p.review_status !== "not_received");
       const isQuote = o.status === "awaiting_quote", owing = Math.max(0, o.total - o.paid);
       const canDelete = ["awaiting_payment", "awaiting_quote"].includes(o.status) && !o.paid && !op.length;
       const dup = canDelete && cnt[sig(o)] > 1;
@@ -1351,6 +1354,16 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
         <button class="btn sm alt" style="margin-top:12px" data-topay="${esc(o.id)}">${o.id === openId ? "Hide payment options" : (o.paid > 0 ? "Complete payment: pay the balance " + money(owing) : "Pay now (full or part payment)")}</button>` : ""}
         ${canDelete ? `<button class="btn sm alt" style="margin-top:12px" data-del="${esc(o.id)}">Delete this order</button>` : (isQuote || o.status === "awaiting_payment" ? "" : `<p class="small muted" style="margin:10px 0 0">Orders with payment can only be removed by our team.</p>`)}
         ${myEvs.length ? `<details style="margin-top:12px"><summary>Messages and updates (${myEvs.length})</summary>${myEvs.map(e => `<div style="border-left:3px solid var(--ink);padding:2px 10px;margin:8px 0"><div class="small muted">${e.author_role === "staff" ? "Research Genius Hub" : "You"} · ${new Date(e.created_at).toLocaleString()}${e.kind === "confirmation" ? " · Confirmation" : ""}</div>${e.summary && e.author_role === "student" ? `<div><strong>Added: ${esc(e.summary)}</strong></div>` : ""}<div style="white-space:pre-wrap">${esc(e.message || "")}</div>${(e.files || []).length ? `<div class="small muted">Files: ${e.files.map(f => esc(f.name)).join(", ")}</div>` : ""}</div>`).join("")}</details>` : ""}
+        ${isQuote ? "" : `<details style="margin-top:12px"><summary>Receipts and payment evidence</summary><div style="margin-top:10px">
+          ${op.length ? op.map(p => `<p class="small" style="margin:4px 0">Payment of ${money(p.amount)} · reference ${esc(p.reference || "none")} · <b>${p.confirmed ? "Received" : (p.review_status === "not_received" ? "Not received: please upload evidence below" : "Waiting for our check")}</b></p>`).join("") : `<p class="small muted">No payments reported on this order yet.</p>`}
+          <form data-evid="${esc(o.id)}" novalidate style="margin-top:8px"><p class="small muted" style="margin:0 0 6px">If you have paid, or we asked for evidence, upload a screenshot or PDF of the payment confirmation.</p>
+            <div class="f"><label>Payment reference (the code you paid with)</label><input name="ref" value="${esc(((op[op.length - 1] || {}).reference) || "")}"></div>
+            <div class="f"><label>Screenshot or PDF (up to 10 MB)</label><input type="file" name="file" accept=".png,.jpg,.jpeg,.webp,.pdf"></div>
+            <p class="err" role="alert"></p><button class="btn sm" type="submit">Upload payment evidence</button></form>
+          <form data-rcpt="${esc(o.id)}" novalidate style="margin-top:14px"><div class="f"><label>Request a receipt for this order (optional note)</label><input name="note" maxlength="200" placeholder="e.g. Please send it to my university finance office"></div>
+            <p class="err" role="alert"></p><button class="btn sm alt" type="submit">Request receipt</button></form>
+          ${rreqs.filter(r => r.order_id === o.id).map(r => `<p class="small muted" style="margin:6px 0 0">Receipt requested ${new Date(r.created_at).toLocaleDateString()}: ${r.status === "done" ? "sent by us" : "being prepared"}.</p>`).join("")}
+        </div></details>`}
         ${isQuote ? "" : `<details style="margin-top:12px"><summary>Documents for this order</summary><div data-docs="${esc(o.id)}" style="margin-top:10px"></div></details>`}
         ${isQuote ? "" : `<details style="margin-top:12px"><summary>${delivered ? "Not happy? Send feedback or request a revision" : "Add instructions, feedback or documents"}</summary>
           <form data-add="${esc(o.id)}" novalidate style="margin-top:10px">
@@ -1371,6 +1384,36 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       try { const r = await live.listFiles(oid); RGHDocs.render(el, sb, me.id, ord, evs, { items: r.items, full: r.full, view: (item, mode) => live.fileUrl(oid, item, mode) }); }
       catch (x) { el.innerHTML = '<p class="err">' + esc(x.message) + '</p>'; }
     }); });
+    box.querySelectorAll("form[data-evid]").forEach(f => f.addEventListener("submit", async e => {
+      e.preventDefault(); const err = f.querySelector(".err"), btn = f.querySelector("button"); err.textContent = "";
+      const file = f.file.files[0], ref = f.ref.value.trim(), oid = f.dataset.evid;
+      if (!file) { err.textContent = "Choose a screenshot or PDF of the payment."; return; }
+      if (!/\.(png|jpe?g|webp|pdf)$/i.test(file.name) || file.size > 10 * 1048576) { err.textContent = "Use a PNG, JPG, WEBP or PDF up to 10 MB."; return; }
+      btn.disabled = true; btn.textContent = "Uploading...";
+      try {
+        await live.init();
+        const path = me.id + "/" + oid + "/" + Date.now() + "-" + RGHDocs.safe(file.name);
+        const up = await sb.storage.from("evidence").upload(path, file, { cacheControl: "3600" }); if (up.error) throw up.error;
+        const mine = pays.filter(p => p.order_id === oid);
+        const pay = mine.find(p => String(p.reference || "").toUpperCase() === ref.toUpperCase()) || mine[mine.length - 1] || {};
+        const ins = await sb.from("payment_evidence").insert({ payment_id: pay.id || null, order_id: oid, email: me.email, reference: ref, file_path: path, file_name: file.name });
+        if (ins.error) throw ins.error;
+        notifyFallback("Payment evidence uploaded: " + me.email, me.email + " uploaded payment evidence for order " + oid + " (reference " + (ref || "none") + "). Check it under Finances.");
+        alert("Thank you. Your evidence has been sent. We will check it and confirm your payment.");
+        await renderOrders();
+      } catch (x) { err.textContent = "Not uploaded: " + (x.message || x); btn.disabled = false; btn.textContent = "Upload payment evidence"; }
+    }));
+    box.querySelectorAll("form[data-rcpt]").forEach(f => f.addEventListener("submit", async e => {
+      e.preventDefault(); const err = f.querySelector(".err"), btn = f.querySelector("button"); err.textContent = ""; btn.disabled = true;
+      const note = f.note.value.trim();
+      try {
+        await live.init();
+        const r = await sb.from("receipt_requests").insert({ order_id: f.dataset.rcpt, email: me.email, note });
+        if (r.error) throw r.error;
+        notifyFallback("Receipt requested: " + me.email, me.email + " asks for a receipt for order " + f.dataset.rcpt + (note ? ". Note: " + note : "") + ". Staff: escalate in the order.");
+        await renderOrders();
+      } catch (x) { err.textContent = "Not sent: " + (x.message || x); btn.disabled = false; }
+    }));
     box.querySelectorAll("[data-markdone]").forEach(b => b.addEventListener("click", async () => {
       if (!confirm("Mark this order as complete? You can still ask for a revision later.")) return; b.disabled = true;
       try { await api.markComplete(b.dataset.markdone); await renderOrders(); } catch (x) { alert("Could not update: " + x.message); b.disabled = false; }

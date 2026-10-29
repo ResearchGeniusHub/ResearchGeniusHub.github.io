@@ -396,7 +396,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 <body>
 <main class="wrap" style="max-width:980px;margin:0 auto;padding:20px 16px">
 <div class="topbar"><strong id="who">Staff</strong><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm alt" id="reload">Refresh</button><button class="btn sm alt" id="out">Sign out</button></span></div>
-<div class="tabs" id="tabs-wrap" hidden role="tablist"><button type="button" aria-selected="true" data-view="orders">Orders</button><button type="button" aria-selected="false" data-view="balances">Balances</button><button type="button" aria-selected="false" data-view="access">Sample access</button><button type="button" aria-selected="false" data-view="samples" data-admin>Samples</button><button type="button" aria-selected="false" data-view="staff" data-admin>Staff</button></div>
+<div class="tabs" id="tabs-wrap" hidden role="tablist"><button type="button" aria-selected="true" data-view="orders">Orders</button><button type="button" aria-selected="false" data-view="balances" data-admin>Finances</button><button type="button" aria-selected="false" data-view="access">Sample access</button><button type="button" aria-selected="false" data-view="samples" data-admin>Samples</button><button type="button" aria-selected="false" data-view="staff" data-admin>Staff</button></div>
 <section id="v-orders"><h1 style="font-size:2rem">Orders by service</h1>
 <div id="chips" style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px"></div>
 <div class="two"><div class="f"><label>Show</label><select id="flt"><option value="attn">Needs attention</option><option value="all">All orders</option><option value="awaiting_quote">Quote requests</option><option value="awaiting_payment">Awaiting payment</option><option value="payment_reported">Payment reported</option><option value="in_progress">In progress</option><option value="revision_requested">Revision requested</option><option value="delivered">Delivered</option></select></div>
@@ -445,7 +445,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
   }
   let svc = "all";
   const fnErr = async e => { try { const j = await e.context.json(); return j.error || e.message; } catch (x) { return /Failed to send|Failed to fetch/i.test(e.message || "") ? "Supabase function not reachable. Deploy it in Supabase > Edge Functions (see UPDATE-STEPS.md), then try again." : e.message; } };
-  let orders = [], pays = [], evs = [], drafts = [], charges = [];
+  let orders = [], pays = [], evs = [], drafts = [], charges = [], rreq = [];
   const label = { awaiting_quote: "Quote requested", awaiting_payment: "Awaiting payment", payment_reported: "Payment reported", in_progress: "In progress", delivered: "Delivered", revision_requested: "Revision requested" };
 
   async function email(order_id, event_id) {
@@ -464,9 +464,9 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     } catch (x) { /* the confirmation itself is already saved */ }
   }
   async function reload() {
-    const [o, p, e, dr, ch] = await Promise.all([sb.from("orders").select("*").order("created_at", { ascending: false }), sb.from("payments").select("*"), sb.from("order_events").select("*").order("created_at"), sb.from("order_drafts").select("*").eq("status", "open").order("created_at", { ascending: false }), sb.from("order_charges").select("*").order("created_at")]);
+    const [o, p, e, dr, ch, rr] = await Promise.all([sb.from("orders").select("*").order("created_at", { ascending: false }), sb.from("payments").select("*"), sb.from("order_events").select("*").order("created_at"), sb.from("order_drafts").select("*").eq("status", "open").order("created_at", { ascending: false }), sb.from("order_charges").select("*").order("created_at"), sb.from("receipt_requests").select("*").order("created_at", { ascending: false })]);
     if (o.error) { $("#top-err").textContent = o.error.message; return; }
-    orders = o.data; pays = p.data || []; evs = e.data || []; drafts = dr.data || []; charges = ch.data || []; render();
+    orders = o.data; pays = p.data || []; evs = e.data || []; drafts = dr.data || []; charges = ch.data || []; rreq = rr.data || []; render();
     $("#tabs-wrap").hidden = false; if (!isAdmin) document.querySelectorAll("[data-admin]").forEach(x => x.remove());
   }
   const needsAttn = o => {
@@ -538,6 +538,10 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
           <span class="badge ${RGHStatus.badge(rs.phase)}">${esc(rs.phase)}</span>
           <div class="small muted">Paid ${money(o.paid_amount)} · Balance ${money(owing)} · Student access: ${esc(o.access)}</div></div>
       </div>
+      ${d.platforms ? `<p class="small" style="margin:8px 0 0"><strong>Coaching platforms:</strong> first choice ${esc(d.platforms[0])}, back-up ${esc(d.platforms[1])}</p>` : ""}
+      ${rreq.filter(r => r.order_id === o.id && r.status !== "done").map(r => `<div class="panel" style="margin-top:8px;padding:10px"><strong>Receipt requested</strong> by ${esc(r.email)} on ${new Date(r.created_at).toLocaleDateString()}${r.note ? ": " + esc(r.note) : ""}.
+        <a class="btn sm" href="https://wa.me/${esc(C.whatsapp)}?text=${encodeURIComponent("Receipt request for order " + (o.order_no || o.id) + " (" + r.email + "). Please prepare and send the receipt.")}" target="_blank" rel="noopener">Escalate on WhatsApp</a>
+        ${isAdmin ? `<button class="btn sm alt" data-rcard="${esc(r.id)}">Mark sent</button>` : `<span class="small muted">Admin prepares the receipt under Finances.</span>`}</div>`).join("")}
       <details style="margin-top:10px"><summary>Brief, files and history</summary>
         <p class="small" style="white-space:pre-wrap">${esc(d.instructions || "(no written instructions)")}</p>
         <div data-files class="small muted">Loading files...</div>
@@ -580,6 +584,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     </div></article>`;
   }
   function wire(a) {
+    a.querySelectorAll("[data-rcard]").forEach(b => b.addEventListener("click", async () => { const r = await sb.from("receipt_requests").update({ status: "done", done_by: "Admin", done_at: new Date().toISOString() }).eq("id", b.dataset.rcard); if (r.error) return alert(r.error.message); reload(); }));
     a.querySelectorAll("[data-refowner]").forEach(async sp => { const r = await sb.rpc("referral_owner", { p_code: sp.dataset.refowner }); sp.textContent = r.data || "no matching ID (check it)"; });
     const id = a.dataset.id, uid = a.dataset.user, o = orders.find(x => x.id === id);
     const busy = (btn, on, t) => { btn.disabled = on; if (t) btn.dataset.t = btn.dataset.t || btn.textContent, btn.textContent = on ? t : btn.dataset.t; };
@@ -820,36 +825,152 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       const r = await sb.from("samples").update(lv).in("id", ids); m.textContent = r.error ? r.error.message : "Updated " + ids.length + " sample(s)."; if (!r.error) setTimeout(loadSamples, 700);
     });
   }
-  async function loadBalances() {
-    const box = $("#v-balances"); box.innerHTML = '<p class="muted">Loading balances...</p>';
-    const [o, p] = await Promise.all([sb.from("orders").select("*").order("created_at", { ascending: false }), sb.from("payments").select("*")]);
-    if (o.error) { box.innerHTML = `<p class="err">${esc(o.error.message)}</p>`; return; }
-    pays = p.data || [];
-    const due = (o.data || []).filter(x => x.status !== "awaiting_quote" && Number(x.paid_amount || 0) > 0 && Number(x.paid_amount) < Number(x.total));
-    box.innerHTML = `<h1 style="font-size:2rem">Balances</h1><p class="small muted">Students who paid part of an order. When the other part arrives, enter the payment code from PayPal or mobile money. If it matches what the student entered, the order is marked fully paid, the student can open and download everything, and they get an email saying the task is complete.</p><div id="blist"></div>`;
-    const L = $("#blist"); if (!due.length) { L.innerHTML = '<p class="muted">No balances waiting.</p>'; return; }
-    due.forEach(x => {
-      const d = x.data || {}, owing = Math.round((Number(x.total) - Number(x.paid_amount)) * 100) / 100, reported = pays.filter(q => q.order_id === x.id && !q.confirmed), a = document.createElement("article"); a.className = "order";
-      a.innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><h4 style="margin:0">${esc(d.title || d.service || x.id)}</h4><div class="small"><strong>${esc(d.customer || "")}</strong> · ${esc(d.customerEmail || "")} · ${esc(x.id)}</div></div>
-        <div style="text-align:right"><strong>Balance ${money(owing)}</strong><div class="small muted">Paid ${money(x.paid_amount)} of ${money(x.total)}</div></div></div>
-        ${reported.length ? reported.map(q => `<p class="small" style="margin:6px 0"><b>Student reported</b> ${money(q.amount)} via ${esc(q.method)}, payment code <b>${esc(q.reference || "none")}</b></p>`).join("") : '<p class="small muted" style="margin:6px 0">The student has not reported the balance payment yet.</p>'}
-        <form class="panel" style="padding:12px;margin-top:8px"><div class="f"><label>Payment code from PayPal / mobile money</label><input name="pcode" autocomplete="off"></div>
-          <div class="f"><label>Message to the student (required, emailed)</label><textarea name="msg" rows="2">Your balance payment is confirmed. Your task is complete. Sign in to your account, open the order and view or download your full work.</textarea></div>
-          <p class="err"></p><button class="btn sm"${reported.length ? "" : " disabled"}>Confirm balance, complete order and email student</button></form>`;
-      const f = a.querySelector("form"); f.addEventListener("submit", async e => {
-        e.preventDefault(); const er = f.querySelector(".err"), btn = f.querySelector("button"); er.textContent = ""; btn.disabled = true;
-        try {
-          const refs = reported.map(q => String(q.reference || "").trim().toUpperCase()).filter(Boolean), pc = f.pcode.value.trim().toUpperCase();
-          if (!pc || !refs.includes(pc)) throw new Error("The payment code does not match the one the student entered. Balance NOT confirmed.");
-          if (f.msg.value.trim().length < 10) throw new Error("Write a short message to the student.");
-          const r = await sb.rpc("staff_confirm", { p_order: x.id, p_kind: "full", p_amount: null, p_message: f.msg.value.trim() }); if (r.error) throw r.error;
-          await email(x.id, r.data); alert("Balance confirmed. The student has been emailed that the task is complete."); loadBalances();
-        } catch (x2) { er.textContent = x2.message || String(x2); btn.disabled = false; }
-      });
-      L.append(a);
-    });
+  /* ---------- Finances (admin only): ledger, receipts, statements, evidence ---------- */
+  let finEmail = "", finUnlockUntil = 0, finData = null;
+  const finKey = e => String(e || "").trim().toLowerCase();
+  const finMail = o => finKey((o.data || {}).customerEmail);
+  const finNo = o => o.order_no || o.id;
+  const finCid = o => String(o.user_id || "").replace(/-/g, "").slice(0, 8).toUpperCase() || "NOT LINKED";
+  const finDate = d => d ? new Date(d).toLocaleDateString() : "";
+  async function finLoad() {
+    const [o, p, rr, ev, fr] = await Promise.all([
+      sb.from("orders").select("*").order("created_at", { ascending: false }),
+      sb.from("payments").select("*").order("created_at"),
+      sb.from("receipt_requests").select("*").order("created_at", { ascending: false }),
+      sb.from("payment_evidence").select("*").order("created_at", { ascending: false }),
+      sb.from("field_requests").select("*").order("created_at", { ascending: false })
+    ]);
+    const bad = [o, p, rr, ev, fr].find(x => x.error); if (bad) throw bad.error;
+    return { orders: (o.data || []).filter(x => x.status !== "awaiting_quote"), pays: p.data || [], rreq: rr.data || [], evid: ev.data || [], freq: fr.data || [] };
   }
-  let accFilter = "requested";
+  async function finUnlock() {
+    if (Date.now() < finUnlockUntil) return true;
+    const pw = prompt("Receipts, statements and payment evidence need your account password. It stays open for 10 minutes.");
+    if (!pw) return false;
+    const u = await sb.auth.getUser();
+    const r = await sb.auth.signInWithPassword({ email: u.data.user.email, password: pw });
+    if (r.error) { alert("That password is not correct."); return false; }
+    finUnlockUntil = Date.now() + 10 * 60 * 1000; return true;
+  }
+  // One student's transactions, newest first. Each payment is a row until the order is paid in full.
+  function finRows(D, email) {
+    const rows = [];
+    D.orders.filter(x => finMail(x) === email).forEach(x => {
+      const total = Number(x.total || 0), ps = D.pays.filter(p => p.order_id === x.id);
+      const base = { orderId: x.id, orderNo: finNo(x), desc: (x.data || {}).title || (x.data || {}).service || "Order", total };
+      const got = ps.filter(p => p.confirmed).reduce((s, p) => s + Number(p.confirmed_amount ?? p.amount ?? 0), 0);
+      const legacy = Math.max(0, Number(x.paid_amount || 0) - got);
+      let run = 0;
+      if (!ps.length && legacy <= 0) rows.push(Object.assign({}, base, { date: x.created_at, paid: 0, balance: total, ref: "-", status: "Not yet paid", kind: "order", confirmed: false }));
+      if (legacy > 0) { run += legacy; rows.push(Object.assign({}, base, { date: x.created_at, paid: legacy, balance: Math.max(0, total - run), ref: "Earlier payment", status: "Received", kind: "legacy", confirmed: true })); }
+      ps.forEach(p => {
+        const amt = p.confirmed ? Number(p.confirmed_amount ?? p.amount ?? 0) : 0;
+        run += amt;
+        rows.push(Object.assign({}, base, { payId: p.id, date: p.confirmed_at || p.created_at, desc: (p.portion === "part" ? "Part payment" : "Payment") + " by " + (p.method || "-"), reported: Number(p.amount || 0), paid: amt, balance: Math.max(0, total - run), ref: p.reference || "-", status: p.confirmed ? "Received" : (p.review_status === "not_received" ? "Not received" : "Awaiting check"), confirmed: !!p.confirmed, kind: "pay" }));
+      });
+    });
+    return rows.sort((a, b) => new Date(b.date) - new Date(a.date));
+  }
+  function finTotals(D, email) {
+    const ords = D.orders.filter(x => finMail(x) === email);
+    return { received: ords.reduce((s, x) => s + Number(x.paid_amount || 0), 0), receivable: ords.reduce((s, x) => s + Math.max(0, Number(x.total || 0) - Number(x.paid_amount || 0)), 0), orders: ords };
+  }
+  function finPrint(kind, D, email, ids) {
+    const ords = D.orders.filter(x => finMail(x) === email && (!ids || !ids.length || ids.includes(x.id)));
+    const rows = finRows(D, email).filter(r => (!ids || !ids.length || ids.includes(r.orderId)) && (kind === "statement" || r.confirmed));
+    const nos = ords.map(finNo).sort();
+    const ref = kind === "receipt"
+      ? "Receipt for Order Number" + (nos.length > 1 ? "s " + nos[0] + "-" + nos[nos.length - 1] : " " + nos[0])
+      : "Statement of account";
+    const rec = rows.reduce((s, r) => s + r.paid, 0), recv = ords.reduce((s, x) => s + Math.max(0, Number(x.total || 0) - Number(x.paid_amount || 0)), 0);
+    const logo = new URL("logo-mark.png", location.href).href, cid = ords.length ? finCid(ords[0]) : "-";
+    const esc2 = s => esc(s);
+    const tr = rows.map(r => `<tr><td>${esc2(finDate(r.date))}</td><td>${esc2(r.orderNo)}</td><td>${esc2(r.desc)}</td><td class="n">${money(r.total)}</td><td class="n">${money(r.paid)}</td><td class="n">${money(r.balance)}</td><td>${esc2(r.ref)}</td><td>${esc2(r.status)}</td></tr>`).join("");
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>${esc2(ref)}</title><style>
+      body{font-family:Arial,sans-serif;color:#0F1B33;margin:28px;font-size:13px} .top{display:flex;gap:14px;align-items:center}
+      .top img{height:64px} table{width:100%;border-collapse:collapse;margin-top:12px} th,td{border-bottom:1px solid #cfd6e4;padding:6px;text-align:left;vertical-align:top}
+      th{background:#f1f4f9;font-size:12px} td.n,th.n{text-align:right;white-space:nowrap} .meta td{border:0;padding:2px 8px 2px 0} h2{font-size:17px;margin:16px 0 0}
+      tfoot th{background:#fff} @media print{button{display:none}}</style></head><body>
+      <div class="top"><img src="${esc2(logo)}" alt=""><div><strong style="font-size:17px">Research Genius Hub</strong><br>${esc2(C.email)}</div></div>
+      <table class="meta" style="width:auto;margin-top:14px"><tr><td>Customer email</td><td>${esc2(email)}</td></tr><tr><td>Customer ID</td><td>${esc2(cid)}</td></tr>
+      <tr><td>Order number(s)</td><td>${esc2(nos.join(", "))}</td></tr><tr><td>Date</td><td>${esc2(new Date().toLocaleDateString())}</td></tr></table>
+      <h2>Ref: ${esc2(ref)}</h2>
+      <table><thead><tr><th>Date</th><th>Order number</th><th>Description</th><th class="n">Order total</th><th class="n">Amount paid</th><th class="n">Balance</th><th>Invoice / reference</th><th>Status</th></tr></thead>
+      <tbody>${tr || '<tr><td colspan="8">No transactions.</td></tr>'}</tbody>
+      <tfoot><tr><th colspan="4">Total Received</th><th class="n">${money(rec)}</th><th colspan="3"></th></tr>
+      <tr><th colspan="4">Total Receivable (balance)</th><th class="n">${money(recv)}</th><th colspan="3"></th></tr></tfoot></table>
+      <p style="margin-top:18px;font-size:11px;color:#5b6577">Amounts are counted only for payments ticked as received by Research Genius Hub.</p>
+      <button onclick="window.print()">Print</button></body></html>`;
+    const w = window.open("", "_blank");
+    if (!w) return alert("Allow pop-ups for this site to print.");
+    w.document.write(html); w.document.close();
+  }
+  function finLedger(D, email) {
+    const t = finTotals(D, email), rows = finRows(D, email), ev = D.evid.filter(e => finKey(e.email) === email);
+    return `<div class="panel" style="margin-top:14px"><h3 style="margin:0 0 4px">Ledger: ${esc(email)}</h3>
+      <p class="small muted" style="margin:0 0 8px">Customer ID ${esc(t.orders[0] ? finCid(t.orders[0]) : "-")}. Newest first.</p>
+      <div class="wrap" style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.9rem">
+        <thead><tr>${["Date", "Order number", "Description", "Order total", "Amount paid", "Balance", "Invoice / reference", "Status", ""].map(x => `<th style="text-align:left;border-bottom:1px solid #d9dee8;padding:6px">${x}</th>`).join("")}</tr></thead>
+        <tbody>${rows.map(r => `<tr><td style="padding:6px;border-bottom:1px solid #eee">${esc(finDate(r.date))}</td><td style="padding:6px;border-bottom:1px solid #eee">${esc(r.orderNo)}</td><td style="padding:6px;border-bottom:1px solid #eee">${esc(r.desc)}</td><td style="padding:6px;border-bottom:1px solid #eee">${money(r.total)}</td><td style="padding:6px;border-bottom:1px solid #eee">${money(r.paid)}</td><td style="padding:6px;border-bottom:1px solid #eee">${money(r.balance)}</td><td style="padding:6px;border-bottom:1px solid #eee">${esc(r.ref)}</td><td style="padding:6px;border-bottom:1px solid #eee">${esc(r.status)}</td><td style="padding:6px;border-bottom:1px solid #eee;white-space:nowrap">${r.kind === "pay" && !r.confirmed ? `<button class="btn sm" data-recv="${esc(r.payId)}">Mark received</button> <button class="btn sm alt" data-nrecv="${esc(r.payId)}">Not received</button>` : ""}</td></tr>`).join("") || `<tr><td colspan="9" style="padding:6px">No transactions yet.</td></tr>`}</tbody>
+        <tfoot><tr><th colspan="4" style="text-align:left;padding:6px">Total Received</th><th style="text-align:left;padding:6px">${money(t.received)}</th><th colspan="4"></th></tr>
+        <tr><th colspan="4" style="text-align:left;padding:6px">Total Receivable (balance)</th><th style="text-align:left;padding:6px">${money(t.receivable)}</th><th colspan="4"></th></tr></tfoot></table></div>
+      <h4 style="margin:14px 0 6px">Receipts and statements</h4>
+      <div class="small" style="display:grid;gap:4px">${t.orders.map(x => `<label><input type="checkbox" data-ord value="${esc(x.id)}"> ${esc(finNo(x))} · ${esc((x.data || {}).title || "")} · balance ${money(Math.max(0, Number(x.total || 0) - Number(x.paid_amount || 0)))}</label>`).join("")}</div>
+      <p style="margin:8px 0 0"><button class="btn sm" data-print="receipt">Print receipt for selected orders</button> <button class="btn sm alt" data-print="statement">Print full statement</button> <span class="small muted">Asks for your password first.</span></p>
+      <h4 style="margin:14px 0 6px">Payment evidence from the student</h4>
+      ${ev.length ? ev.map(x => `<p class="small" style="margin:4px 0">${esc(finDate(x.created_at))} · ref ${esc(x.reference || "-")} · ${esc(x.file_name)} <button class="btn sm alt" data-ev="${esc(x.file_path)}">View (password)</button></p>`).join("") : `<p class="small muted">No evidence uploaded.</p>`}
+    </div>`;
+  }
+  async function loadBalances() {
+    const box = $("#v-balances"); box.innerHTML = '<p class="muted">Loading finances...</p>';
+    let D; try { D = await finLoad(); } catch (x) { box.innerHTML = `<p class="err">${esc(x.message || "Could not load finances.")}</p>`; return; }
+    finData = D;
+    const totalRec = D.orders.reduce((s, x) => s + Number(x.paid_amount || 0), 0), totalRecv = D.orders.reduce((s, x) => s + Math.max(0, Number(x.total || 0) - Number(x.paid_amount || 0)), 0);
+    const by = {};
+    D.orders.forEach(x => { const em = finMail(x); if (!em) return; const r = (by[em] = by[em] || { email: em, cid: finCid(x), n: 0, total: 0, paid: 0, bal: 0 }); r.n++; r.total += Number(x.total || 0); r.paid += Number(x.paid_amount || 0); r.bal += Math.max(0, Number(x.total || 0) - Number(x.paid_amount || 0)); });
+    const students = Object.values(by).sort((a, b) => b.bal - a.bal);
+    const owing = students.filter(s => s.bal > 0.005).length, noId = {}; D.orders.forEach(x => { noId[x.id] = finNo(x); });
+    const openR = D.rreq.filter(r => r.status === "open"), openF = D.freq.filter(r => r.status !== "done");
+    box.innerHTML = `<h1 style="font-size:2rem;margin:0 0 4px">Finances</h1>
+      <p class="small muted" style="margin:0 0 12px">Admin only. A payment counts only after you tick it as received.</p>
+      <div class="panel" style="display:flex;gap:22px;flex-wrap:wrap">
+        <div><div class="small muted">Total received</div><strong style="font-size:1.4rem">${money(totalRec)}</strong></div>
+        <div><div class="small muted">Total receivable (debts)</div><strong style="font-size:1.4rem">${money(totalRecv)}</strong></div>
+        <div><div class="small muted">Students owing</div><strong style="font-size:1.4rem">${owing}</strong></div></div>
+      ${openR.length ? `<div class="panel" style="margin-top:14px"><h3 style="margin:0 0 6px">Receipt requests (${openR.length})</h3>${openR.map(r => `<div class="small" style="margin:6px 0">${esc(r.email)} · ${esc(noId[r.order_id] || "")} · ${esc(finDate(r.created_at))}${r.note ? ": " + esc(r.note) : ""} <button class="btn sm" data-rdone="${esc(r.id)}">Mark sent</button> <button class="btn sm alt" data-open="${esc(r.email)}">Open ledger</button></div>`).join("")}</div>` : ""}
+      <div class="panel" style="margin-top:14px"><h3 style="margin:0 0 6px">Students and balances</h3><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.9rem">
+        <thead><tr>${["Customer email", "Customer ID", "Orders", "Order total", "Paid", "Balance", ""].map(x => `<th style="text-align:left;border-bottom:1px solid #d9dee8;padding:6px">${x}</th>`).join("")}</tr></thead>
+        <tbody>${students.map(s => `<tr><td style="padding:6px;border-bottom:1px solid #eee">${esc(s.email)}</td><td style="padding:6px;border-bottom:1px solid #eee">${esc(s.cid)}</td><td style="padding:6px;border-bottom:1px solid #eee">${s.n}</td><td style="padding:6px;border-bottom:1px solid #eee">${money(s.total)}</td><td style="padding:6px;border-bottom:1px solid #eee">${money(s.paid)}</td><td style="padding:6px;border-bottom:1px solid #eee"><strong>${money(s.bal)}</strong></td><td style="padding:6px;border-bottom:1px solid #eee"><button class="btn sm" data-open="${esc(s.email)}">${finEmail === s.email ? "Open" : "Open ledger"}</button></td></tr>`).join("") || `<tr><td colspan="7" style="padding:6px">No orders yet.</td></tr>`}</tbody></table></div></div>
+      <div id="fin-ledger">${finEmail ? finLedger(D, finEmail) : ""}</div>
+      <div class="panel" style="margin-top:14px"><h3 style="margin:0 0 6px">Field requests from the Samples page (${openF.length} open)</h3>
+        ${D.freq.length ? D.freq.map(r => `<div class="small" style="margin:8px 0;padding-bottom:8px;border-bottom:1px solid #eee"><strong>${esc(r.field)}</strong> · ${esc(r.level)}${r.deadline ? " · deadline " + esc(r.deadline) : ""} · ${esc(r.name)} <a href="mailto:${esc(r.email)}">${esc(r.email)}</a> · ${esc(finDate(r.created_at))} ${r.status === "done" ? '<span class="badge paid">Done</span>' : `<button class="btn sm" data-fdone="${esc(r.id)}">Mark done</button>`}<div style="white-space:pre-wrap;margin-top:4px">${esc(r.details)}</div></div>`).join("") : `<p class="small muted">No requests yet.</p>`}</div>`;
+    box.querySelectorAll("[data-open]").forEach(b => b.addEventListener("click", () => { finEmail = b.dataset.open; loadBalances(); }));
+    box.querySelectorAll("[data-rdone]").forEach(b => b.addEventListener("click", async () => { const r = await sb.from("receipt_requests").update({ status: "done", done_by: "Admin", done_at: new Date().toISOString() }).eq("id", b.dataset.rdone); if (r.error) return alert(r.error.message); loadBalances(); }));
+    box.querySelectorAll("[data-fdone]").forEach(b => b.addEventListener("click", async () => { const r = await sb.from("field_requests").update({ status: "done" }).eq("id", b.dataset.fdone); if (r.error) return alert(r.error.message); loadBalances(); }));
+    box.querySelectorAll("[data-recv]").forEach(b => b.addEventListener("click", async () => {
+      const p = D.pays.find(x => x.id === b.dataset.recv), o = D.orders.find(x => x.id === (p && p.order_id)); if (!p || !o) return;
+      const code = prompt("Type the payment code from PayPal or mobile money, to confirm it. The student gave: " + (p.reference || "none"), p.reference || ""); if (code == null) return;
+      const amt = prompt("Amount received (GBP). The student reported " + money(p.amount) + ". Cannot be more than the balance.", String(p.amount || "")); if (amt == null) return;
+      try { const r = await sb.rpc("staff_confirm_payment", { p_order: o.id, p_code: code.trim(), p_amount: Number(amt) || null, p_message: "" }); if (r.error) throw r.error; await email(o.id, r.data); alert("Marked as received. The student has been emailed."); loadBalances(); }
+      catch (x) { alert(x.message || "Could not mark as received."); }
+    }));
+    box.querySelectorAll("[data-nrecv]").forEach(b => b.addEventListener("click", async () => {
+      const p = D.pays.find(x => x.id === b.dataset.nrecv), o = D.orders.find(x => x.id === (p && p.order_id)); if (!p || !o) return;
+      const note = prompt("Message to the student. They will be asked to send evidence of the payment.", "We have not received this payment yet."); if (!note || note.trim().length < 5) return;
+      try { const r = await sb.rpc("staff_payment_not_received", { p_payment: p.id, p_message: note.trim() }); if (r.error) throw r.error; await email(o.id, r.data); alert("Marked as not received. The student has been emailed to send evidence."); loadBalances(); }
+      catch (x) { alert(x.message || "Could not update."); }
+    }));
+    box.querySelectorAll("[data-print]").forEach(b => b.addEventListener("click", async () => {
+      if (!(await finUnlock())) return;
+      const ids = Array.from(box.querySelectorAll("[data-ord]:checked")).map(x => x.value);
+      if (b.dataset.print === "receipt" && !ids.length) return alert("Tick the orders the receipt is for.");
+      finPrint(b.dataset.print, finData, finEmail, b.dataset.print === "receipt" ? ids : []);
+    }));
+    box.querySelectorAll("[data-ev]").forEach(b => b.addEventListener("click", async () => {
+      if (!(await finUnlock())) return;
+      const r = await sb.storage.from("evidence").createSignedUrl(b.dataset.ev, 300); if (r.data) window.open(r.data.signedUrl, "_blank"); else alert("Could not open the file.");
+    }));
+  }
   async function loadAccess() {
     const box = $("#v-access"); box.innerHTML = '<p class="muted">Loading...</p>';
     const { data, error } = await sb.from("sample_access").select("*, samples(title,price_per_page)").order("created_at", { ascending: false }); if (error) { box.innerHTML = `<p class="err">${esc(error.message)}</p>`; return; }
