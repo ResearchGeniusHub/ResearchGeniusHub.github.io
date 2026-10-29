@@ -823,7 +823,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
   }
   /* ---------- Finances (admin only): ledger, receipts, statements, evidence ---------- */
   let finEmail = "", finUnlockUntil = 0, finData = null;
-  const finKey = e => String(e || "").trim().toLowerCase();
+  const finKey = e => String(e || "").trim().toUpperCase();
   const finMail = o => finKey(o.customer_code);
   const finNo = o => o.order_no || o.id;
   const finCid = o => String(o.user_id || "").replace(/-/g, "").slice(0, 8).toUpperCase() || "NOT LINKED";
@@ -901,10 +901,27 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     if (!w) return alert("Allow pop-ups for this site to print.");
     w.document.write(html); w.document.close();
   }
+  // Sends a statement or receipt to the customer's email. The server looks up the address; this page does not show it.
+  async function finSendMail(kind, D, code, ids) {
+    if (!(await finUnlock())) return;
+    const ords = D.orders.filter(x => finMail(x) === code && (!ids.length || ids.includes(x.id)));
+    if (!ords.length) return alert("No orders to send.");
+    const rows = finRows(D, code).filter(r => (!ids.length || ids.includes(r.orderId)) && (kind === "statement" || r.confirmed));
+    const gbp = n => "£" + Number(n || 0).toFixed(2);
+    const rec = rows.reduce((s, r) => s + r.paid, 0), recv = ords.reduce((s, x) => s + Math.max(0, Number(x.total || 0) - Number(x.paid_amount || 0)), 0);
+    const nos = ords.map(finNo).sort();
+    const title = kind === "receipt" ? "Receipt for Order Number" + (nos.length > 1 ? "s " + nos[0] + "-" + nos[nos.length - 1] : " " + nos[0]) : "Statement of account";
+    const lines = rows.map(r => finDate(r.date) + " | " + r.orderNo + " | " + r.desc + " | paid " + gbp(r.paid) + " | balance " + gbp(r.balance) + " | " + r.ref + " | " + r.status);
+    const body = title + "\nCustomer ID: " + code + "\nDate: " + new Date().toLocaleDateString() + "\n\n" + (lines.join("\n") || "No transactions.") +
+      "\n\nTotal received: " + gbp(rec) + "\nTotal receivable (balance): " + gbp(recv) + "\n\nAmounts are counted only for payments confirmed by Research Genius Hub.";
+    if (!confirm("Email this " + (kind === "receipt" ? "receipt" : "statement") + " to customer " + code + "?")) return;
+    const { error } = await sb.functions.invoke("rgh-customer-mail", { body: { kind: "customer_statement", customer_code: code, subject: title + " - Research Genius Hub", message: body } });
+    alert(error ? "Could not send: " + (error.message || "error") : "Sent to the customer's email.");
+  }
   function finLedger(D, email) {
     const t = finTotals(D, email), rows = finRows(D, email), ev = D.evid.filter(e => finKey(e.customer_code) === email);
     return `<div class="panel" style="margin-top:14px"><h3 style="margin:0 0 4px">Ledger: ${esc(email)}</h3>
-      <p class="small muted" style="margin:0 0 8px">Customer ID ${esc(email)}. Newest first.</p>
+      <p class="small muted" style="margin:0 0 8px">Customer ID ${esc(email)}. Newest first.</p><p style="margin:0 0 8px"><button class="btn sm" data-mailstmt>Email statement to customer</button> <button class="btn sm alt" data-mailrcpt>Email receipt for ticked orders</button></p>
       <div class="wrap" style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.9rem">
         <thead><tr>${["Date", "Order number", "Description", "Order total", "Amount paid", "Balance", "Invoice / reference", "Status", ""].map(x => `<th style="text-align:left;border-bottom:1px solid #d9dee8;padding:6px">${x}</th>`).join("")}</tr></thead>
         <tbody>${rows.map(r => `<tr><td style="padding:6px;border-bottom:1px solid #eee">${esc(finDate(r.date))}</td><td style="padding:6px;border-bottom:1px solid #eee">${esc(r.orderNo)}</td><td style="padding:6px;border-bottom:1px solid #eee">${esc(r.desc)}</td><td style="padding:6px;border-bottom:1px solid #eee">${money(r.total)}</td><td style="padding:6px;border-bottom:1px solid #eee">${money(r.paid)}</td><td style="padding:6px;border-bottom:1px solid #eee">${money(r.balance)}</td><td style="padding:6px;border-bottom:1px solid #eee">${esc(r.ref)}</td><td style="padding:6px;border-bottom:1px solid #eee">${esc(r.status)}</td><td style="padding:6px;border-bottom:1px solid #eee;white-space:nowrap">${r.kind === "pay" && !r.confirmed ? `<button class="btn sm" data-recv="${esc(r.payId)}">Mark received</button> <button class="btn sm alt" data-nrecv="${esc(r.payId)}">Not received</button>` : ""}</td></tr>`).join("") || `<tr><td colspan="9" style="padding:6px">No transactions yet.</td></tr>`}</tbody>
@@ -928,7 +945,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     const owing = students.filter(s => s.bal > 0.005).length, noId = {}; D.orders.forEach(x => { noId[x.id] = finNo(x); });
     const openR = D.rreq.filter(r => r.status === "open"), openF = D.freq.filter(r => r.status !== "done");
     box.innerHTML = `<h1 style="font-size:2rem;margin:0 0 4px">Finances</h1>
-      <p class="small muted" style="margin:0 0 12px">Admin only. A payment counts only after you tick it as received.</p>
+      <div class="panel" style="background:#fff8e6;border-color:#e0b64a"><strong>You are signed in as Admin.</strong> Only you can see this page and customer emails. Staff cannot open Finances. A payment counts only after you tick it as received. Statements and receipts can be emailed to the customer from their ledger.</div>
       <div class="panel" style="display:flex;gap:22px;flex-wrap:wrap">
         <div><div class="small muted">Total received</div><strong style="font-size:1.4rem">${money(totalRec)}</strong></div>
         <div><div class="small muted">Total receivable (debts)</div><strong style="font-size:1.4rem">${money(totalRecv)}</strong></div>
@@ -938,8 +955,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
         <thead><tr>${["Customer ID", "Email (admin only)", "Orders", "Order total", "Paid", "Balance", ""].map(x => `<th style="text-align:left;border-bottom:1px solid #d9dee8;padding:6px">${x}</th>`).join("")}</tr></thead>
         <tbody>${students.map(s => `<tr><td style="padding:6px;border-bottom:1px solid #eee">${esc(s.email)}</td><td style="padding:6px;border-bottom:1px solid #eee">${esc(codeEmail[s.email] || "")}</td><td style="padding:6px;border-bottom:1px solid #eee">${s.n}</td><td style="padding:6px;border-bottom:1px solid #eee">${money(s.total)}</td><td style="padding:6px;border-bottom:1px solid #eee">${money(s.paid)}</td><td style="padding:6px;border-bottom:1px solid #eee"><strong>${money(s.bal)}</strong></td><td style="padding:6px;border-bottom:1px solid #eee"><button class="btn sm" data-open="${esc(s.email)}">${finEmail === s.email ? "Open" : "Open ledger"}</button></td></tr>`).join("") || `<tr><td colspan="7" style="padding:6px">No orders yet.</td></tr>`}</tbody></table></div></div>
       <div id="fin-ledger">${finEmail ? finLedger(D, finEmail) : ""}</div>
-      <div class="panel" style="margin-top:14px"><h3 style="margin:0 0 6px">Field requests from the Samples page (${openF.length} open)</h3>
-        ${D.freq.length ? D.freq.map(r => `<div class="small" style="margin:8px 0;padding-bottom:8px;border-bottom:1px solid #eee"><strong>${esc(r.field)}</strong> · ${esc(r.level)}${r.deadline ? " · deadline " + esc(r.deadline) : ""} · ${esc(r.name)} <a href="mailto:${esc(r.email)}">${esc(r.email)}</a> · ${esc(finDate(r.created_at))} ${r.status === "done" ? '<span class="badge paid">Done</span>' : `<button class="btn sm" data-fdone="${esc(r.id)}">Mark done</button>`}<div style="white-space:pre-wrap;margin-top:4px">${esc(r.details)}</div></div>`).join("") : `<p class="small muted">No requests yet.</p>`}</div>`;
+`;
     box.querySelectorAll("[data-open]").forEach(b => b.addEventListener("click", () => { finEmail = b.dataset.open; loadBalances(); }));
     box.querySelectorAll("[data-rdone]").forEach(b => b.addEventListener("click", async () => { const r = await sb.from("receipt_requests").update({ status: "done", done_by: "Admin", done_at: new Date().toISOString() }).eq("id", b.dataset.rdone); if (r.error) return alert(r.error.message); loadBalances(); }));
     box.querySelectorAll("[data-fdone]").forEach(b => b.addEventListener("click", async () => { const r = await sb.from("field_requests").update({ status: "done" }).eq("id", b.dataset.fdone); if (r.error) return alert(r.error.message); loadBalances(); }));
@@ -962,6 +978,8 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       if (b.dataset.print === "receipt" && !ids.length) return alert("Tick the orders the receipt is for.");
       finPrint(b.dataset.print, finData, finEmail, b.dataset.print === "receipt" ? ids : []);
     }));
+    box.querySelectorAll("[data-mailstmt]").forEach(b => b.addEventListener("click", () => finSendMail("statement", finData, finEmail, [])));
+    box.querySelectorAll("[data-mailrcpt]").forEach(b => b.addEventListener("click", () => { const ids = Array.from(box.querySelectorAll("[data-ord]:checked")).map(x => x.value); if (!ids.length) return alert("Tick the orders the receipt is for."); finSendMail("receipt", finData, finEmail, ids); }));
     box.querySelectorAll("[data-ev]").forEach(b => b.addEventListener("click", async () => {
       if (!(await finUnlock())) return;
       const r = await sb.storage.from("evidence").createSignedUrl(b.dataset.ev, 300); if (r.data) window.open(r.data.signedUrl, "_blank"); else alert("Could not open the file.");
@@ -1036,12 +1054,12 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     const box = $("#v-staff"); box.innerHTML = `<p class="muted">Loading staff...</p>`;
     const { data, error } = await sb.rpc("admin_list_staff"); if (error) { box.innerHTML = `<p class="err">${esc(error.message)}</p>`; return; }
     box.innerHTML = `<h1 style="font-size:2rem">Staff</h1>
-      <form id="addstaff" class="panel" novalidate><h3 style="margin-top:0">Add a staff member</h3>
+      <button type="button" class="btn block" style="font-size:1.2rem;padding:16px" onclick="const w=document.getElementById('staffwrap');w.hidden=!w.hidden;this.textContent=w.hidden?'+ Add New Staff':'Hide the form'">+ Add New Staff</button><div id="staffwrap" hidden><form id="addstaff" class="panel" novalidate><h3 style="margin-top:0">Add a staff member</h3>
         <div class="two"><div class="f"><label>Full name (letters only)</label><input name="full"></div><div class="f"><label>Username (letters and numbers)</label><input name="user" autocapitalize="none"></div></div>
         <div class="f"><label>Temporary password (at least 6 characters, with one number)</label><input name="pw" type="text" autocomplete="off"></div>
         <div class="f"><label>Services this person can see (they cannot see any others)</label>${svcBoxes([], "svc")}</div>
         <p class="small muted">On first sign-in they must enter their own email and phone number. If they change or remove them later, their account pauses until you approve.</p>
-        <p class="err"></p><button class="btn sm">Add staff member</button></form>
+        <p class="err"></p><button class="btn sm">Add staff member</button></form></div>
       <div id="stafflist">${(data || []).map(st => `<article class="order" data-uid="${esc(st.user_id)}">
         <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><h4>${esc(st.full_name || st.username)}</h4><div class="small muted">Sign-in name: ${esc(st.username)}</div>
           <div class="small">Contact: ${esc(st.contact_email || "not given yet")} · ${esc(st.contact_phone || "")}</div></div>

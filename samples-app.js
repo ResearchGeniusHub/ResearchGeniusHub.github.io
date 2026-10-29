@@ -78,12 +78,47 @@
     if (!all.length) { root.innerHTML = '<p class="muted">Samples are being added. Email <a href="mailto:' + C.email + '">' + C.email + "</a> to ask for an introduction in your subject.</p>"; return; }
     all.forEach(s => { s._h = hay(s); });
     const fields = [...new Set(all.map(s => s.subject).filter(Boolean))].sort();
-    root.innerHTML = `<div class="sa-bar"><input class="sa-q" type="search" placeholder="Search: name, level (Masters, PhD), or subject" aria-label="Search samples">
+    root.innerHTML = `<button type="button" class="sa-reqbtn" style="display:block;width:100%;background:#0F1B33;color:#fff;border:0;border-radius:10px;padding:16px;font:inherit;font-size:1.2rem;font-weight:700;cursor:pointer;margin:0 0 12px">+ Request New Sample</button>
+      <form class="sa-req panel" hidden novalidate style="margin:0 0 14px;display:grid;gap:10px">
+        <p class="small muted" style="margin:0">Tell us what you need. We reply by email. If we have the sample, we email you when it is uploaded and how to get it.</p>
+        <label class="small">Name<input name="yname" maxlength="120" style="width:100%;padding:10px;border:1.5px solid #0F1B33;border-radius:8px;font:inherit"></label>
+        <label class="small">Your email (so we can reply)<input name="yemail" type="email" maxlength="160" style="width:100%;padding:10px;border:1.5px solid #0F1B33;border-radius:8px;font:inherit"></label>
+        <label class="small">Field or subject<input name="subject" maxlength="120" placeholder="e.g. Nursing" style="width:100%;padding:10px;border:1.5px solid #0F1B33;border-radius:8px;font:inherit"></label>
+        <label class="small">Sample name or title wanted (optional)<input name="stitle" maxlength="160" style="width:100%;padding:10px;border:1.5px solid #0F1B33;border-radius:8px;font:inherit"></label>
+        <fieldset style="border:0;padding:0;margin:0"><legend class="small">Level</legend><label style="display:inline-block;margin-right:12px;font-weight:400"><input type="checkbox" name="lvl" value="Undergraduate"> Undergraduate</label><label style="display:inline-block;margin-right:12px;font-weight:400"><input type="checkbox" name="lvl" value="Masters"> Masters</label><label style="display:inline-block;font-weight:400"><input type="checkbox" name="lvl" value="PhD"> PhD</label></fieldset>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><label class="small">Referencing style<input name="sref" value="Harvard" style="width:100%;padding:10px;border:1.5px solid #0F1B33;border-radius:8px;font:inherit"></label><label class="small">Pages needed<input name="spages" type="number" min="1" style="width:100%;padding:10px;border:1.5px solid #0F1B33;border-radius:8px;font:inherit"></label></div>
+        <label class="small">Deadline (optional)<input name="sdeadline" maxlength="60" placeholder="e.g. 14 November" style="width:100%;padding:10px;border:1.5px solid #0F1B33;border-radius:8px;font:inherit"></label>
+        <label class="small">Describe what you need (at least 20 characters)<textarea name="sdesc" rows="4" maxlength="1500" style="width:100%;padding:10px;border:1.5px solid #0F1B33;border-radius:8px;font:inherit"></textarea></label>
+        <p class="err" role="alert" style="margin:0"></p><p class="small" data-ok role="status" style="margin:0"></p>
+        <button class="btn" type="submit">Send request</button>
+      </form>
+      <div class="sa-bar"><input class="sa-q" type="search" placeholder="Search: name, level (Masters, PhD), or subject" aria-label="Search samples">
       <select data-level aria-label="Level"><option value="">All levels</option><option value="undergraduate">Undergraduate</option><option value="master">Masters</option><option value="phd">PhD</option></select>
       <select data-field aria-label="Field"><option value="">All fields</option>${fields.map(f => `<option>${esc(f)}</option>`).join("")}</select>
       <select data-per aria-label="Per page"><option value="50">50 per page</option><option value="100">100 per page</option></select></div>
       <div class="sa-count" aria-live="polite"></div><div class="sa-list"></div><div class="sa-pager"></div>`;
     root.querySelector(".sa-q").oninput = e => { st.q = e.target.value; st.page = 1; draw(); };
+    const rq = root.querySelector(".sa-req"), rqBtn = root.querySelector(".sa-reqbtn");
+    rqBtn.onclick = () => { rq.hidden = !rq.hidden; rqBtn.textContent = rq.hidden ? "+ Request New Sample" : "Hide the request form"; };
+    rq.addEventListener("submit", async e => {
+      e.preventDefault();
+      const err = rq.querySelector(".err"), ok = rq.querySelector("[data-ok]"), btn = rq.querySelector("button[type=submit]"), g = n => rq.querySelector("[name=" + n + "]");
+      err.textContent = ""; ok.textContent = "";
+      const yname = g("yname").value.trim(), yemail = g("yemail").value.trim(), subject = g("subject").value.trim(), desc = g("sdesc").value.trim();
+      if (yname.length < 2) return err.textContent = "Please add your name.";
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(yemail)) return err.textContent = "Please add a valid email so we can reply.";
+      if (subject.length < 2) return err.textContent = "Please add your field or subject.";
+      if (desc.length < 20) return err.textContent = "Please describe what you need (at least 20 characters).";
+      const levels = Array.from(rq.querySelectorAll("[name=lvl]:checked")).map(x => x.value).join(", ");
+      const details = "Sample wanted: " + (g("stitle").value.trim() || "(not named)") + "\nReferencing: " + (g("sref").value.trim() || "not stated") + "\nPages: " + (g("spages").value || "not stated") + "\n\n" + desc;
+      btn.disabled = true;
+      try {
+        const r = await fetch(SB.url + "/rest/v1/field_requests", { method: "POST", headers: Object.assign({}, H, { Prefer: "return=minimal" }), body: JSON.stringify({ name: yname, email: yemail, field: subject, level: levels || "Not stated", deadline: g("sdeadline").value.trim(), details }) });
+        if (!r.ok) throw new Error("error " + r.status);
+        rq.reset(); g("sref").value = "Harvard"; ok.textContent = "Thank you. We have your request and will reply by email.";
+      } catch (x) { err.textContent = "Not sent: " + (x.message || x) + ". Please try again, or email " + C.email + "."; }
+      btn.disabled = false;
+    });
     root.querySelector("[data-level]").onchange = e => { st.level = e.target.value; st.page = 1; draw(); };
     root.querySelector("[data-field]").onchange = e => { st.field = e.target.value; st.page = 1; draw(); };
     root.querySelector("[data-per]").onchange = e => { st.per = +e.target.value; st.page = 1; draw(); };
