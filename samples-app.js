@@ -130,17 +130,17 @@
     const label = anchor.textContent; anchor.textContent = "Opening...";
     try {
       const r = await fetch(SB.url + "/functions/v1/super-worker", { method: "POST", headers: H, body: JSON.stringify({ action: "preview", sample_id: s.id }) });
-      if (!r.ok) throw new Error("preview");
+      if (!r.ok) { let m = "Error " + r.status; try { m = (await r.json()).error || m; } catch (x) {} throw new Error(m); }
       const b = await r.blob(); anchor.textContent = label;
       openViewer(s.title + " (free pages)", "Free preview", b);
-    } catch (e) { anchor.textContent = label; alert("The free pages could not open. Please try again."); }
+    } catch (e) { anchor.textContent = label; alert("The free pages could not open: " + (e.message || "please try again.")); }
   }
   function draw(keepOpen) {
     const list = filtered(), pages = Math.max(1, Math.ceil(list.length / st.per)); st.page = Math.min(st.page, pages);
     const slice = list.slice((st.page - 1) * st.per, st.page * st.per);
     root.querySelector(".sa-count").textContent = list.length + " sample" + (list.length === 1 ? "" : "s") + (st.q || st.level || st.field ? " match your search" : "");
     const box = root.querySelector(".sa-list");
-    box.innerHTML = slice.length ? slice.map(s => `<div class="sa-row" data-id="${s.id}"><button class="sa-sum" aria-expanded="false"><b>${esc(s.title)}</b><span class="lv">${esc(levelText(s))}</span><span class="pg">${s.pages} pages</span><span class="sa-prev" role="button" tabindex="0" aria-label="Preview the free pages" style="font-size:.85rem;border:1.5px solid #0F1B33;border-radius:999px;padding:3px 10px;white-space:nowrap">Preview</span><span aria-hidden="true">&#9662;</span></button><div class="sa-det"></div></div>`).join("") : '<p class="muted" style="padding:16px">No samples match. Try fewer words, or ask us for one in your subject.</p>';
+    box.innerHTML = slice.length ? slice.map(s => `<div class="sa-row" data-id="${s.id}"><button class="sa-sum" aria-expanded="false"><b>${esc(s.title)}</b><span class="lv">${esc(levelText(s))}</span><span class="pg">${s.pages} pages</span>${s.file_path ? '<span class="sa-prev" role="button" tabindex="0" aria-label="Preview the free pages" style="font-size:.85rem;border:1.5px solid #0F1B33;border-radius:999px;padding:3px 10px;white-space:nowrap">Preview</span>' : ""}<span aria-hidden="true">&#9662;</span></button><div class="sa-det"></div></div>`).join("") : '<p class="muted" style="padding:16px">No samples match. Try fewer words, or ask us for one in your subject.</p>';
     box.querySelectorAll(".sa-row").forEach(row => row.querySelector(".sa-sum").onclick = () => toggle(row));
     box.querySelectorAll(".sa-prev").forEach(p => {
       const open = e => { e.preventDefault(); e.stopPropagation(); const s = all.find(x => x.id === p.closest(".sa-row").dataset.id); if (s) previewFree(s, p); };
