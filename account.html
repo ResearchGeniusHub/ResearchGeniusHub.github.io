@@ -1303,25 +1303,18 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
   async function loadMyCodes() {
     const box = $("#mycodes"); if (!box || !LIVE || !sb) return;
     try {
-      const { data, error } = await sb.from("sample_access").select("*, samples(title)").order("created_at", { ascending: false });
+      const { data, error } = await sb.rpc("my_sample_links");
       if (error || !data || !data.length) { box.innerHTML = ""; return; }
-      box.innerHTML = `<h3 style="margin:18px 0 8px">My sample access</h3>` + data.map(a => {
-        const t = (a.samples && a.samples.title) || "Sample", st = a.status;
+      box.innerHTML = `<h3 style="margin:18px 0 8px">My sample access</h3><p class="small muted" style="margin:0 0 8px">Your sample links work for 60 days. Open a link to read the introduction, ask for the pages you want, or read the pages you have paid for.</p>` + data.map(a => {
         const left = Math.max(0, (a.open_limit || 2) - (a.opens_used || 0));
-        return `<article class="order"><strong>${esc(t)}</strong> <span class="small muted">· ${a.pages} extra page${a.pages > 1 ? "s" : ""}</span><br>` +
-          ((st === "approved" || st === "closed") && a.paid_amount != null && Number(a.paid_amount) < Number(a.amount || 0) ? `<span class="badge due">Part paid ${money(a.paid_amount)} of ${money(a.amount)}</span> Code <b style="letter-spacing:3px">${esc(a.code || "")}</b> opens ${a.unlocked_pages || 1} page(s) with a part-payment watermark.<br><span class="small">${a.balance_reference ? "Balance reported (reference " + esc(a.balance_reference) + "). We will confirm it soon." : "Pay the balance of <b>" + money(Number(a.amount) - Number(a.paid_amount)) + "</b>, then enter the payment reference:"}</span>${a.balance_reference ? "" : `<br><input data-bref placeholder="Balance payment reference" style="max-width:260px"> <button class="btn sm" data-balsend="${esc(a.sample_id)}" data-code="${esc(a.code || "")}" data-email="${esc(a.email)}" data-title="${esc(t)}" data-owing="${Number(a.amount) - Number(a.paid_amount)}">I paid the balance</button>`}`
-          : st === "approved" ? `<span class="badge paid">Payment confirmed</span> Your access code: <b style="font-size:1.3rem;letter-spacing:3px">${esc(a.code || "")}</b><br><span class="small muted">Online readings left: ${left} of ${a.open_limit || 2} · Download: ${a.download_used ? "used" : "1 available"}. Open it on the <a href="samples.html#open=${esc(a.sample_id)}">Samples page</a> with this code and your email.</span>`
-          : st === "closed" ? `<span class="badge">Finished</span> <span class="small muted">The document was downloaded, so this code has ended.</span>`
-          : `<span class="badge due">Waiting for payment confirmation</span> <span class="small muted">Your code appears here and is emailed to you once we confirm.</span>`) + `</article>`;
+        const until = a.link_expires_at ? new Date(a.link_expires_at).toLocaleDateString() : "";
+        const state = a.status === "approved"
+          ? `<span class="badge paid">Access open</span> Your code: <b style="font-size:1.3rem;letter-spacing:3px">${esc(a.code || "")}</b><br><span class="small muted">Pages you can read: ${esc(a.unlocked_ranges || "free pages only")} · Read online left: ${left} of ${a.open_limit || 2} · Download: ${a.download_used ? "used" : "1 available"}</span>`
+          : a.status === "closed"
+            ? `<span class="badge">Downloaded</span> <span class="small muted">This code ended after the download. Use your link to ask for more pages.</span>`
+            : `<span class="badge due">Link sent</span> <span class="small muted">Open the link to read the introduction and ask for the pages you want.</span>`;
+        return `<article class="order"><strong>${esc(a.title || "Sample")}</strong><br>${state}<br><a class="btn sm" href="samples.html#open=${esc(a.sample_id)}&t=${esc(a.link_token)}">Open my sample</a> <span class="small muted">Link valid until ${esc(until)}</span></article>`;
       }).join("");
-      box.querySelectorAll("[data-balsend]").forEach(b => b.addEventListener("click", async () => {
-        const ref = b.parentElement.querySelector("[data-bref]").value.trim(); if (!ref) { alert("Enter the payment reference for the balance."); return; } b.disabled = true;
-        try {
-          const r = await sb.rpc("request_sample_balance", { p_sample: b.dataset.balsend, p_email: b.dataset.email, p_code: b.dataset.code, p_reference: ref }); if (r.error) throw r.error;
-          notifyFallback("Balance paid for sample: " + b.dataset.email, b.dataset.email + " says they paid the BALANCE for a sample. Confirm in Admin > Sample access.\n\nSample: " + b.dataset.title + "\nAccess code: " + b.dataset.code + "\nBalance reference: " + ref + "\nBalance: " + money(b.dataset.owing));
-          loadMyCodes();
-        } catch (x) { alert(x.message || "Could not send."); b.disabled = false; }
-      }));
     } catch (e) { box.innerHTML = ""; }
   }
   async function renderOrders(openId) {

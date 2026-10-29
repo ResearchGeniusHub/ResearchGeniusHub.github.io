@@ -773,7 +773,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
         <div class="two"><div class="f"><label>Referencing style</label><input name="style" value="Harvard"></div><div class="f"><label>Charge per page (GBP, from £2)</label><input name="rate" type="number" min="2" step="0.5" value="2"></div></div>
         <div class="two"><div class="f"><label>Free pages (introduction)</label><input name="free" type="number" min="1" value="1"></div><div class="f"><label>Total pages (filled from the file, you can correct)</label><input name="pages" type="number" min="2" value=""></div></div>
         <div class="f"><label>Free introduction text (filled from the file, you can edit)</label><textarea name="intro" rows="4"></textarea></div>
-        <label style="font-weight:400"><input type="checkbox" name="pub" checked> Publish on the Samples page now</label>
+        <label style="font-weight:400"><input type="checkbox" name="pub"> Publish on the Samples page now (leave off to keep it private: students use their link)</label>
         <p class="err" data-err></p><button class="btn sm">Upload sample</button></form></div>
       <form id="bulk" class="panel" style="padding:12px"><strong>Change the rate for ALL samples already uploaded:</strong> £<input type="number" min="2" step="0.5" value="2" style="max-width:90px"> per page <button class="btn sm alt">Apply to all</button> <button type="button" class="btn sm alt" data-recalc>Recalculate previews (1 page = 275 words)</button> <span class="small muted" data-m></span></form>
       <form id="bulklv" class="panel" style="padding:12px"><strong>Set the level for several samples at once</strong><div class="small muted">Tick samples in the list below, choose the level, then apply. Works for samples uploaded earlier too.</div><div style="margin:8px 0">${lvBoxesRaw({}, "b")}</div><button class="btn sm alt">Apply level to ticked samples</button> <button type="button" class="btn sm alt" data-all>Tick all</button> <span class="small muted" data-m></span></form>
@@ -1021,23 +1021,48 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     const { data, error } = await sb.from("field_requests").select("*").order("created_at", { ascending: false });
     if (error) { box.innerHTML = `<p class="err">${esc(error.message)}</p>`; return; }
     const rows = data || [], news = rows.filter(r => r.status === "new");
+    const { data: smp } = await sb.from("samples").select("id,title,published").order("created_at", { ascending: false });
+    const sampleOpts = (smp || []).map(x => `<option value="${esc(x.id)}">${esc(x.title)}${x.published ? "" : " (hidden)"}</option>`).join("");
     box.innerHTML = `<div class="panel" style="margin-bottom:14px"><h3 style="margin:0 0 6px">Requests from the Samples page (${news.length} new)</h3>
-      <p class="small muted" style="margin:0 0 8px">No sample in that field: decline and explain. Sample uploaded: notify the student, who then requests it from the Samples page.</p>
+      <p class="small muted" style="margin:0 0 8px">No sample in that field: decline and explain. Sample ready: choose it and send the private link. The student opens it from the link, asks for the pages they want and pays. The sample stays hidden from the public list until a payment is confirmed (or you make it public).</p>
       ${rows.length ? rows.map(r => `<article class="order" style="margin-top:8px" data-fr="${esc(r.id)}" data-field="${esc(r.field)}">
         <strong>${esc(r.field)}</strong> · ${esc(r.level || "")}${r.deadline ? " · deadline " + esc(r.deadline) : ""} · ${esc(r.name)} · <a href="mailto:${esc(r.email)}">${esc(r.email)}</a> · <span class="small muted">${esc(new Date(r.created_at).toLocaleDateString())}</span>
         <span class="badge ${r.status === "new" ? "due" : "paid"}">${esc(r.status)}</span>
         <div class="small" style="white-space:pre-wrap">${esc(r.details)}</div>
-        ${r.status === "new" ? `<p style="margin:8px 0 0"><button class="btn sm alt" data-frdecline>No sample: decline and explain</button> <button class="btn sm" data-fruploaded>Sample uploaded: notify student</button></p>` : ""}
+        ${r.status === "new" ? `<p style="margin:8px 0 0"><button class="btn sm alt" data-frdecline>No sample: decline and explain</button></p>` : ""}
+        <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center"><select data-frsample style="max-width:360px"><option value="">Choose the sample for this request</option>${sampleOpts}</select> <button class="btn sm" data-frlink>Send private link to student</button> <button class="btn sm alt" data-frpub>Make public now</button> <button class="btn sm alt" data-frhide>Hide again</button></div>
+        <p class="err fr-err" style="margin:6px 0 0"></p>
       </article>`).join("") : '<p class="small muted">No requests yet.</p>'}</div>`;
     box.querySelectorAll("[data-frdecline]").forEach(b => b.onclick = () => {
       const id = b.closest("[data-fr]").dataset.fr;
       const msg = prompt("Message to the student. Explain there is no order or sample in this field at the moment.", "Thank you for your request. We do not have a sample in this field at the moment and no order is open for it yet. We will contact you if one becomes available.");
       if (msg && msg.trim().length >= 10) sendFieldNote(id, "declined", msg.trim(), "Your sample request");
     });
-    box.querySelectorAll("[data-fruploaded]").forEach(b => b.onclick = () => {
-      const el = b.closest("[data-fr]"), id = el.dataset.fr, field = el.dataset.field;
-      const msg = prompt("Message to the student. Confirm the sample is uploaded and how to get it.", "Good news. Your sample in " + field + " has been uploaded. Go to the Samples page, open the sample, and follow the usual steps: choose the pages you need, pay, then enter your access code under Already paid?");
-      if (msg && msg.trim().length >= 10) sendFieldNote(id, "uploaded", msg.trim(), "Your sample is ready");
+    box.querySelectorAll("[data-frlink]").forEach(b => b.onclick = async () => {
+      const el = b.closest("[data-fr]"), id = el.dataset.fr, sid = el.querySelector("[data-frsample]").value, er = el.querySelector(".fr-err");
+      er.textContent = "";
+      const r = rows.find(x => x.id === id);
+      if (!sid) { er.textContent = "Choose the sample for this request first."; return; }
+      b.disabled = true;
+      try {
+        const inv = await sb.rpc("admin_invite_sample", { p_sample: sid, p_email: r.email });
+        if (inv.error) throw new Error(inv.error.message);
+        const mail = await sb.functions.invoke("super-worker", { body: { action: "invite", access_id: inv.data.access_id } });
+        if (mail.error || !(mail.data && mail.data.ok)) throw new Error("The link was created but the email could not be sent" + (mail.data && mail.data.why ? " (" + mail.data.why + ")" : "") + ". Check the Brevo settings, then try again.");
+        await sb.from("field_requests").update({ status: "uploaded", sample_id: sid }).eq("id", id);
+        alert("The private link was emailed to " + r.email + ". The sample stays hidden from the public list.");
+        loadFieldRequests();
+      } catch (x) { er.textContent = x.message || String(x); b.disabled = false; }
+    });
+    box.querySelectorAll("[data-frpub],[data-frhide]").forEach(b => b.onclick = async () => {
+      const el = b.closest("[data-fr]"), sid = el.querySelector("[data-frsample]").value, er = el.querySelector(".fr-err");
+      er.textContent = "";
+      if (!sid) { er.textContent = "Choose the sample first."; return; }
+      const makePublic = b.hasAttribute("data-frpub");
+      const x = await sb.from("samples").update({ published: makePublic }).eq("id", sid);
+      if (x.error) { er.textContent = x.error.message; return; }
+      alert(makePublic ? "The sample is now public in the Samples list." : "The sample is hidden again. Students with a link can still open it.");
+      loadFieldRequests();
     });
   }
   async function sendFieldNote(id, status, message, subject) {
@@ -1047,14 +1072,55 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     if (u.error) { alert(u.error.message); return; }
     loadFieldRequests();
   }
+  async function loadPageRequests() {
+    const box = $("#pr-list"); if (!box || !isAdmin) return;
+    const { data, error } = await sb.from("sample_page_requests").select("*, samples(title)").eq("status", "requested").order("created_at");
+    if (error) { box.innerHTML = `<p class="err">${esc(error.message)}</p>`; return; }
+    const rows = data || [];
+    box.innerHTML = `<div class="panel" style="margin-bottom:14px"><h3 style="margin:0 0 6px">Page requests waiting for payment (${rows.length})</h3>
+      <p class="small muted" style="margin:0 0 8px">A student asked for specific pages from their private link. Confirm the payment here: those pages open, the code stays the same, and the sample becomes public.</p>
+      ${rows.length ? rows.map(r => `<article class="order" style="margin-top:8px" data-pr="${esc(r.id)}">
+        <strong>${esc((r.samples && r.samples.title) || "Sample")}</strong> · <a href="mailto:${esc(r.email)}">${esc(r.email)}</a> · <span class="small muted">${new Date(r.created_at).toLocaleString()}</span>
+        <div class="small">Pages <b>${esc(r.ranges)}</b> (${r.pages}) · <b>${money(r.amount)}</b> · ${r.pay_option === "part" ? "half now" : "full"} · reference <b>${esc(r.reference)}</b></div>
+        <p style="margin:8px 0 0"><button class="btn sm" data-prok>Confirm payment and send code</button> <button class="btn sm alt" data-premit>Edit pages</button></p><p class="err" style="margin:6px 0 0"></p>
+      </article>`).join("") : '<p class="small muted">None waiting.</p>'}</div>`;
+    box.querySelectorAll("[data-premit]").forEach(b => b.onclick = async () => {
+      const el = b.closest("[data-pr]"), r = rows.find(x => x.id === el.dataset.pr), er = el.querySelector(".err");
+      er.textContent = "";
+      const v = prompt("Change the pages for this request (for example 14-20, or 3,5,9-10). Pages the student already has are skipped.", r.ranges || "");
+      if (v === null) return;
+      const res = await sb.rpc("admin_edit_page_request", { p_request: r.id, p_ranges: v });
+      if (res.error) { er.textContent = res.error.message; return; }
+      loadPageRequests();
+    });
+    box.querySelectorAll("[data-prok]").forEach(b => b.onclick = async () => {
+      const el = b.closest("[data-pr]"), r = rows.find(x => x.id === el.dataset.pr), er = el.querySelector(".err");
+      er.textContent = "";
+      const got = prompt("Amount received from the student?\nRequested: " + money(r.amount) + " (" + (r.pay_option === "part" ? "half" : "full") + " option).", String(r.pay_option === "part" ? r.amount / 2 : r.amount));
+      if (got === null) return; const n = Number(got); if (!(n > 0)) { er.textContent = "Enter the amount received."; return; }
+      const pc = prompt("Type the payment code from PayPal / mobile money.\nIt must match the reference the student entered (" + r.reference + ") or payment is NOT confirmed.");
+      if (pc === null) return;
+      b.disabled = true;
+      try {
+        const res = await sb.rpc("admin_approve_page_request", { p_request: r.id, p_amount: n, p_code: pc });
+        if (res.error) throw new Error(res.error.message);
+        const d = res.data;
+        const mail = await sb.functions.invoke("super-worker", { body: { action: "notify_code", access_id: d.access_id } });
+        const sent = !mail.error && mail.data && mail.data.emailed;
+        alert("Confirmed. Pages " + d.unlocked + " are open. Code " + d.code + (sent ? " and the email were sent to the student." : ". The email could not be sent, so tell the student the code (it is also in their account).") + (d.complete ? "" : " Part payment: the watermark stays until the balance is paid."));
+        loadAccess();
+      } catch (x) { er.textContent = x.message || String(x); b.disabled = false; }
+    });
+  }
   async function loadAccess() {
     const box = $("#v-access"); box.innerHTML = '<p class="muted">Loading...</p>';
     const { data, error } = await sb.from("sample_access").select("*, samples(title,price_per_page)").order("created_at", { ascending: false }); if (error) { box.innerHTML = `<p class="err">${esc(error.message)}</p>`; return; }
     const rows = data.filter(r => accFilter === "all" || r.status === accFilter);
     box.innerHTML = `<h1 style="font-size:2rem">Sample access</h1><p class="small muted">After you confirm a payment, the access code is created and emailed to the student, and shows in their account. Read online: 2 sessions. Download: once.</p>
-      <div id="fr-list"></div><div class="f"><label>Show</label><select id="accf"><option value="requested">Waiting for payment confirmation</option><option value="approved">Approved (code sent)</option><option value="closed">Finished (downloaded)</option><option value="all">All</option></select></div><div id="acc"></div>`;
+      <div id="fr-list"></div><div id="pr-list"></div><div class="f"><label>Show</label><select id="accf"><option value="requested">Waiting for payment confirmation</option><option value="invited">Link sent (no payment yet)</option><option value="approved">Approved (code sent)</option><option value="closed">Finished (downloaded)</option><option value="all">All</option></select></div><div id="acc"></div>`;
     $("#accf").value = accFilter; $("#accf").onchange = e => { accFilter = e.target.value; loadAccess(); };
     loadFieldRequests();
+    loadPageRequests();
     const L = $("#acc"); if (!rows.length) { L.innerHTML = '<p class="muted">Nothing here.</p>'; return; }
     rows.forEach(r => {
       const a = document.createElement("article"), amt = r.amount != null ? r.amount : r.pages * ((r.samples && r.samples.price_per_page) || 2); a.className = "order";

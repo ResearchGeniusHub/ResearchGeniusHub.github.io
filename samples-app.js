@@ -75,10 +75,23 @@
       const r = await fetch(SB.url + "/rest/v1/samples?select=*&order=created_at.desc", { headers: H });
       if (!r.ok) throw new Error(); all = (await r.json()).filter(s => s.published !== false);
     } catch (e) { root.innerHTML = '<p class="muted">Samples could not load. Refresh, or email <a href="mailto:' + C.email + '">' + C.email + "</a>.</p>"; return; }
-    if (!all.length) { root.innerHTML = '<p class="muted">Samples are being added. Email <a href="mailto:' + C.email + '">' + C.email + "</a> to ask for an introduction in your subject.</p>"; return; }
+    const lm = location.hash.match(/open=([0-9a-f-]{36})/i), tm = location.hash.match(/[#&]t=([0-9a-f-]{36})/i);
+    let linkNote = "";
+    if (lm && tm) {
+      try {
+        const r2 = await fetch(SB.url + "/rest/v1/rpc/sample_by_link", { method: "POST", headers: H, body: JSON.stringify({ p_sample: lm[1], p_token: tm[1] }) });
+        const j = await r2.json().catch(() => ({}));
+        if (!r2.ok) throw new Error(j.message || "This link is not valid.");
+        j._linked = true; j._token = tm[1]; j._expires = j.expires_at; j.file_path = j.has_file ? "linked" : null;
+        all = all.filter(x => x.id !== j.id); all.unshift(j);
+      } catch (e) { linkNote = '<p class="err">' + esc(e.message || "This link is not valid.") + ' Email <a href="mailto:' + C.email + '">' + C.email + "</a> for a new one.</p>"; }
+    }
+    const linkedNow = all.find(x => x._linked);
+    const banner = linkNote || (linkedNow ? '<div class="panel" style="margin:0 0 12px;padding:12px"><strong>Your sample is open.</strong> Read the introduction, choose the pages you want, pay for them and send your payment reference. When we confirm, your access code is emailed to you and shows in your account. This link works until ' + esc(new Date(linkedNow._expires).toDateString()) + '.</div>' : "");
+    if (!all.length) { root.innerHTML = banner + '<p class="muted">Samples are being added. Email <a href="mailto:' + C.email + '">' + C.email + "</a> to ask for an introduction in your subject.</p>"; return; }
     all.forEach(s => { s._h = hay(s); });
     const fields = [...new Set(all.map(s => s.subject).filter(Boolean))].sort();
-    root.innerHTML = `<button type="button" class="sa-reqbtn" style="display:block;width:100%;background:#0F1B33;color:#fff;border:0;border-radius:10px;padding:16px;font:inherit;font-size:1.2rem;font-weight:700;cursor:pointer;margin:0 0 12px">+ Request New Sample</button>
+    root.innerHTML = banner + `<button type="button" class="sa-reqbtn" style="display:block;width:100%;background:#0F1B33;color:#fff;border:0;border-radius:10px;padding:16px;font:inherit;font-size:1.2rem;font-weight:700;cursor:pointer;margin:0 0 12px">+ Request New Sample</button>
       <form class="sa-req panel" hidden novalidate style="margin:0 0 14px;display:grid;gap:10px">
         <p class="small muted" style="margin:0">Tell us what you need. We reply by email. If we have the sample, we email you when it is uploaded and how to get it.</p>
         <label class="small">Name<input name="yname" maxlength="120" style="width:100%;padding:10px;border:1.5px solid #0F1B33;border-radius:8px;font:inherit"></label>
@@ -129,7 +142,7 @@
   async function previewFree(s, anchor) {
     const label = anchor.textContent; anchor.textContent = "Opening...";
     try {
-      const r = await fetch(SB.url + "/functions/v1/super-worker", { method: "POST", headers: H, body: JSON.stringify({ action: "preview", sample_id: s.id }) });
+      const r = await fetch(SB.url + "/functions/v1/super-worker", { method: "POST", headers: H, body: JSON.stringify({ action: "preview", sample_id: s.id, token: s._token || "" }) });
       if (!r.ok) { let m = "Error " + r.status; try { m = (await r.json()).error || m; } catch (x) {} throw new Error(m); }
       const b = await r.blob(); anchor.textContent = label;
       openViewer(s.title + " (free pages)", "Free preview", b);
@@ -165,16 +178,18 @@
     const s = all.find(x => x.id === row.dataset.id), free = s.free_pages || 1, paid = Math.max(1, s.pages - free), rate = Number(s.price_per_page || 2), mine = mineGet()[s.id] || {};
     const pay = (C.manualPay || []).map(m => "<li><b>" + esc(m.label) + ":</b> " + m.lines.map(l => esc(l[0]) + " " + esc(l[1])).join(", ") + "</li>").join("");
     const det = row.querySelector(".sa-det"), def = Math.min(2, paid);
+    const parseR = t => { const set = new Set(); String(t || "").split(",").forEach(part => { const m = part.trim().match(/^(\d+)(?:\s*-\s*(\d+))?$/); if (!m) return; const x = +m[1], y = m[2] ? +m[2] : x; for (let i = Math.min(x, y); i <= Math.max(x, y) && set.size < 2000; i++) set.add(i); }); return [...set]; };
+    const pagesInput = '<label class="small">Pages you want (for example 14-20, or 3,5,9-10)</label><input data-ranges placeholder="14-20" autocomplete="off" style="max-width:260px"> <strong data-price></strong><p class="small muted" style="margin:6px 0">Pages you already have are not charged again. Pages 1 to ' + free + ' are free to read.</p>';
     det.innerHTML = `<p class="small muted" style="margin:10px 0">${esc(s.subject || "")} · ${esc(levelText(s))} · ${s.pages} pages · ${esc(s.style || "")} referencing</p>
       ${s.file_path ? `<p style="margin:8px 0"><button class="btn sm alt" data-free>View the free page${free > 1 ? "s" : ""} (exactly as in the document)</button></p><div data-freemsg role="status"></div>` : ""}
-      ${s.intro && !s.file_path ? `<details class="intro"><summary>Read the introduction (free)</summary>${paras(s.intro)}</details>` : ""}
+      ${s.intro && (!s.file_path || s._linked) ? `<details class="intro"><summary>Read the introduction (free)</summary>${paras(s.intro)}</details>` : ""}
       <div class="locked"><strong>Get the full sample</strong> <span class="small muted">${money(rate)} per page. ${paid} more page${paid > 1 ? "s" : ""} available after the free page${free > 1 ? "s" : ""}.</span>
         <ol class="small" style="margin:6px 0;padding-left:18px"><li>Choose how many pages</li><li>Pay with the details below</li><li>Send your email and payment reference</li><li>When we confirm, your access code is emailed to you and appears in your account</li></ol>
         <details class="intro"><summary>Payment details</summary><ul class="small" style="margin:8px 0">${pay}</ul></details>
-        <label class="small">Pages to unlock</label><input type="number" data-n min="1" max="${paid}" value="${def}" style="max-width:110px"> <strong data-price>${money(def * rate)}</strong>
+        ${pagesInput}
         <label class="small">I will mostly</label><select data-f><option value="read">Read online (2 sessions)</option><option value="download">Download (once)</option></select>
         <label class="small">Payment now</label><select data-pay><option value="full">Pay full amount</option><option value="part">Pay half now (50%), balance later</option></select>
-        <label class="small">Your email (the code is sent here)</label><input type="email" data-e autocomplete="email" placeholder="you@example.com" value="${esc(mine.email || "")}" style="width:100%">
+        ${s._linked ? '<p class="small muted">The code is emailed to the address this link was sent to.</p>' : '<label class="small">Your email (the code is sent here)</label><input type="email" data-e autocomplete="email" placeholder="you@example.com" value="${esc(mine.email || "")}" style="width:100%">'}
         <label class="small">Payment reference</label><input data-r placeholder="PayPal or mobile money transaction ID" autocomplete="off" style="width:100%">
         <p><button class="btn sm" data-req>Send for confirmation</button></p><div data-out role="status"></div></div>
       <details class="intro" data-paid ${mine.email ? "open" : ""}><summary>Already paid? Open my pages</summary>
@@ -184,16 +199,32 @@
         <div class="panel" style="padding:12px;margin-top:10px"><strong>Paid half? Pay the balance here</strong>
           <p class="small muted" style="margin:6px 0">Pay the balance with the details above, then enter your payment reference. When we confirm it, the watermark is removed and you can open the full copy with the same code.</p>
           <input data-bref placeholder="Balance payment reference (PayPal or mobile money ID)" autocomplete="off" style="width:100%"> <p><button class="btn sm" data-bal>I have paid the balance</button></p><div data-balmsg role="status"></div></div></details>`;
-    const q = x => det.querySelector(x), n = () => Math.min(paid, Math.max(1, Math.floor(Number(q("[data-n]").value) || 1)));
+    const q = x => det.querySelector(x), n = () => parseR(q("[data-ranges]").value).length;
     const payNow = () => q("[data-pay]").value, upd = () => { const t = n() * rate; q("[data-price]").textContent = payNow() === "part" ? money(t / 2) + " now (of " + money(t) + ")" : money(t); };
-    q("[data-n]").oninput = upd; q("[data-pay]").onchange = upd;
+    if (q("[data-n]")) q("[data-n]").oninput = upd; if (q("[data-ranges]")) q("[data-ranges]").oninput = upd; q("[data-pay]").onchange = upd;
     q("[data-req]").onclick = async () => {
-      const out = q("[data-out]"), email = q("[data-e]").value.trim(), ref = q("[data-r]").value.trim();
+      const out = q("[data-out]"), ref = q("[data-r]").value.trim();
+      if (s._linked) {
+        const ranges = q("[data-ranges]").value.trim();
+        if (!ranges) { out.innerHTML = '<p class="err">Choose the pages you want, for example 14-20.</p>'; return; }
+        if (!ref) { out.innerHTML = '<p class="err">Enter your payment reference.</p>'; return; }
+        out.textContent = "Sending...";
+        try {
+          const r = await fetch(SB.url + "/rest/v1/rpc/request_pages_by_link", { method: "POST", headers: H, body: JSON.stringify({ p_sample: s.id, p_token: s._token, p_ranges: ranges, p_reference: ref, p_pay: payNow() }) });
+          const j = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(j.message || "Could not send. Check the pages and try again.");
+          fetch(SB.url + "/functions/v1/super-worker", { method: "POST", headers: H, body: JSON.stringify({ action: "notify_request", sample_id: s.id, token: s._token, request_id: j.request_id }) }).catch(() => {});
+          out.innerHTML = '<p class="ok"><b>Received.</b> You asked for pages ' + esc(j.ranges) + ' (' + j.pages + ' page' + (j.pages > 1 ? "s" : "") + ', ' + money(j.amount) + '). Once we confirm your payment, your access code is emailed to you and appears in your account.</p>';
+        } catch (e) { out.innerHTML = '<p class="err">' + esc(e.message) + "</p>"; }
+        return;
+      }
+      const email = q("[data-e]").value.trim();
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { out.innerHTML = '<p class="err">Enter a valid email address.</p>'; return; }
+      if (!n()) { out.innerHTML = '<p class="err">Choose the pages you want, for example 14-20.</p>'; return; }
       if (!ref) { out.innerHTML = '<p class="err">Enter your payment reference.</p>'; return; }
       out.textContent = "Sending...";
       try {
-        const r = await fetch(SB.url + "/rest/v1/rpc/request_sample", { method: "POST", headers: H, body: JSON.stringify({ p_sample: s.id, p_email: email, p_pages: n(), p_format: q("[data-f]").value, p_reference: ref, p_pay: payNow() }) });
+        const r = await fetch(SB.url + "/rest/v1/rpc/request_sample_pages", { method: "POST", headers: H, body: JSON.stringify({ p_sample: s.id, p_email: email, p_ranges: q("[data-ranges]").value.trim(), p_reference: ref, p_pay: payNow() }) });
         if (!r.ok) { let m = "Could not send. Try again."; try { m = (await r.json()).message || m; } catch (e) {} throw new Error(m); }
         mineSet(s.id, { email }); q("[data-e2]").value = email;
         try { fetch((window.RGH.supabase.url + "/functions/v1/rgh-contact"), { method: "POST", headers: { "Content-Type": "application/json", apikey: window.RGH.supabase.anonKey, Accept: "application/json" }, body: JSON.stringify({ subject: "Sample request: " + email, _captcha: "false", _template: "box", message: email + " paid for a sample. Confirm in Admin > Sample access.\n\nSample: " + s.title + "\nPages: " + n() + " (" + money(n() * rate) + ")\nReference: " + ref }) }).catch(() => {}); } catch (e) {}
@@ -202,7 +233,7 @@
     };
     const fb = q("[data-free]"); if (fb) fb.onclick = async () => {
       const m = q("[data-freemsg]"); m.textContent = "Opening...";
-      try { const r = await fetch(SB.url + "/functions/v1/super-worker", { method: "POST", headers: H, body: JSON.stringify({ action: "preview", sample_id: s.id }) }); if (!r.ok) throw new Error(); const b = await r.blob(); m.textContent = ""; openViewer(s.title + " (free pages)", "Free preview", b); }
+      try { const r = await fetch(SB.url + "/functions/v1/super-worker", { method: "POST", headers: H, body: JSON.stringify({ action: "preview", sample_id: s.id, token: s._token || "" }) }); if (!r.ok) throw new Error(); const b = await r.blob(); m.textContent = ""; openViewer(s.title + " (free pages)", "Free preview", b); }
       catch (e) { m.innerHTML = '<p class="err">Could not open the preview right now. Try again in a minute.</p>'; }
     };
     q("[data-bal]").onclick = async () => {
@@ -220,7 +251,7 @@
       const email = q("[data-e2]").value.trim(), code = q("[data-c]").value.trim(), m = q("[data-msg]");
       if (!email || !code) { m.innerHTML = '<p class="err">Enter your email and access code.</p>'; return null; }
       m.textContent = "Checking...";
-      let r; try { r = await fetch(SB.url + "/functions/v1/super-worker", { method: "POST", headers: H, body: JSON.stringify({ action, sample_id: s.id, email, code, session: sess }) }); } catch (e) { m.innerHTML = '<p class="err">Could not reach the reading service. Please try again in a minute, or email ' + esc(C.email) + ' and we will send your pages.</p>'; return null; }
+      let r; try { r = await fetch(SB.url + "/functions/v1/super-worker", { method: "POST", headers: H, body: JSON.stringify({ action, sample_id: s.id, email, code, session: sess, token: s._token || "" }) }); } catch (e) { m.innerHTML = '<p class="err">Could not reach the reading service. Please try again in a minute, or email ' + esc(C.email) + ' and we will send your pages.</p>'; return null; }
       if (!r.ok) { let t = "Could not open. Try again."; try { t = (await r.json()).error || t; } catch (e) {} m.innerHTML = '<p class="' + (r.status === 202 ? "" : "err") + '">' + esc(t) + "</p>"; return null; }
       m.textContent = ""; return r;
     };
