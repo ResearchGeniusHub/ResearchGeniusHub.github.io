@@ -845,6 +845,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       };
       a.dataset.sid = sm.id; L.append(a);
     });
+    const want = window.__editSample; if (want) { window.__editSample = null; const t = [...L.querySelectorAll("article")].find(x => x.dataset.sid === want); if (t) { t.scrollIntoView({ behavior: "smooth", block: "center" }); t.querySelector("[data-ed]").click(); } }
     const bf = $("#bulklv"); bf.querySelector("[data-all]").onclick = () => L.querySelectorAll("[data-pick]").forEach(c => { c.checked = true; });
     bf.addEventListener("submit", async e => {
       e.preventDefault(); const ids = Array.from(L.querySelectorAll("article")).filter(x => x.querySelector("[data-pick]").checked).map(x => x.dataset.sid), lv = readLv(bf, "b"), m = bf.querySelector("[data-m]");
@@ -1017,6 +1018,12 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     }));
   }
   let accFilter = "requested";
+  // Opens the document editor of a sample in the Samples section (replace the PDF, change the pages, free pages, text, price, delete).
+  function openSampleEditor(id) {
+    if (!id) return;
+    window.__editSample = id;
+    const tab = document.querySelector('[data-view="samples"]'); if (tab) tab.click();
+  }
   // Opens the Samples form for a request, so the sample is uploaded for that student's request.
   function startUploadFor(r) {
     window.__linkField = { id: r.id, title: r.field, email: r.email };
@@ -1057,7 +1064,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
         <div class="small" style="white-space:pre-wrap">${esc(r.details)}</div>
         ${s ? `<div class="small" style="margin-top:6px">Sample: <b>${esc(s.title)}</b> · ${s.file_path ? s.pages + " pages" : "upload the document to continue"} · ${s.published ? "public" : "hidden (link only)"}</div>` : ""}
         <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center"><select data-frsample style="max-width:380px"><option value="">Choose the sample for this request</option><option value="__new">+ Create a sample for "${esc(r.field)}" and upload the document</option>${sampleOpts(r.sample_id)}</select>
-          <button class="btn sm" data-frlink>Send private link to student</button> <button class="btn sm alt" data-frpub>Make public now</button> <button class="btn sm alt" data-frhide>Hide again</button> <button class="btn sm alt" data-fredit>Edit request</button>${r.status === "new" ? ` <button class="btn sm alt" data-frdecline>No sample: decline</button>` : ""}</div>
+          <button class="btn sm" data-frlink>Send private link to student</button> <button class="btn sm alt" data-frpub>Make public now</button> <button class="btn sm alt" data-frhide>Hide again</button> <button class="btn sm alt" data-fredit>Edit request</button> <button class="btn sm alt" data-frdoc>Edit document</button>${r.status === "new" ? ` <button class="btn sm alt" data-frdecline>No sample: decline</button>` : ""}</div>
         <details style="margin-top:8px"><summary class="small"><b>Sample thread</b> (${th2.length})</summary>
           ${th2.length ? th2.map(t => `<p class="small" style="margin:4px 0;white-space:pre-wrap">${esc(new Date(t.created_at).toLocaleString())} · ${esc(t.author)} · <b>${esc(kindName[t.kind] || t.kind)}</b>${t.body ? ": " + esc(t.body) : ""}</p>`).join("") : '<p class="small muted">Nothing recorded yet.</p>'}
           <div style="display:grid;gap:6px;margin-top:6px"><select data-thkind><option value="note">Note</option><option value="student_message">Student's written message</option><option value="student_choice">Student asks for the sample selected above (in writing)</option></select>
@@ -1106,6 +1113,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       if (u.error) { er.textContent = u.error.message; return; }
       loadFieldRequests();
     });
+    box.querySelectorAll("[data-frdoc]").forEach(b => b.onclick = () => { const { sid, er } = rowOf(b); if (!sid || sid === "__new") { er.textContent = "Choose the sample first."; return; } openSampleEditor(sid); });
     box.querySelectorAll("[data-thadd]").forEach(b => b.onclick = async () => {
       const { r, sid, er, el } = rowOf(b); er.textContent = "";
       const kind = el.querySelector("[data-thkind]").value, body = el.querySelector("[data-thbody]").value.trim();
@@ -1168,8 +1176,12 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     const { data, error } = await sb.from("sample_access").select("*, samples(title,price_per_page)").order("created_at", { ascending: false }); if (error) { box.innerHTML = `<p class="err">${esc(error.message)}</p>`; return; }
     const rows = data.filter(r => accFilter === "all" || r.status === accFilter);
     box.innerHTML = `<h1 style="font-size:2rem">Sample access</h1><p class="small muted">After you confirm a payment, the access code is created and emailed to the student, and shows in their account. Read online: 2 sessions. Download: once.</p>
-      <div id="fr-list"></div><div id="pr-list"></div><div class="f"><label>Show</label><select id="accf"><option value="requested">Waiting for payment confirmation</option><option value="invited">Link sent (no payment yet)</option><option value="approved">Approved (code sent)</option><option value="closed">Finished (downloaded)</option><option value="all">All</option></select></div><div id="acc"></div>`;
+      <div class="panel" style="margin-bottom:14px"><strong>Edit a sample's document</strong> <span class="small muted">Replace the file, change the free pages, the pages count, the introduction or the price.</span><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><select id="acc-doc" style="max-width:380px"><option value="">Choose the sample</option></select> <button type="button" class="btn sm" id="acc-doc-go">Edit document</button></div></div><div id="fr-list"></div><div id="pr-list"></div><div class="f"><label>Show</label><select id="accf"><option value="requested">Waiting for payment confirmation</option><option value="invited">Link sent (no payment yet)</option><option value="approved">Approved (code sent)</option><option value="closed">Finished (downloaded)</option><option value="all">All</option></select></div><div id="acc"></div>`;
     $("#accf").value = accFilter; $("#accf").onchange = e => { accFilter = e.target.value; loadAccess(); };
+    sb.from("samples").select("id,title,published").order("created_at", { ascending: false }).then(({ data: sl }) => {
+      const sel = $("#acc-doc"); if (sel && sl) sel.innerHTML = '<option value="">Choose the sample</option>' + sl.map(x => `<option value="${esc(x.id)}">${esc(x.title)}${x.published ? "" : " (hidden)"}</option>`).join("");
+    });
+    $("#acc-doc-go").onclick = () => openSampleEditor($("#acc-doc").value);
     loadFieldRequests();
     loadPageRequests();
     const L = $("#acc"); if (!rows.length) { L.innerHTML = '<p class="muted">Nothing here.</p>'; return; }
