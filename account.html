@@ -1265,6 +1265,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 
   async function enterDash() {
     show("dash"); $("#hello").textContent = "Signed in as " + me.name;
+    sb.rpc("my_customer_code").then(r => { if (r.data) $("#hello").textContent += " · Customer ID " + r.data; }).catch(() => {});
     if (window.RGHChat) { RGHChat.identify(me.name, ""); RGHChat.refresh(); }
     prefill(); updatePrice(); updateNeg();
     const og = $("#order-col"), dg = $("#dgrid"), ob = $("#open-order");
