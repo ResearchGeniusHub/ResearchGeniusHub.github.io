@@ -850,7 +850,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     sc.onload = cb; document.head.appendChild(sc);
   }
 
-  const notify = (subject, message) => { try { fetch("https://formsubmit.co/ajax/" + C.email, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ _subject: subject, _captcha: "false", _template: "box", message }) }).catch(() => {}); } catch (e) {} };
+  const notify = (subject, message) => { try { fetch((window.RGH.supabase.url + "/functions/v1/rgh-contact"), { method: "POST", headers: { "Content-Type": "application/json", apikey: window.RGH.supabase.anonKey, Accept: "application/json" }, body: JSON.stringify({ subject: subject, _captcha: "false", _template: "box", message }) }).catch(() => {}); } catch (e) {} };
   const STAFF_URL = "https://researchgeniushub.github.io/account.html?staff=1";
   const paras = t => String(t || "").split(/\n+/).map(x => x.trim()).filter(Boolean).map(x => "<p>" + esc(x) + "</p>").join("");
   // ---- Samples with real access control (Supabase): free intro, email request, owner ticks "allow" after payment ----

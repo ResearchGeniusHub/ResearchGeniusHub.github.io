@@ -818,7 +818,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       await sb.from("orders").update({ status: "payment_reported" }).eq("id", id);
     }
   };
-  const notifyFallback = (subject, message) => { try { fetch("https://formsubmit.co/ajax/" + C.email, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ _subject: subject, _captcha: "false", _template: "box", message }) }).catch(() => {}); } catch (e) {} };
+  const notifyFallback = (subject, message) => { try { fetch((window.RGH.supabase.url + "/functions/v1/rgh-contact"), { method: "POST", headers: { "Content-Type": "application/json", apikey: window.RGH.supabase.anonKey, Accept: "application/json" }, body: JSON.stringify({ subject: subject, _captcha: "false", _template: "box", message }) }).catch(() => {}); } catch (e) {} };
   let lastOrders = [];
   const money = n => "£" + Number(n || 0).toFixed(2);
   if (LIVE) {
@@ -1218,7 +1218,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     const files = Array.from(fileIn.files);
     if (files.reduce((t, f) => t + f.size, 0) > 10 * 1048576) { $("#copy-msg").textContent = "Your files are over 10 MB in total. Use one of the email buttons and attach them there."; return; }
     const f = document.createElement("form");
-    f.method = "POST"; f.action = "https://formsubmit.co/" + C.email; f.enctype = "multipart/form-data"; f.style.display = "none";
+    f.method = "POST"; f.enctype = "multipart/form-data"; f.style.display = "none";
     const add = (k, v) => { const i = document.createElement("input"); i.type = "hidden"; i.name = k; i.value = v == null ? "" : String(v); f.appendChild(i); };
     add("_subject", subj); add("_template", "table"); add("_captcha", "false"); add("_honey", "");
     add("_next", location.origin + location.pathname.replace(/[^/]*$/, "") + "thanks.html?order=" + encodeURIComponent(o.id) + "&total=" + (o.total || 0) + "&q=" + (o.status === "awaiting_quote" ? 1 : 0));
@@ -1228,8 +1228,16 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     add("deadline", o.tier || ""); add("due", o.due || ""); add("price", priceText(o)); add("instructions", o.instructions);
     if (files.length) { fileIn.name = "attachment"; f.appendChild(fileIn); }
     document.body.appendChild(f);
+    // Sends the order details through rgh-contact (no formsubmit). Attached files cannot come through this route.
+    const btnLabel = $("#send-form").textContent;
     $("#send-form").disabled = true; $("#send-form").textContent = "Sending...";
-    f.submit();
+    const data = {}; f.querySelectorAll("input[type=hidden]").forEach(i => { data[i.name] = i.value; });
+    const next = data._next || "thanks.html";
+    const text = Object.keys(data).filter(k => !k.startsWith("_")).map(k => k + ": " + data[k]).join("\n") +
+      (files.length ? "\n\nThe student also has files. They were not attached through this form: ask them to email the files." : "");
+    fetch(window.RGH.supabase.url + "/functions/v1/rgh-contact", { method: "POST", headers: { "Content-Type": "application/json", apikey: window.RGH.supabase.anonKey }, body: JSON.stringify({ subject: subj, message: text, reply_to: data.email || "" }) })
+      .then(r => { if (!r.ok) throw new Error("send"); location.href = next; })
+      .catch(() => { $("#send-form").disabled = false; $("#send-form").textContent = btnLabel; $("#copy-msg").textContent = "Could not send through the form. Use one of the email buttons instead."; });
   }
 
   function showEmailOrder(o) {
@@ -1776,7 +1784,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     sc.onload = cb; document.head.appendChild(sc);
   }
 
-  const notify = (subject, message) => { try { fetch("https://formsubmit.co/ajax/" + C.email, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ _subject: subject, _captcha: "false", _template: "box", message }) }).catch(() => {}); } catch (e) {} };
+  const notify = (subject, message) => { try { fetch((window.RGH.supabase.url + "/functions/v1/rgh-contact"), { method: "POST", headers: { "Content-Type": "application/json", apikey: window.RGH.supabase.anonKey, Accept: "application/json" }, body: JSON.stringify({ subject: subject, _captcha: "false", _template: "box", message }) }).catch(() => {}); } catch (e) {} };
   const STAFF_URL = "https://researchgeniushub.github.io/account.html?staff=1";
   const paras = t => String(t || "").split(/\n+/).map(x => x.trim()).filter(Boolean).map(x => "<p>" + esc(x) + "</p>").join("");
   // ---- Samples with real access control (Supabase): free intro, email request, owner ticks "allow" after payment ----
