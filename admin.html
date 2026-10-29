@@ -779,7 +779,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       <form id="bulklv" class="panel" style="padding:12px"><strong>Set the level for several samples at once</strong><div class="small muted">Tick samples in the list below, choose the level, then apply. Works for samples uploaded earlier too.</div><div style="margin:8px 0">${lvBoxesRaw({}, "b")}</div><button class="btn sm alt">Apply level to ticked samples</button> <button type="button" class="btn sm alt" data-all>Tick all</button> <span class="small muted" data-m></span></form>
       <h3>Uploaded samples</h3><div id="slist"><p class="muted">Loading...</p></div>`;
     $("#openadd").onclick = () => { const w = $("#addwrap"); w.hidden = !w.hidden; $("#openadd").textContent = w.hidden ? "+ Add sample" : "Hide the form"; };
-    const f = $("#addsample"); pending = null;
+    const f = $("#addsample"); pending = null; applyLinkPrefill(f);
     f.file.onchange = async () => {
       const fl = f.file.files[0], msg = f.querySelector("[data-fmsg]"), prev = f.querySelector("[data-prev]"); pending = null; prev.innerHTML = ""; if (!fl) return;
       msg.textContent = "Reading " + fl.name + "..."; if (!f.title.value) f.title.value = fl.name.replace(/\.[^.]+$/, "");
@@ -808,6 +808,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
         const row = { title: f.title.value.trim(), subject: f.subject.value.trim(), style: f.style.value.trim() || "Harvard", pages, intro: f.intro.value.trim(), price_per_page: rate, free_pages: Math.max(1, +f.free.value || 1), preview_pages: pending.kind === "pdf" ? pending.previewPages : null, published: f.pub.checked, ...lv };
         if (pending.kind === "pdf") { const path = (crypto.randomUUID ? crypto.randomUUID() : Date.now()) + ".pdf"; const up = await sb.storage.from("samples").upload(path, pending.file, { contentType: "application/pdf" }); if (up.error) throw up.error; row.file_path = path; row.file_name = pending.file.name; }
         const ins = await sb.from("samples").insert(row).select().single(); if (ins.error) { if (row.file_path) await sb.storage.from("samples").remove([row.file_path]); throw ins.error; }
+        if (window.__linkField) { const L = window.__linkField; window.__linkField = null; await sb.from("field_requests").update({ sample_id: ins.data.id }).eq("id", L.id); await sb.from("sample_thread").insert({ field_id: L.id, sample_id: ins.data.id, author: "admin", kind: "sample_uploaded", body: row.title + " uploaded: " + pages + " pages, first " + row.free_pages + " free." }); }
         if (pending.kind === "text") { const r2 = await sb.from("sample_full").insert({ sample_id: ins.data.id, body: pending.text }); if (r2.error) { await sb.from("samples").delete().eq("id", ins.data.id); throw r2.error; } }
         loadSamples();
       } catch (x) { const m = x.message || String(x); err.textContent = /schema cache|column/i.test(m) ? "The database needs its sample update. In Supabase > SQL Editor, run supabase-update.sql, then try again. Detail: " + m : m; btn.disabled = false; btn.textContent = "Upload sample"; }
@@ -820,9 +821,10 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     L.innerHTML = ""; data.forEach(sm => {
       const a = document.createElement("article"); a.className = "order";
       a.innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><label style="font-weight:400"><input type="checkbox" data-pick> </label><strong>${esc(sm.title)}</strong><div class="small muted">${esc(sm.subject || "")} · ${esc(sm.all_levels ? "All levels" : (sm.levels && sm.levels.length ? sm.levels.join(", ") : sm.level) || "")} · ${sm.pages} pages · ${esc(sm.style || "")} · ${money(sm.price_per_page)}/page · ${sm.file_path ? "PDF" : "text only"}</div></div><span class="badge ${sm.published ? "paid" : "due"}">${sm.published ? "Published" : "Hidden"}</span></div>
-        <p style="margin:10px 0 0"><button class="btn sm" data-pv>Preview</button> <button class="btn sm alt" data-ed>Edit details and rate</button> <button class="btn sm alt" data-del>Delete</button></p><div data-edit></div><p class="err"></p>`;
+        <p style="margin:10px 0 0"><button class="btn sm" data-pv>Preview</button> <button class="btn sm alt" data-ed>Edit details and rate</button> <button class="btn sm alt" data-vis>${sm.published ? "Hide again" : "Make public"}</button> ${sm.published ? '<a class="btn sm alt" target="_blank" rel="noopener" href="' + esc(location.origin + location.pathname.replace(/[^/]*$/, "") + "samples.html#open=" + sm.id) + '">Open on Samples page</a> ' : ""}<button class="btn sm alt" data-del>Delete</button></p><div data-edit></div><p class="err"></p>`;
       a.querySelector("[data-pv]").onclick = () => previewSample(sm);
-      a.querySelector("[data-del]").onclick = async () => { if (!confirm("Delete this sample and its file?\n" + sm.title)) return; if (sm.file_path) await sb.storage.from("samples").remove([sm.file_path]); const r = await sb.from("samples").delete().eq("id", sm.id); if (r.error) a.querySelector(".err").textContent = r.error.message; else loadSamples(); };
+      a.querySelector("[data-vis]").onclick = async () => { const r = await sb.from("samples").update({ published: !sm.published }).eq("id", sm.id); if (r.error) a.querySelector(".err").textContent = r.error.message; else loadSamples(); };
+      a.querySelector("[data-del]").onclick = async () => { if (!confirm("Delete this sample and its file?\n" + sm.title)) return; const r = await sb.from("samples").delete().eq("id", sm.id); if (r.error) { a.querySelector(".err").textContent = r.error.message; return; } if (sm.file_path) await sb.storage.from("samples").remove([sm.file_path]); loadSamples(); };
       a.querySelector("[data-ed]").onclick = () => {
         const h = a.querySelector("[data-edit]"); if (h.innerHTML) { h.innerHTML = ""; return; }
         h.innerHTML = `<form class="panel" style="margin-top:10px"><div class="two"><div class="f"><label>Name</label><input name="title" value="${esc(sm.title)}"></div><div class="f"><label>Field</label><input name="subject" value="${esc(sm.subject || "")}"></div></div>
@@ -831,12 +833,12 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
           <div class="f"><label>Free introduction text</label><textarea name="intro" rows="3">${esc(sm.intro || "")}</textarea></div>
           <div class="f"><label>${sm.file_path ? "Replace the PDF (optional)" : "Attach a PDF so images, diagrams and tables show (optional)"}</label><input type="file" name="file" accept=".pdf"></div>
           <label style="font-weight:400"><input type="checkbox" name="pub"${sm.published ? " checked" : ""}> Published</label><p class="err"></p><button class="btn sm">Save changes</button></form>`;
-        const ef = h.querySelector("form"); ef.addEventListener("submit", async e => {
+        const ef = h.querySelector("form"); ef.file.onchange = async () => { const fl = ef.file.files[0]; if (!fl || !/\.pdf$/i.test(fl.name)) return; try { const L = await pdfjs(), d2 = await L.getDocument({ data: await fl.arrayBuffer() }).promise; ef.pages.value = d2.numPages; const fr = prompt("This file has " + d2.numPages + " pages. How many pages should be FREE to read?", ef.free.value || "1"); if (fr) ef.free.value = Math.max(1, +fr || 1); } catch (e) { alert("Could not read the file: " + (e.message || e)); } }; ef.addEventListener("submit", async e => {
           e.preventDefault(); const er = ef.querySelector(".err"), lv = readLv(ef, "e"), rate = Number(ef.rate.value); er.textContent = "";
           if (!(rate >= 2)) { er.textContent = "The charge per page starts from £2."; return; } if (!lv.all_levels && !lv.levels.length) { er.textContent = "Choose a level or Fits all levels."; return; }
           const upd = { title: ef.title.value.trim(), subject: ef.subject.value.trim(), style: ef.style.value.trim(), price_per_page: rate, free_pages: Math.max(1, +ef.free.value || 1), pages: Math.floor(+ef.pages.value) || sm.pages, intro: ef.intro.value.trim(), published: ef.pub.checked, ...lv };
           try {
-            const nf = ef.file && ef.file.files[0]; if (nf) { const p = (crypto.randomUUID ? crypto.randomUUID() : Date.now()) + ".pdf", up = await sb.storage.from("samples").upload(p, nf, { contentType: "application/pdf" }); if (up.error) throw up.error; if (sm.file_path) await sb.storage.from("samples").remove([sm.file_path]); upd.file_path = p; upd.file_name = nf.name; try { const L = await pdfjs(), d2 = await L.getDocument({ data: await nf.arrayBuffer() }).promise; if (d2.numPages >= 2 && Math.floor(+ef.pages.value) === sm.pages) upd.pages = d2.numPages; } catch (e2) {} }
+            const nf = ef.file && ef.file.files[0]; if (nf) { const p = (crypto.randomUUID ? crypto.randomUUID() : Date.now()) + ".pdf", up = await sb.storage.from("samples").upload(p, nf, { contentType: "application/pdf" }); if (up.error) throw up.error; if (sm.file_path) await sb.storage.from("samples").remove([sm.file_path]); upd.file_path = p; upd.file_name = nf.name; upd.preview_pages = null; try { const L = await pdfjs(), d2 = await L.getDocument({ data: await nf.arrayBuffer() }).promise; if (d2.numPages >= 2 && Math.floor(+ef.pages.value) === sm.pages) upd.pages = d2.numPages; } catch (e2) {} }
             const r = await sb.from("samples").update(upd).eq("id", sm.id); if (r.error) throw r.error; loadSamples();
           } catch (x) { er.textContent = x.message || String(x); }
         });
@@ -1015,53 +1017,102 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     }));
   }
   let accFilter = "requested";
-  // Requests from the Samples page (admin only). Decline with a reason, or confirm the upload and notify the student.
+  // Opens the Samples form for a request, so the sample is uploaded for that student's request.
+  function startUploadFor(r) {
+    window.__linkField = { id: r.id, title: r.field, email: r.email };
+    const tab = document.querySelector('[data-view="samples"]'); if (tab) tab.click();
+  }
+  function applyLinkPrefill(f) {
+    const L = window.__linkField; if (!L || !f) return;
+    const w = $("#addwrap"); if (w) w.hidden = false;
+    const oa = $("#openadd"); if (oa) oa.textContent = "Hide the form";
+    if (!f.title.value) f.title.value = L.title;
+    if (!f.subject.value) f.subject.value = L.title;
+    f.insertAdjacentHTML("afterbegin", `<p class="ok" style="margin:0 0 10px"><b>For the student's request:</b> ${esc(L.title)} (${esc(L.email)}). After you upload, the sample is linked to this request. Then send the private link from Sample access.</p>`);
+  }
+  // Requests from the Samples page (admin only). Each request has one sample, a thread of notes and messages, and send actions.
   async function loadFieldRequests() {
     const box = $("#fr-list"); if (!box || !isAdmin) return;
     const { data, error } = await sb.from("field_requests").select("*").order("created_at", { ascending: false });
     if (error) { box.innerHTML = `<p class="err">${esc(error.message)}</p>`; return; }
     const rows = data || [], news = rows.filter(r => r.status === "new");
-    const { data: smp } = await sb.from("samples").select("id,title,published").order("created_at", { ascending: false });
-    const sampleOpts = (smp || []).map(x => `<option value="${esc(x.id)}">${esc(x.title)}${x.published ? "" : " (hidden)"}</option>`).join("");
+    const { data: smp } = await sb.from("samples").select("id,title,published,file_path,pages").order("created_at", { ascending: false });
+    const samples = smp || [], byId = {};
+    samples.forEach(x => { byId[x.id] = x; });
+    const ids = rows.map(r => r.id);
+    const { data: th } = ids.length ? await sb.from("sample_thread").select("*").in("field_id", ids).order("created_at") : { data: [] };
+    const threads = {};
+    (th || []).forEach(t => { (threads[t.field_id] = threads[t.field_id] || []).push(t); });
+    const kindName = { note: "Note", student_message: "Student's written message", student_choice: "Student asks for this sample (in writing)", sample_uploaded: "Sample uploaded", link_sent: "Private link sent", code_sent: "Access code sent" };
+    const sampleOpts = sel => samples.map(x => `<option value="${esc(x.id)}"${x.id === sel ? " selected" : ""}>${esc(x.title)}${x.file_path ? "" : " (no file yet)"}${x.published ? "" : " (hidden)"}</option>`).join("");
     box.innerHTML = `<div class="panel" style="margin-bottom:14px"><h3 style="margin:0 0 6px">Requests from the Samples page (${news.length} new)</h3>
-      <p class="small muted" style="margin:0 0 8px">No sample in that field: decline and explain. Sample ready: choose it and send the private link. The student opens it from the link, asks for the pages they want and pays. The sample stays hidden from the public list until a payment is confirmed (or you make it public).</p>
-      ${rows.length ? rows.map(r => `<article class="order" style="margin-top:8px" data-fr="${esc(r.id)}" data-field="${esc(r.field)}">
+      <p class="small muted" style="margin:0 0 8px">Each request has one sample. Choose the sample the student asked for, or create it now and upload the document (you can replace or delete it later). Then send the private link. Pages open only after a payment is confirmed. To send a different sample, first record the student's written request in the thread.</p>
+      ${rows.length ? rows.map(r => {
+        const s = r.sample_id ? byId[r.sample_id] : null;
+        const stateTxt = r.status === "declined" ? "declined" : !s ? (r.status === "new" ? "new" : "no sample chosen") : s.file_path ? "sample ready" : "sample has no file yet";
+        const th2 = threads[r.id] || [];
+        return `<article class="order" style="margin-top:8px" data-fr="${esc(r.id)}" data-field="${esc(r.field)}">
         <strong>${esc(r.field)}</strong> · ${esc(r.level || "")}${r.deadline ? " · deadline " + esc(r.deadline) : ""} · ${esc(r.name)} · <a href="mailto:${esc(r.email)}">${esc(r.email)}</a> · <span class="small muted">${esc(new Date(r.created_at).toLocaleDateString())}</span>
-        <span class="badge ${r.status === "new" ? "due" : "paid"}">${esc(r.status)}</span>
+        <span class="badge ${r.status === "new" ? "due" : "paid"}">${esc(r.status === "uploaded" ? "link sent" : r.status)}</span> <span class="small muted">${esc(stateTxt)}</span>
         <div class="small" style="white-space:pre-wrap">${esc(r.details)}</div>
-        ${r.status === "new" ? `<p style="margin:8px 0 0"><button class="btn sm alt" data-frdecline>No sample: decline and explain</button></p>` : ""}
-        <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center"><select data-frsample style="max-width:360px"><option value="">Choose the sample for this request</option>${sampleOpts}</select> <button class="btn sm" data-frlink>Send private link to student</button> <button class="btn sm alt" data-frpub>Make public now</button> <button class="btn sm alt" data-frhide>Hide again</button></div>
+        ${s ? `<div class="small" style="margin-top:6px">Sample: <b>${esc(s.title)}</b> · ${s.file_path ? s.pages + " pages" : "upload the document to continue"} · ${s.published ? "public" : "hidden (link only)"}</div>` : ""}
+        <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center"><select data-frsample style="max-width:380px"><option value="">Choose the sample for this request</option><option value="__new">+ Create a sample for "${esc(r.field)}" and upload the document</option>${sampleOpts(r.sample_id)}</select>
+          <button class="btn sm" data-frlink>Send private link to student</button> <button class="btn sm alt" data-frpub>Make public now</button> <button class="btn sm alt" data-frhide>Hide again</button> <button class="btn sm alt" data-fredit>Edit request</button>${r.status === "new" ? ` <button class="btn sm alt" data-frdecline>No sample: decline</button>` : ""}</div>
+        <details style="margin-top:8px"><summary class="small"><b>Sample thread</b> (${th2.length})</summary>
+          ${th2.length ? th2.map(t => `<p class="small" style="margin:4px 0;white-space:pre-wrap">${esc(new Date(t.created_at).toLocaleString())} · ${esc(t.author)} · <b>${esc(kindName[t.kind] || t.kind)}</b>${t.body ? ": " + esc(t.body) : ""}</p>`).join("") : '<p class="small muted">Nothing recorded yet.</p>'}
+          <div style="display:grid;gap:6px;margin-top:6px"><select data-thkind><option value="note">Note</option><option value="student_message">Student's written message</option><option value="student_choice">Student asks for the sample selected above (in writing)</option></select>
+          <textarea data-thbody rows="2" placeholder="Paste or type the message" style="width:100%"></textarea><div><button class="btn sm alt" data-thadd>Add to thread</button></div></div>
+        </details>
         <p class="err fr-err" style="margin:6px 0 0"></p>
-      </article>`).join("") : '<p class="small muted">No requests yet.</p>'}</div>`;
+      </article>`; }).join("") : '<p class="small muted">No requests yet.</p>'}</div>`;
+    const rowOf = b => { const el = b.closest("[data-fr]"); return { el, r: rows.find(x => x.id === el.dataset.fr), sid: el.querySelector("[data-frsample]").value, er: el.querySelector(".fr-err") }; };
+    box.querySelectorAll("[data-frsample]").forEach(sel => sel.onchange = () => { if (sel.value === "__new") startUploadFor(rows.find(x => x.id === sel.closest("[data-fr]").dataset.fr)); });
     box.querySelectorAll("[data-frdecline]").forEach(b => b.onclick = () => {
       const id = b.closest("[data-fr]").dataset.fr;
       const msg = prompt("Message to the student. Explain there is no order or sample in this field at the moment.", "Thank you for your request. We do not have a sample in this field at the moment and no order is open for it yet. We will contact you if one becomes available.");
       if (msg && msg.trim().length >= 10) sendFieldNote(id, "declined", msg.trim(), "Your sample request");
     });
     box.querySelectorAll("[data-frlink]").forEach(b => b.onclick = async () => {
-      const el = b.closest("[data-fr]"), id = el.dataset.fr, sid = el.querySelector("[data-frsample]").value, er = el.querySelector(".fr-err");
-      er.textContent = "";
-      const r = rows.find(x => x.id === id);
-      if (!sid) { er.textContent = "Choose the sample for this request first."; return; }
+      const { r, sid, er } = rowOf(b); er.textContent = "";
+      if (!sid || sid === "__new") { er.textContent = "Choose the sample for this request first."; return; }
+      const s = byId[sid];
+      if (!s || !s.file_path) { er.textContent = "This sample has no document yet. Create it from this request and upload the document first."; return; }
       b.disabled = true;
       try {
         const inv = await sb.rpc("admin_invite_sample", { p_sample: sid, p_email: r.email });
         if (inv.error) throw new Error(inv.error.message);
         const mail = await sb.functions.invoke("super-worker", { body: { action: "invite", access_id: inv.data.access_id } });
-        if (mail.error || !(mail.data && mail.data.ok)) throw new Error("The link was created but the email could not be sent" + (mail.data && mail.data.why ? " (" + mail.data.why + ")" : "") + ". Check the Brevo settings, then try again.");
-        await sb.from("field_requests").update({ status: "uploaded", sample_id: sid }).eq("id", id);
+        const d = (mail.data) || {};
+        if (mail.error || !d.ok) throw new Error("The link was not sent" + (d.why ? " (" + d.why + ")" : "") + ". Check the Brevo settings, then try again.");
+        await sb.from("field_requests").update({ status: "uploaded", sample_id: sid, link_sent_at: new Date().toISOString() }).eq("id", r.id);
         alert("The private link was emailed to " + r.email + ". The sample stays hidden from the public list.");
         loadFieldRequests();
       } catch (x) { er.textContent = x.message || String(x); b.disabled = false; }
     });
     box.querySelectorAll("[data-frpub],[data-frhide]").forEach(b => b.onclick = async () => {
-      const el = b.closest("[data-fr]"), sid = el.querySelector("[data-frsample]").value, er = el.querySelector(".fr-err");
-      er.textContent = "";
-      if (!sid) { er.textContent = "Choose the sample first."; return; }
+      const { sid, er } = rowOf(b); er.textContent = "";
+      if (!sid || sid === "__new") { er.textContent = "Choose the sample first."; return; }
       const makePublic = b.hasAttribute("data-frpub");
       const x = await sb.from("samples").update({ published: makePublic }).eq("id", sid);
       if (x.error) { er.textContent = x.error.message; return; }
       alert(makePublic ? "The sample is now public in the Samples list." : "The sample is hidden again. Students with a link can still open it.");
+      loadFieldRequests();
+    });
+    box.querySelectorAll("[data-fredit]").forEach(b => b.onclick = async () => {
+      const { r, er } = rowOf(b); er.textContent = "";
+      const v = prompt("Edit what the student asked for:", r.details || ""); if (v === null) return;
+      const dl = prompt("Deadline (optional):", r.deadline || ""); if (dl === null) return;
+      const u = await sb.from("field_requests").update({ details: v.trim(), deadline: dl.trim() }).eq("id", r.id);
+      if (u.error) { er.textContent = u.error.message; return; }
+      loadFieldRequests();
+    });
+    box.querySelectorAll("[data-thadd]").forEach(b => b.onclick = async () => {
+      const { r, sid, er, el } = rowOf(b); er.textContent = "";
+      const kind = el.querySelector("[data-thkind]").value, body = el.querySelector("[data-thbody]").value.trim();
+      if (!body) { er.textContent = "Type or paste the message first."; return; }
+      if (kind === "student_choice" && (!sid || sid === "__new")) { er.textContent = "Choose the sample the student asked for first."; return; }
+      const ins = await sb.from("sample_thread").insert({ field_id: r.id, sample_id: sid && sid !== "__new" ? sid : null, author: kind === "note" ? "admin" : "student", kind, body });
+      if (ins.error) { er.textContent = ins.error.message; return; }
       loadFieldRequests();
     });
   }
