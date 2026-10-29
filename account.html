@@ -795,7 +795,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     },
     async saveDraft(user, order, files, reason) {
       await this.init();
-      const { data, error } = await sb.from("order_drafts").insert({ email: user.email, name: user.name || "", data: order, problem: reason, files: files.map(f => ({ name: f.name })) }).select().single();
+      const { data, error } = await sb.from("order_drafts").insert({ name: user.name || "", data: order, problem: reason, files: files.map(f => ({ name: f.name })) }).select().single();
       if (error) throw error;
       const up = await this.uploadAll(user, user.id + "/drafts/" + data.id + "/", files);
       return { id: data.id, failed: up.failed };
@@ -822,16 +822,17 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
   let lastOrders = [];
   const money = n => "£" + Number(n || 0).toFixed(2);
   if (LIVE) {
-    // Emails go through the rgh-notify function (admin copy with attachments + student copy). If it is not deployed, a plain alert goes to the admin.
+    // Notes to the admin go through the rgh-customer-mail function. It labels them with the Customer ID only, never the email address.
     const fx = async (type, order_id, event_id, fb) => {
-      try { await live.init(); const { error } = await sb.functions.invoke("rgh-notify", { body: { type, order_id, event_id } }); if (error) throw error; }
-      catch (e) { if (fb) notifyFallback(fb[0], fb[1]); }
+      if (!fb) return;
+      try { await live.init(); const { error } = await sb.functions.invoke("rgh-customer-mail", { body: { kind: "student_note", order_id, subject: fb[0], message: fb[1] } }); if (error) throw error; }
+      catch (e) { notifyFallback(fb[0], fb[1]); }
     };
     live.orders = async () => {
       await live.init();
       const { data, error } = await sb.from("orders").select("*").order("created_at", { ascending: false });
       if (error) throw error;
-      return data.map(r => Object.assign({}, r.data, { id: r.id, order_no: r.order_no, status: r.status, created: r.created_at, total: Number(r.total), paid: Number(r.paid_amount || 0), access: r.access || "none" }));
+      return data.map(r => Object.assign({}, r.data, { id: r.id, order_no: r.order_no, status: r.status, created: r.created_at, total: Number(r.total), paid: Number(r.paid_amount || 0), access: r.access || "none", customer_code: r.customer_code || "" }));
     };
     live.payments = async () => { await live.init(); const { data } = await sb.from("payments").select("*"); return data || []; };
     live.events = async ids => { if (!ids.length) return []; await live.init(); const { data } = await sb.from("order_events").select("*").in("order_id", ids).order("created_at"); return data || []; };
@@ -859,15 +860,15 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       let { error } = await sb.from("payments").insert({ order_id: id, method, reference: ref || "", amount, portion: portion || "full" });
       if (error) { const r2 = await sb.from("payments").insert({ order_id: id, method, reference: ref || "" }); error = r2.error; }
       if (error) throw new Error("Your payment report could not be saved (" + error.message + "). Please email " + C.email + " with your order number " + id + ".");
-      notifyFallback("PAYMENT REPORTED " + money(amount) + " (" + (portion || "full") + ") order " + id, user.name + " (" + user.email + ") reports paying " + money(amount) + " (" + (portion || "full") + ") by " + method + ", reference " + (ref || "none") + ", for order " + id + ". Please check and confirm in the admin page.");
+      notifyFallback("PAYMENT REPORTED " + money(amount) + " (" + (portion || "full") + ") order " + id, user.name + " reports paying " + money(amount) + " (" + (portion || "full") + ") by " + method + ", reference " + (ref || "none") + ", for order " + id + ". Please check and confirm in the admin page.");
       const o = lastOrders.find(x => x.id === id) || {};
       if (o.status === "awaiting_payment") await sb.from("orders").update({ status: "payment_reported" }).eq("id", id);
-      fx("payment_reported", id, null, ["Payment reported: " + user.email, user.name + " (" + user.email + ") reported " + money(amount) + " (" + (portion || "full") + ") for order " + id + ". Please confirm."]);
+      fx("payment_reported", id, null, ["Payment reported", user.name + " reported " + money(amount) + " (" + (portion || "full") + ") for order " + id + ". Please confirm."]);
     };
     const co = live.createOrder.bind(live);
     live.createOrder = async (user, order, files) => {
       const r = await co(user, order, files);
-      fx("order_placed", r.id, null, [(order.status === "awaiting_quote" ? "Quote request: " : "New order: ") + user.email, user.name + " (" + user.email + ") placed order " + r.id + ": " + (order.service || "") + ", " + (order.title || "") + ". Files are in your staff page."]);
+      fx("order_placed", r.id, null, [(order.status === "awaiting_quote" ? "Quote request" : "New order"), user.name + " placed order " + r.id + ": " + (order.service || "") + ", " + (order.title || "") + ". Files are in your staff page."]);
       return r;
     };
     live.addEvent = async (user, orderId, kind, summary, message, files, hold) => {
@@ -876,7 +877,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       if (up.failed.length) throw new Error("These files did not upload: " + up.failed.join(", ") + ". Check the file types and sizes, then try again.");
       const { data, error } = await sb.rpc("student_add_update", { p_order: orderId, p_kind: kind, p_summary: summary, p_message: message, p_hold: !!hold, p_files: up.names });
       if (error) throw error;
-      fx("student_update", orderId, data, ["Student update: " + user.email, user.name + " added to order " + orderId + ": " + summary + "\n\n" + message]);
+      fx("student_update", orderId, data, ["Student update", user.name + " added to order " + orderId + ": " + summary + "\n\n" + message]);
     };
     live.listFiles = async orderId => {
       await live.init();
@@ -1155,7 +1156,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       level: form.level.value, country: form.country.value, style: form.style.value,
       mode: form.mode.value, qty: Number(form.qty.value), pages: q.pages, coaching: !!q.coaching, platforms: q.coaching ? [form.plat1.value, form.plat2.value] : null, tier: (q.ai || q.quote || q.sample || q.coaching) ? null : form.tier.value,
       ai: q.ai, rate: q.rate, total: q.total, due: form.due.value, instructions: form.instructions.value.trim(),
-      customer: me ? me.name : form.gname.value.trim(), customerEmail: me ? me.email : form.gemail.value.trim(), phone: me ? "" : form.gphone.value.trim(), created: new Date().toISOString(), status: q.quote ? "awaiting_quote" : "awaiting_payment"
+      customer: me ? me.name : form.gname.value.trim(), customerEmail: me ? "" : form.gemail.value.trim(), phone: me ? "" : form.gphone.value.trim(), created: new Date().toISOString(), status: q.quote ? "awaiting_quote" : "awaiting_payment"
     };
     if (form.pricemode.value === "neg" && !form.pricemode.parentNode.hidden) {
       const t = form.negtype.value, max = DISC[t], agreed = Number(form.agreed.value), min = Math.round(q.total * (100 - max)) / 100, ref = form.refid.value.trim().toUpperCase();
@@ -1264,7 +1265,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 
   async function enterDash() {
     show("dash"); $("#hello").textContent = "Signed in as " + me.name;
-    if (window.RGHChat) { RGHChat.identify(me.name, me.email); RGHChat.refresh(); }
+    if (window.RGHChat) { RGHChat.identify(me.name, ""); RGHChat.refresh(); }
     prefill(); updatePrice(); updateNeg();
     const og = $("#order-col"), dg = $("#dgrid"), ob = $("#open-order");
     if (og && dg && ob) {   // one clear Order button; the form opens only when needed so the orders list gets the space
@@ -1285,7 +1286,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     return { phase, pay: pendingPay && paid < total && paid > 0 ? pay + " (more reported)" : pay };
   };
   const rowHead = (cols, label) => `<button type="button" class="orow-head" aria-expanded="false">` + cols.map((c, i) => `<span><span class="lab">${esc(label[i])}</span>${i === cols.length - 1 ? '<b class="pv">Preview</b>' : c}</span>`).join("") + `</button>`;
-  const rowHeaderLabels = ["Student email", "Order type", "Order number", "Order date", "Due date", "Payment status", "Order status", "Open"];
+  const rowHeaderLabels = ["Customer ID", "Order type", "Order number", "Order date", "Due date", "Payment status", "Order status", "Open"];
   const rowsHeader = `<div class="orow-cols">` + rowHeaderLabels.map(x => `<span>${x}</span>`).join("") + `</div>`;
   const wireRows = box => box.querySelectorAll(".orow-head").forEach(h => h.addEventListener("click", () => { const r = h.closest(".orow"), open = !r.classList.contains("open"); r.classList.toggle("open", open); h.setAttribute("aria-expanded", open); }));
   /* sample access codes (shown here after we confirm payment, and also emailed) */
@@ -1337,7 +1338,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       const delivered = ["delivered", "revision_requested"].includes(o.status);
       const payBadge = o.paid >= o.total && o.total > 0 ? `<span class="badge paid">Paid in full</span>` : o.paid > 0 ? `<span class="badge due">Part paid ${money(o.paid)}, balance ${money(owing)}</span>` : "";
       const rs = rowStatus(o, evs, o.paid, o.total, pending), dueTxt = o.due ? String(o.due).replace("T", " ") : (o.tier || "");
-      const head = rowHead([esc(me.email), esc(o.service), esc(o.order_no || o.id), new Date(o.created).toLocaleDateString(), esc(dueTxt || "-"), esc(rs.pay), esc(rs.phase), ""], rowHeaderLabels);
+      const head = rowHead([esc(o.customer_code || ""), esc(o.service), esc(o.order_no || o.id), new Date(o.created).toLocaleDateString(), esc(dueTxt || "-"), esc(rs.pay), esc(rs.phase), ""], rowHeaderLabels);
       const markDone = (delivered || o.status === "in_progress" || o.status === "revision_requested") && rs.phase !== "Complete" && o.status !== "awaiting_quote" ? `<p style="margin:12px 0 0"><button class="btn sm" data-markdone="${esc(o.id)}">Mark this order complete</button> <span class="small muted">Or it completes by itself after ${C.completeAfterDays || 7} days with no feedback. You can still request a revision.</span></p>` : "";
       const reopen = ["Reviewing", "Complete"].includes(rs.phase) ? `<p style="margin:12px 0 0"><button class="btn sm" data-reactivate="${esc(o.id)}">Reactivate this order (I need changes)</button></p>` : "";
       return `<article class="order orow" data-id="${esc(o.id)}">${head}<div class="orow-body">
@@ -1396,9 +1397,9 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
         const up = await sb.storage.from("evidence").upload(path, file, { cacheControl: "3600" }); if (up.error) throw up.error;
         const mine = pays.filter(p => p.order_id === oid);
         const pay = mine.find(p => String(p.reference || "").toUpperCase() === ref.toUpperCase()) || mine[mine.length - 1] || {};
-        const ins = await sb.from("payment_evidence").insert({ payment_id: pay.id || null, order_id: oid, email: me.email, reference: ref, file_path: path, file_name: file.name });
+        const ins = await sb.from("payment_evidence").insert({ payment_id: pay.id || null, order_id: oid, reference: ref, file_path: path, file_name: file.name });
         if (ins.error) throw ins.error;
-        notifyFallback("Payment evidence uploaded: " + me.email, me.email + " uploaded payment evidence for order " + oid + " (reference " + (ref || "none") + "). Check it under Finances.");
+        sb.functions.invoke("rgh-customer-mail", { body: { kind: "student_note", order_id: oid, subject: "Payment evidence uploaded", message: "Payment evidence was uploaded for this order (reference " + (ref || "none") + "). Check it under Finances." } }).catch(() => {});
         alert("Thank you. Your evidence has been sent. We will check it and confirm your payment.");
         await renderOrders();
       } catch (x) { err.textContent = "Not uploaded: " + (x.message || x); btn.disabled = false; btn.textContent = "Upload payment evidence"; }
@@ -1408,9 +1409,9 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       const note = f.note.value.trim();
       try {
         await live.init();
-        const r = await sb.from("receipt_requests").insert({ order_id: f.dataset.rcpt, email: me.email, note });
+        const r = await sb.from("receipt_requests").insert({ order_id: f.dataset.rcpt, note });
         if (r.error) throw r.error;
-        notifyFallback("Receipt requested: " + me.email, me.email + " asks for a receipt for order " + f.dataset.rcpt + (note ? ". Note: " + note : "") + ". Staff: escalate in the order.");
+        sb.functions.invoke("rgh-customer-mail", { body: { kind: "student_note", order_id: f.dataset.rcpt, subject: "Receipt requested", message: "A receipt is requested for this order." + (note ? " Note: " + note : "") + " Staff: escalate in the order." } }).catch(() => {});
         await renderOrders();
       } catch (x) { err.textContent = "Not sent: " + (x.message || x); btn.disabled = false; }
     }));
