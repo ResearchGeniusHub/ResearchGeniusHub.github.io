@@ -1179,6 +1179,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     if (lastOrders.some(x => x.service === order.service && (x.title || "").toLowerCase() === order.title.toLowerCase() && x.pages === order.pages && ["awaiting_payment", "awaiting_quote"].includes(x.status)) && !confirm("You already have an unpaid order with the same details. Place another one anyway?")) { $("#o-submit").textContent = "Place order"; $("#o-submit").disabled = false; return; }
     try {
       const saved = await api.createOrder(me, order, Array.from(fileIn.files));
+      sb.functions.invoke("rgh-customer-mail", { body: { kind: "order_placed", order_id: saved.id } }).catch(() => {});
       form.reset(); updatePrice(); $("#file-msg").textContent = "";
       if (window.__closeOrderForm) window.__closeOrderForm();
       await renderOrders(saved.id);
