@@ -777,7 +777,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       };
     });
   }
-  if (grid && SBLIVE) { renderLive(); }
+  if (grid && SBLIVE) { grid.innerHTML = '<p class="muted">Browse and read our samples on the <a href="samples.html">Samples page</a>.</p>'; }
   else if (grid) {
     if (Array.isArray(window.RGH_SAMPLES)) C.samples = window.RGH_SAMPLES;
     const ready = C.samples.map((s, i) => ({ s, i })).filter(x => x.s.introFile || x.s.introText);

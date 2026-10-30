@@ -877,17 +877,27 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       if (error) throw error;
       fx("student_update", orderId, data, ["Student update", user.name + " added to order " + orderId + ": " + summary + "\n\n" + message]);
     };
-    live.listFiles = async orderId => {
+    live.listFiles = async (orderId, userId) => {
       await live.init();
-      const { data, error } = await sb.functions.invoke("rgh-order-files", { body: { action: "list", order_id: orderId } });
-      if (error) throw new Error(await fnError(error));
-      return data;
+      const o = (lastOrders || []).find(x => x.id === orderId) || {};
+      const full = o.access === "full";
+      const bucket = full ? "deliveries" : "previews";
+      const pre = userId + "/" + orderId + "/";
+      const { data, error } = await sb.storage.from(bucket).list(pre);
+      if (error) throw new Error("Your files could not be listed (" + error.message + "). Refresh the page, or email " + C.email + ".");
+      const items = (data || []).filter(f => f.id && f.name).map(f => {
+        const m = f.name.match(/^(\d+)-(.*)$/), ts = m ? Number(m[1]) : 0, rest = m ? m[2] : f.name;
+        const who = /__/.test(rest) ? rest.split("__")[0].replace(/^preview-/, "") : "Team";
+        const title = rest.replace(/^preview-/, "").replace(/^(Admin|Staff)__/, "");
+        return { bucket: bucket, path: pre + f.name, title: title, ts: ts, who: who };
+      }).sort((a, b) => a.ts - b.ts);
+      return { items: items, full: full };
     };
     live.fileUrl = async (orderId, item, mode) => {
       await live.init();
-      const { data, error } = await sb.functions.invoke("rgh-order-files", { body: { action: mode === "download" ? "download" : "view", order_id: orderId, bucket: item.bucket, path: item.path } });
-      if (error) throw new Error(await fnError(error));
-      return URL.createObjectURL(data);
+      const r = await sb.storage.from(item.bucket).createSignedUrl(item.path, 600, mode === "download" ? { download: item.title } : undefined);
+      if (r.error || !r.data) throw new Error("That file could not be opened. " + (r.error ? r.error.message : "Refresh the page and try again."));
+      return r.data.signedUrl;
     };
     live.markComplete = async id => {
       await live.init();
@@ -1393,7 +1403,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     box.querySelectorAll("details").forEach(d => { const el = d.querySelector("[data-docs]"); if (!el) return; d.addEventListener("toggle", async () => {
       if (!d.open || el.dataset.ready) return; el.dataset.ready = 1;
       const oid = el.dataset.docs, ord = list.find(x => x.id === oid);
-      try { const r = await live.listFiles(oid); RGHDocs.render(el, sb, me.id, ord, evs, { items: r.items, full: r.full, view: (item, mode) => live.fileUrl(oid, item, mode) }); }
+      try { const r = await live.listFiles(oid, me.id); RGHDocs.render(el, sb, me.id, ord, evs, { items: r.items, full: r.full, view: (item, mode) => live.fileUrl(oid, item, mode) }); }
       catch (x) { el.innerHTML = '<p class="err">' + esc(x.message) + '</p>'; }
     }); });
     box.querySelectorAll("form[data-evid]").forEach(f => f.addEventListener("submit", async e => {
@@ -1755,7 +1765,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
       };
     });
   }
-  if (grid && SBLIVE) { renderLive(); }
+  if (grid && SBLIVE) { grid.innerHTML = '<p class="muted">Browse and read our samples on the <a href="samples.html">Samples page</a>.</p>'; }
   else if (grid) {
     if (Array.isArray(window.RGH_SAMPLES)) C.samples = window.RGH_SAMPLES;
     const ready = C.samples.map((s, i) => ({ s, i })).filter(x => x.s.introFile || x.s.introText);

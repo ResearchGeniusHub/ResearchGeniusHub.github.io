@@ -403,7 +403,8 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 </div></section>
 <section class="s tint"><div class="wrap">
   <div class="chips-row" style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px"><button type="button" class="btn sm alt" data-q="essay">Essays</button><button type="button" class="btn sm alt" data-q="report">Reports</button><button type="button" class="btn sm alt" data-q="business plan">Business plans</button><button type="button" class="btn sm alt" data-q="presentation">Presentations</button><button type="button" class="btn sm alt" data-q="proposal">Proposals</button><button type="button" class="btn sm alt" data-q="concept paper">Concept papers</button><button type="button" class="btn sm alt" data-q="dissertation">Dissertations</button></div><script>document.addEventListener("click",function(e){var b=e.target.closest("[data-q]");if(!b)return;var i=document.querySelector("#sample-app .sa-q");if(!i)return;i.value=b.dataset.q;i.dispatchEvent(new Event("input"));});</script><div id="sample-app"></div>
-  <div class="samples" data-samples></div>
+  <div id="sample-app"></div>
+<div class="samples" data-samples></div>
   <p class="muted" style="margin-top:26px">Samples are for reference only and show how we structure, argue and reference. Want to see something in your subject? Email <a data-email></a> or <a href="contact.html">contact us</a>.</p>
 </div></section>
 </section>
