@@ -65,9 +65,8 @@ window.RGH = {
   ],
 
   // ---- Chat assistant ----
-  // Built-in assistant answers common questions, then hands over to you. To use a live chat service instead
-  // (e.g. free Tawk.to), paste its embed script address into tawkSrc and the built-in assistant switches off.
-  chat: { replyWithin: "1 hour", tawkSrc: "https://embed.tawk.to/6ae057da437a3d347030a89d/default" },
+  // "Chat with us" opens WhatsApp directly (site-chat.js). No third-party chat is used.
+  chat: { replyWithin: "1 hour" },
 
   // ---- Online coaching ----
   // 1 hour = first rate. More than 1 hour = additional rate for EVERY hour (2 hours = 2 x 13).

@@ -20,7 +20,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&display=swap" rel="stylesheet">
 <link rel="icon" href="favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="preconnect" href="https://embed.tawk.to" crossorigin>
 <style>
 :root{
   --paper:#F6F7FA; --white:#FFFFFF; --ink:#0F1B33; --ink2:#46526B; --line:#D8DDE8;
@@ -583,143 +582,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 })();
 
 </script>
-<script>
-/* Chat assistant: quick answers from the site's own prices, then hands over to the team. */
-(function () {
-  const C = window.RGH, Q = window.RGHQuote;
-  let tawk = false, wantLive = false, bubbleOn = false, ident = null, waitTimer = null;
-  const signedIn = () => { try { const u = C.supabase && C.supabase.url; return !!(u && localStorage.getItem("sb-" + u.replace("https://", "").split(".")[0] + "-auth-token")); } catch (e) { return false; } };
-  const shouldShow = () => wantLive || signedIn();
-  function sync() {
-    if (!tawk) return;
-    const on = shouldShow();
-    try { on ? window.Tawk_API.showWidget() : window.Tawk_API.hideWidget(); } catch (e) {}
-    bubbleOn = on;
-    const r = document.querySelector(".chat"); if (r) r.classList.toggle("lifted", on);
-  }
-  if (C.chat && C.chat.tawkSrc) {
-    // Live chat (Tawk.to) starts loading as soon as the page opens, so the chat icon can appear straight away when a person is requested.
-    window.Tawk_API = window.Tawk_API || {}; window.Tawk_LoadStart = new Date();
-    window.Tawk_API.onLoad = function () {
-      tawk = true;
-      if (ident) { try { window.Tawk_API.setAttributes(ident, function () {}); } catch (e) {} }
-      sync();
-      if (waitTimer) { clearTimeout(waitTimer); waitTimer = null; if (typeof say === "function") say(`Live chat is ready. <strong>Tap the green chat icon</strong> at the bottom right of your screen.`, "bot"); }
-    };
-    window.Tawk_API.onChatMinimized = function () { if (!signedIn()) { wantLive = false; } sync(); };
-    const ts = document.createElement("script"); ts.async = true; ts.src = C.chat.tawkSrc; ts.charset = "UTF-8"; ts.setAttribute("crossorigin", "*");
-    document.head.appendChild(ts);
-  }
-  const ukOpen = () => { try { return (+new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", hour: "numeric", hour12: false }).format(new Date()) % 24) >= 10; } catch (e) { return true; } };
-  const within = "10:00 to midnight UK time";
-  const m = n => Q.money(n);
-  const tiers = C.tiers.map(t => `${t.label.toLowerCase()} ${m(t.rate)}`).join(", ");
-  const tiersPhd = C.tiersPhd.map(t => `${t.label.toLowerCase()} ${m(t.rate)}`).join(", ");
-  const gmail = (subj, body) => `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(C.email)}&su=${encodeURIComponent(subj)}&body=${encodeURIComponent(body || "")}`;
-  const esc = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-
-  const KB = [
-    { re: /coach|tutor|lesson|session|hourly|per hour/i, a: () => `Online coaching for undergraduate, postgraduate and PhD students, including thesis defence preparation, costs ${m(C.coaching.first)} for 1 hour, or ${m(C.coaching.additional)} per hour when you book more than 1 hour. Please book at least ${C.coaching.noticeHours} hours before the lesson. <a href="coaching.html">See coaching</a>` },
-    { re: /\bai\b|detect|humani|turnitin|plagiar/i, a: () => `AI content removal is ${m(C.aiRemovalRate)} per page for finished work, at any deadline. You pay only for the pages or words that need AI removed, not the whole document. We rewrite it so it reads as natural human writing and keep your meaning and citations. We cannot guarantee a particular detector score.` },
-    { re: /sample|example|preview/i, a: () => `Every sample introduction is free to read. The full sample costs ${m(C.samplePerPage)} per page. <a href="samples.html">See samples</a>` },
-    { re: /pay|paypal|card|bank|wise|payoneer|transfer|invoice|receipt/i, a: () => `After you place an order you can pay by PayPal or by mobile money (mobile money) sent from Wise, Wave or World Remit. We send full details with your invoice. <a href="payments.html">Payment support</a>` },
-    { re: /urgent|rush|asap|today|tonight|24 hour|deadline|fast|quick/i, a: () => `Yes, we take urgent orders. Under 24 hours is ${m(C.tiers[0].rate)} per page. Longer deadlines cost less. Undergraduate and Masters: ${tiers}. PhD: ${tiersPhd}.` },
-    { re: /price|cost|how much|rate|charge|fee|cheap|quote/i, a: () => `Prices are per page (about ${C.wordsPerPage} words). Undergraduate and Masters: ${tiers}. PhD: ${tiersPhd}. AI content removal is ${m(C.aiRemovalRate)} per page. <a href="pricing.html">Get an instant quote</a>` },
-    { re: /spss|excel|nvivo|data|analysis|questionnaire|interview|stata|survey/i, a: () => `We guide you on collecting primary and secondary data, entering and analysing it in Excel, SPSS, NVivo and other systems, and presenting and discussing your findings. Send your brief for a quote: <a href="account.html#new">start an order</a>` },
-    { re: /journal|publish|publication|peer.?review|manuscript|article|scopus/i, a: () => `We coach Masters and PhD students on getting research published in peer-reviewed and non-peer-reviewed outlets, from choosing a journal to answering reviewers. We cannot promise acceptance. Price is by quote: <a href="services.html#journal-publication">see the service and enquire</a>` },
-    { re: /subject|course|nursing|finance|accounting|business|hr\b|human resource|logistics|law|field|cover/i, a: () => `We cover Finance, Business, Accounting, Nursing, Healthcare, Human Resource, Logistics and many more fields. <a href="index.html#subjects">See the list</a>` },
-    { re: /account|sign|upload|file|login|register|order/i, a: () => `Create a free account or sign in, then place your order and attach your brief and files. <a href="account.html#new">Start an order</a>` },
-    { re: /refund|revision|change|edit/i, a: () => `You can ask for revisions within 7 days of delivery. See our <a href="terms.html">terms</a> for refunds.` },
-    { re: /country|uk|usa|us\b|canada|australia|china|where/i, a: () => `We work with global students.` }
-  ];
-  const HUMAN = /human|person|agent|someone|staff|call|whatsapp|email|talk|speak|contact/i;
-
-  const root = document.createElement("div");
-  root.className = "chat";
-  root.innerHTML = `
-    <button class="chat-launch" aria-expanded="false" aria-controls="chat-panel"><span aria-hidden="true">&#128172;</span> Chat with us</button>
-    <section class="chat-panel" id="chat-panel" role="dialog" aria-label="Chat assistant" hidden>
-      <header><div><strong>Research Genius Hub</strong><span>Live chat ${esc(within)}</span></div><button class="chat-x" aria-label="Close chat">&times;</button></header>
-      <div class="chat-log" aria-live="polite"></div>
-      <div class="chat-chips"></div>
-      <form class="chat-form"><input type="text" aria-label="Your message" placeholder="Type your question" autocomplete="off"><button class="btn sm">Send</button></form>
-    </section>`;
-  document.body.appendChild(root);
-  const $ = s => root.querySelector(s);
-  const log = $(".chat-log"), input = $(".chat-form input");
-  let started = false;
-
-  function say(html, who) {
-    const d = document.createElement("div"); d.className = "msg " + who; d.innerHTML = html; log.appendChild(d); log.scrollTop = log.scrollHeight;
-  }
-  function handoff(q) {
-    const subj = "Question from the website";
-    const wa = C.whatsapp ? `<a class="btn sm wa-btn" target="_blank" rel="noopener" href="https://wa.me/${C.whatsapp}?text=${encodeURIComponent(q || "Hi Research Genius Hub, I need help.")}">WhatsApp${C.whatsappDisplay ? " " + esc(C.whatsappDisplay) : ""}</a>` : "";
-    const mail = `<a class="btn sm alt" target="_blank" rel="noopener" href="${gmail(subj, q)}">Email us (Gmail)</a><a class="btn sm alt" href="mailto:${esc(C.email)}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(q || "")}">Email app</a>`;
-    const open = ukOpen();
-    const hours = open ? `Our team is online now.` : `Our team is away until 10:00 UK time, but you can still leave a message and we will reply.`;
-    let lead, live = "";
-    if (C.chat && C.chat.tawkSrc) {
-      wantLive = true;
-      if (tawk) {
-        sync();
-        lead = `<strong>Tap the green chat icon</strong> at the bottom right of your screen. It is showing now. ${hours}`;
-        live = `<button type="button" class="btn sm" data-live>Open live chat now</button>`;
-      } else {
-        lead = `Connecting you to live chat. The <strong>green chat icon</strong> will appear at the bottom right in a few seconds. ${hours}`;
-        if (waitTimer) clearTimeout(waitTimer);
-        waitTimer = setTimeout(() => { if (!tawk) { waitTimer = null; say(`Live chat is taking longer than usual to load. Use WhatsApp or email below, which work straight away.`, "bot"); } }, 12000);
-      }
-      lead += ` You can also reach us now by WhatsApp or email:`;
-    } else {
-      lead = `Send your message and any files or brief to <strong>${esc(C.email)}</strong>${C.whatsapp ? ", or message us on WhatsApp" : ""}. Email replies can take longer.`;
-    }
-    say(`${lead}<div class="chat-actions">${live}${wa}${mail}</div>`, "bot");
-    const lb = log.querySelector(".msg:last-child [data-live]");
-    if (lb) lb.addEventListener("click", () => { try { window.Tawk_API.showWidget(); window.Tawk_API.maximize(); toggle(false); } catch (e) {} });
-  }
-  function answer(q) {
-    if (HUMAN.test(q)) return handoff(q);
-    const hit = KB.find(k => k.re.test(q));
-    if (hit) { say(hit.a(), "bot"); say(`Anything else? You can also <a href="contact.html">contact the team</a>.`, "bot small"); }
-    else handoff(q);
-  }
-  function ask(q) { say(esc(q), "me"); setTimeout(() => answer(q), 350); }
-
-  const chips = ["Prices", "Online coaching", "How to pay", "Samples", "AI content removal", "Talk to a person"];
-  const qmap = { "Prices": "What are your prices?", "Online coaching": "Tell me about online coaching", "How to pay": "How do I pay?", "Samples": "Can I see samples?", "AI content removal": "AI content removal", "Talk to a person": "I want to talk to a person" };
-  $(".chat-chips").innerHTML = chips.map(c => `<button type="button">${c}</button>`).join("");
-  $(".chat-chips").addEventListener("click", e => { if (e.target.tagName === "BUTTON") ask(qmap[e.target.textContent]); });
-  $(".chat-form").addEventListener("submit", e => { e.preventDefault(); const q = input.value.trim(); if (!q) return; input.value = ""; ask(q); });
-
-  function toggle(open) {
-    $(".chat-panel").hidden = !open; $(".chat-launch").setAttribute("aria-expanded", open); $(".chat-launch").hidden = open;
-    if (open) {
-      if (!started) { started = true; say(`Hi! I am the automated assistant. I can answer questions about prices, coaching and payments.${signedIn() ? " You are signed in, so the live chat icon is available at the bottom right if you have an issue with your account or order." : ""} To reach a person, choose <strong>Talk to a person</strong>. You can also use WhatsApp or email. Live chat is open <strong>${esc(within)}</strong>.`, "bot"); }
-      input.focus();
-    }
-  }
-  $(".chat-launch").addEventListener("click", () => toggle(true));
-  $(".chat-x").addEventListener("click", () => { toggle(false); $(".chat-launch").focus(); });
-  root.addEventListener("keydown", e => { if (e.key === "Escape") toggle(false); });
-  // Used by the account page: open live chat for signed-in students and pass their name and email to the chat team.
-  window.RGHChat = {
-    live() {
-      wantLive = true;
-      if (tawk) { sync(); try { window.Tawk_API.maximize(); } catch (e) {} }
-      else { toggle(true); handoff("I need help with my account"); }
-    },
-    refresh() { sync(); },
-    identify(name, email) {
-      ident = { name: name || "", email: email || "" };
-      try { window.Tawk_API.visitor = ident; } catch (e) {}
-      if (tawk) { try { window.Tawk_API.setAttributes(ident, function () {}); } catch (e) {} }
-    }
-  };
-  if (signedIn() && root) { const r = document.querySelector(".chat"); if (r) r.classList.add("lifted"); }
-})();
-
-</script>
+<script src="site-chat.js"></script>
 <script>
 (function () {
   // Real pages: just mark the current menu item.
@@ -741,8 +604,8 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
   const float = document.querySelector(".wa");
   if (C.whatsapp) {
     const url = "https://wa.me/" + C.whatsapp + "?text=" + encodeURIComponent("Hi Research Genius Hub, I need help with an assignment.");
-    if (float) { float.href = url; float.classList.add("on"); }
-    waLinks.forEach(a => { a.href = url; a.textContent = C.whatsappDisplay || "Chat on WhatsApp"; });
+    if (float) { float.dataset.waUrl = url; float.classList.add("on"); }
+    waLinks.forEach(a => { a.dataset.waUrl = url; a.textContent = C.whatsappDisplay || "Chat on WhatsApp"; });
   } else {
     // No WhatsApp number yet: remove the WhatsApp lines instead of showing a placeholder
     waLinks.forEach(a => {

@@ -7,7 +7,14 @@
   var signedIn = !!(key && token());
 
   document.querySelectorAll("[data-disc]").forEach(function (e) { var d = C.discounts && C.discounts[e.getAttribute("data-disc")]; if (d) e.textContent = d; });
-  document.querySelectorAll("a[data-wa]").forEach(function (e) { if (C.whatsapp) e.href = "https://wa.me/" + C.whatsapp + "?text=" + encodeURIComponent("Hi Research Genius Hub, I would like to negotiate a price."); });
+  document.querySelectorAll("a[data-wa]").forEach(function (e) { if (C.whatsapp) e.dataset.waUrl = "https://wa.me/" + C.whatsapp + "?text=" + encodeURIComponent("Hi Research Genius Hub, I would like to negotiate a price."); });
+  // Clicking a WhatsApp link opens WhatsApp. The number is not in the link itself, so hovering does not reveal it.
+  document.addEventListener("click", function (e) {
+    var a = e.target && e.target.closest ? e.target.closest("a[data-wa-url]") : null;
+    if (!a) return;
+    e.preventDefault();
+    window.open(a.dataset.waUrl, "_blank", "noopener");
+  });
 
   var nav = document.querySelector(".nav");
   if (nav) {

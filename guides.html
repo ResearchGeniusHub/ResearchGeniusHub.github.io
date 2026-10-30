@@ -620,97 +620,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 })();
 
 </script>
-<script>
-/* Chat assistant: quick answers from the site's own prices, then hands over to the team. */
-(function () {
-  const C = window.RGH, Q = window.RGHQuote;
-  let tawk = false;
-  if (C.chat && C.chat.tawkSrc) {
-    // Live chat (Tawk.to) stays hidden until the visitor asks for a person. The automated assistant answers first.
-    window.Tawk_API = window.Tawk_API || {}; window.Tawk_LoadStart = new Date();
-    window.Tawk_API.onLoad = function () { try { window.Tawk_API.hideWidget(); tawk = true; } catch (e) {} };
-    window.Tawk_API.onChatMinimized = function () { try { window.Tawk_API.hideWidget(); } catch (e) {} };
-    const ts = document.createElement("script"); ts.async = true; ts.src = C.chat.tawkSrc; ts.charset = "UTF-8"; ts.setAttribute("crossorigin", "*");
-    document.head.appendChild(ts);
-  }
-  const ukOpen = () => { try { return (+new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", hour: "numeric", hour12: false }).format(new Date()) % 24) >= 10; } catch (e) { return true; } };
-  const within = "10:00 to midnight UK time";
-  const m = n => Q.money(n);
-  const tiers = C.tiers.map(t => `${t.label.toLowerCase()} ${m(t.rate)}`).join(", ");
-  const tiersPhd = C.tiersPhd.map(t => `${t.label.toLowerCase()} ${m(t.rate)}`).join(", ");
-  const gmail = (subj, body) => `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(C.email)}&su=${encodeURIComponent(subj)}&body=${encodeURIComponent(body || "")}`;
-  const esc = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-
-  const KB = [
-    { re: /coach|tutor|lesson|session|hourly|per hour/i, a: () => `Online coaching for undergraduate, postgraduate and PhD students, including thesis defence preparation, costs ${m(C.coaching.first)} for 1 hour, or ${m(C.coaching.additional)} per hour when you book more than 1 hour. Please book at least ${C.coaching.noticeHours} hours before the lesson. <a href="coaching.html">See coaching</a>` },
-    { re: /\bai\b|detect|humani|turnitin|plagiar/i, a: () => `AI content removal is ${m(C.aiRemovalRate)} per page for finished work, at any deadline. You pay only for the pages or words that need AI removed, not the whole document. We rewrite it so it reads as natural human writing and keep your meaning and citations. We cannot guarantee a particular detector score.` },
-    { re: /sample|example|preview/i, a: () => `Every sample introduction is free to read. The full sample costs ${m(C.samplePerPage)} per page. <a href="samples.html">See samples</a>` },
-    { re: /pay|paypal|card|bank|wise|payoneer|transfer|invoice|receipt/i, a: () => `After you place an order you can pay by PayPal or by mobile money (mobile money) sent from Wise, Wave or World Remit. We send full details with your invoice. <a href="payments.html">Payment support</a>` },
-    { re: /urgent|rush|asap|today|tonight|24 hour|deadline|fast|quick/i, a: () => `Yes, we take urgent orders. Under 24 hours is ${m(C.tiers[0].rate)} per page. Longer deadlines cost less. Undergraduate and Masters: ${tiers}. PhD: ${tiersPhd}.` },
-    { re: /price|cost|how much|rate|charge|fee|cheap|quote/i, a: () => `Prices are per page (about ${C.wordsPerPage} words). Undergraduate and Masters: ${tiers}. PhD: ${tiersPhd}. AI content removal is ${m(C.aiRemovalRate)} per page. <a href="pricing.html">Get an instant quote</a>` },
-    { re: /spss|excel|nvivo|data|analysis|questionnaire|interview|stata|survey/i, a: () => `We guide you on collecting primary and secondary data, entering and analysing it in Excel, SPSS, NVivo and other systems, and presenting and discussing your findings. Send your brief for a quote: <a href="account.html#new">start an order</a>` },
-    { re: /journal|publish|publication|peer.?review|manuscript|article|scopus/i, a: () => `We coach Masters and PhD students on getting research published in peer-reviewed and non-peer-reviewed outlets, from choosing a journal to answering reviewers. We cannot promise acceptance. Price is by quote: <a href="services.html#journal-publication">see the service and enquire</a>` },
-    { re: /subject|course|nursing|finance|accounting|business|hr\b|human resource|logistics|law|field|cover/i, a: () => `We cover Finance, Business, Accounting, Nursing, Healthcare, Human Resource, Logistics and many more fields. <a href="index.html#subjects">See the list</a>` },
-    { re: /account|sign|upload|file|login|register|order/i, a: () => `Create a free account or sign in, then place your order and attach your brief and files. <a href="account.html#new">Start an order</a>` },
-    { re: /refund|revision|change|edit/i, a: () => `You can ask for revisions within 7 days of delivery. See our <a href="terms.html">terms</a> for refunds.` },
-    { re: /country|uk|usa|us\b|canada|australia|china|where/i, a: () => `We work with global students.` }
-  ];
-  const HUMAN = /human|person|agent|someone|staff|call|whatsapp|email|talk|speak|contact/i;
-
-  const root = document.createElement("div");
-  root.className = "chat";
-  root.innerHTML = `
-    <button class="chat-launch" aria-expanded="false" aria-controls="chat-panel"><span aria-hidden="true">&#128172;</span> Chat with us</button>
-    <section class="chat-panel" id="chat-panel" role="dialog" aria-label="Chat assistant" hidden>
-      <header><div><strong>Research Genius Hub</strong><span>Live chat ${esc(within)}</span></div><button class="chat-x" aria-label="Close chat">&times;</button></header>
-      <div class="chat-log" aria-live="polite"></div>
-      <div class="chat-chips"></div>
-      <form class="chat-form"><input type="text" aria-label="Your message" placeholder="Type your question" autocomplete="off"><button class="btn sm">Send</button></form>
-    </section>`;
-  document.body.appendChild(root);
-  const $ = s => root.querySelector(s);
-  const log = $(".chat-log"), input = $(".chat-form input");
-  let started = false;
-
-  function say(html, who) {
-    const d = document.createElement("div"); d.className = "msg " + who; d.innerHTML = html; log.appendChild(d); log.scrollTop = log.scrollHeight;
-  }
-  function handoff(q) {
-    const wa = C.whatsapp ? `<a class="btn sm alt" target="_blank" rel="noopener" href="https://wa.me/${C.whatsapp}?text=${encodeURIComponent(q || "Hi Research Genius Hub")}">WhatsApp</a>` : "";
-    const live = tawk ? `<button type="button" class="btn sm" data-live>Chat with a person</button>` : "";
-    say(`${tawk ? `A person can chat live from <strong>${esc(within)}</strong> (${ukOpen() ? "open now" : "opens at 10:00 UK time"}). Outside those hours, leave a message and we reply by email.` : `Thanks. Send your message and any files or brief to <strong>${esc(C.email)}</strong>. Email replies can take longer.`}
-      <div class="chat-actions">${live}<a class="btn sm alt" target="_blank" rel="noopener" href="${gmail("Question from the website", q)}">Email us (Gmail)</a>
-      <a class="btn sm alt" href="mailto:${esc(C.email)}?subject=${encodeURIComponent("Question from the website")}&body=${encodeURIComponent(q || "")}">Email app</a>${wa}</div>`, "bot");
-    const lb = log.querySelector(".msg:last-child [data-live]");
-    if (lb) lb.addEventListener("click", () => { try { window.Tawk_API.showWidget(); window.Tawk_API.maximize(); toggle(false); } catch (e) {} });
-  }
-  function answer(q) {
-    if (HUMAN.test(q)) return handoff(q);
-    const hit = KB.find(k => k.re.test(q));
-    if (hit) { say(hit.a(), "bot"); say(`Anything else? You can also <a href="contact.html">contact the team</a>.`, "bot small"); }
-    else handoff(q);
-  }
-  function ask(q) { say(esc(q), "me"); setTimeout(() => answer(q), 350); }
-
-  const chips = ["Prices", "Online coaching", "How to pay", "Samples", "AI content removal", "Talk to a person"];
-  const qmap = { "Prices": "What are your prices?", "Online coaching": "Tell me about online coaching", "How to pay": "How do I pay?", "Samples": "Can I see samples?", "AI content removal": "AI content removal", "Talk to a person": "I want to talk to a person" };
-  $(".chat-chips").innerHTML = chips.map(c => `<button type="button">${c}</button>`).join("");
-  $(".chat-chips").addEventListener("click", e => { if (e.target.tagName === "BUTTON") ask(qmap[e.target.textContent]); });
-  $(".chat-form").addEventListener("submit", e => { e.preventDefault(); const q = input.value.trim(); if (!q) return; input.value = ""; ask(q); });
-
-  function toggle(open) {
-    $(".chat-panel").hidden = !open; $(".chat-launch").setAttribute("aria-expanded", open); $(".chat-launch").hidden = open;
-    if (open) {
-      if (!started) { started = true; say(`Hi! I am the automated assistant. I can answer questions about prices, coaching and payments. For anything else, choose <strong>Talk to a person</strong>. Live chat is open <strong>${esc(within)}</strong>.`, "bot"); }
-      input.focus();
-    }
-  }
-  $(".chat-launch").addEventListener("click", () => toggle(true));
-  $(".chat-x").addEventListener("click", () => { toggle(false); $(".chat-launch").focus(); });
-  root.addEventListener("keydown", e => { if (e.key === "Escape") toggle(false); });
-})();
-
-</script>
+<script src="site-chat.js"></script>
 <script>
 (function () {
   // Real pages: just mark the current menu item.
@@ -732,8 +642,8 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
   const float = document.querySelector(".wa");
   if (C.whatsapp) {
     const url = "https://wa.me/" + C.whatsapp + "?text=" + encodeURIComponent("Hi Research Genius Hub, I need help with an assignment.");
-    if (float) { float.href = url; float.classList.add("on"); }
-    waLinks.forEach(a => { a.href = url; a.textContent = C.whatsappDisplay || "Chat on WhatsApp"; });
+    if (float) { float.dataset.waUrl = url; float.classList.add("on"); }
+    waLinks.forEach(a => { a.dataset.waUrl = url; a.textContent = C.whatsappDisplay || "Chat on WhatsApp"; });
   } else {
     // No WhatsApp number yet: remove the WhatsApp lines instead of showing a placeholder
     waLinks.forEach(a => {
