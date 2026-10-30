@@ -10,7 +10,7 @@
     { t: "Presenting findings", u: "services.html#presenting-findings", d: "Turning results into clear tables, charts, figures and written interpretation.", k: "presenting findings results tables table charts chart figures figure interpretation discussion" },
     { t: "Reports and business plans", u: "services.html#reports-business-plans", d: "Reports, business plans and proposals written and structured for assessment.", k: "report reports business plan proposal write writing" },
     { t: "PowerPoint and presentations", u: "services.html#powerpoint", d: "Slides and presentations for class or viva.", k: "powerpoint slides slide presentation deck presentations" },
-    { t: "Online coaching (one to one)", u: "coaching.html", d: "Live one-to-one sessions for undergraduate, Masters and PhD students, including viva preparation. Prices and how to book.", k: "coaching coach tutor tutoring lesson lessons session sessions live online one to one viva defence thesis prepare book hour hours price cost" },
+    { t: "Online coaching (one to one)", u: "coaching.html", d: "Live one-to-one sessions for undergraduate, Masters and PhD students, including viva preparation, and how to book.", k: "coaching coach tutor tutoring lesson lessons session sessions live online one to one viva defence thesis prepare book hour hours" },
     { t: "Dissertation and thesis support", u: "services.html#dissertation-support", d: "Support across each chapter of a dissertation or thesis.", k: "dissertation thesis chapter chapters project final year masters phd" },
     { t: "Assignment guides and how to", u: "guides.html", d: "Guides for assignments, briefs, marking criteria and referencing.", k: "guide guides assignment assignments brief marking criteria rubric how to instructions tips" },
     { t: "Editing and proofreading", u: "editing.html", d: "Grammar, spelling, clarity and academic language editing.", k: "editing edit proofreading proofread proof grammar spelling language clarity english" },
@@ -139,13 +139,16 @@
     if (document.querySelector(".rgh-s-ov")) return;
     var st = document.createElement("style"); st.textContent = css; document.head.appendChild(st);
 
-    var target = document.querySelector(".hdr-actions");
     var btn = el("button", "rgh-s-btn", "Search");
     btn.type = "button";
     btn.setAttribute("aria-label", "Search the site");
     btn.addEventListener("click", open);
-    if (target) target.insertBefore(btn, target.firstChild);
-    else { var w = document.querySelector(".site-header .wrap"); if (w) w.appendChild(btn); }
+    var menu = document.querySelector(".site-header .menu-toggle");
+    var acts = document.querySelector(".hdr-actions");
+    var phone = menu && getComputedStyle(menu).display !== "none";
+    if (phone && menu.parentNode) { menu.parentNode.insertBefore(btn, menu); btn.style.marginRight = "8px"; }
+    else if (acts) acts.insertBefore(btn, acts.firstChild);
+    else if (menu && menu.parentNode) menu.parentNode.insertBefore(btn, menu);
 
     ov = el("div", "rgh-s-ov");
     ov.setAttribute("role", "dialog");
