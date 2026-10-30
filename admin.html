@@ -395,7 +395,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 <body>
 <main class="wrap" style="max-width:980px;margin:0 auto;padding:20px 16px">
 <div class="topbar"><strong id="who">Staff</strong><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm alt" id="reload">Refresh</button><button class="btn sm alt" id="out">Sign out</button></span></div>
-<div class="tabs" id="tabs-wrap" hidden role="tablist"><button type="button" aria-selected="true" data-view="orders">Orders</button><button type="button" aria-selected="false" data-view="balances" data-admin>Finances</button><button type="button" aria-selected="false" data-view="access">Sample access</button><button type="button" aria-selected="false" data-view="samples" data-admin>Samples</button><button type="button" aria-selected="false" data-view="staff" data-admin>Staff</button></div>
+<div class="tabs" id="tabs-wrap" hidden role="tablist"><button type="button" aria-selected="true" data-view="orders">Orders</button><button type="button" aria-selected="false" data-view="balances" data-admin>Finances</button><button type="button" aria-selected="false" data-view="access">Sample access</button><button type="button" aria-selected="false" data-view="samples" data-admin>Samples</button><button type="button" aria-selected="false" data-view="widgets" data-admin>Home page</button><button type="button" aria-selected="false" data-view="staff" data-admin>Staff</button></div>
 <section id="v-orders"><h1 style="font-size:2rem">Orders by service</h1>
 <div id="chips" style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px"></div>
 <div class="two"><div class="f"><label>Show</label><select id="flt"><option value="attn">Needs attention</option><option value="all">All orders</option><option value="awaiting_quote">Quote requests</option><option value="awaiting_payment">Awaiting payment</option><option value="payment_reported">Payment reported</option><option value="in_progress">In progress</option><option value="revision_requested">Revision requested</option><option value="delivered">Delivered</option></select></div>
@@ -405,6 +405,7 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
 <section id="v-balances" hidden></section>
 <section id="v-access" hidden></section>
 <section id="v-samples" hidden></section>
+<section id="v-widgets" hidden></section>
 <section id="v-staff" hidden></section>
 </main>
 <script src="site-config.js"></script>
@@ -695,11 +696,67 @@ a.card:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--hi);color
     });
   }
 
+
+  /* ---------- Home page widgets (admin): daily images, videos and text cards ---------- */
+  const WKIND = { image: "Daily image", video: "Video", text: "Text card" };
+  async function loadWidgets() {
+    const box = $("#v-widgets"); box.innerHTML = `<p class="muted">Loading...</p>`;
+    const { data, error } = await sb.from("site_widgets").select("*").order("position").order("created_at", { ascending: false });
+    if (error) { box.innerHTML = `<p class="err">${esc(error.message)}</p>`; return; }
+    box.innerHTML = `<h1 style="font-size:2rem">Home page widgets</h1>
+      <p class="muted">Add a daily image, an illustrative video or a text card. They appear on the home page below the banner. For a daily image, set "Show from" to the day it should appear: the latest live image is shown. Leave dates empty to show always. Videos can be a YouTube or Vimeo link, or a short video file (up to 50 MB).</p>
+      <form id="wg-form" class="panel" style="margin-bottom:18px">
+        <div class="two"><div class="f"><label>Type</label><select name="kind"><option value="image">Daily image</option><option value="video">Video</option><option value="text">Text card</option></select></div>
+        <div class="f"><label>Position (lower numbers show first)</label><input name="position" type="number" value="0"></div></div>
+        <div class="f"><label>Title</label><input name="title" maxlength="120"></div>
+        <div class="f"><label>Text (optional)</label><textarea name="body" rows="3"></textarea></div>
+        <div class="two"><div class="f"><label>Image or video file (optional)</label><input type="file" name="file" accept="image/*,video/mp4,video/webm,video/quicktime"></div>
+        <div class="f"><label>Or a YouTube / Vimeo link, or an image link</label><input name="url" placeholder="https://www.youtube.com/watch?v=..."></div></div>
+        <div class="two"><div class="f"><label>Button link (optional)</label><input name="link_url" placeholder="https://..."></div><div class="f"><label>Button label</label><input name="link_label" placeholder="Read more"></div></div>
+        <div class="two"><div class="f"><label>Show from</label><input type="date" name="show_from"></div><div class="f"><label>Show until</label><input type="date" name="show_until"></div></div>
+        <label style="font-weight:400"><input type="checkbox" name="active" checked> Show on the home page</label>
+        <p class="err"></p><button class="btn block" type="submit">Add to home page</button></form>
+      <div id="wg-list">${(data || []).map(w => `<article class="order" data-wid="${esc(w.id)}" style="margin-top:8px">
+        <strong>${esc(WKIND[w.kind] || w.kind)}</strong> &middot; ${esc(w.title || "(no title)")} &middot; position ${w.position} &middot; <b>${w.active ? "ON" : "OFF"}</b>
+        <div class="small muted">${w.show_from ? "From " + esc(w.show_from) : "Always from the start"}${w.show_until ? " until " + esc(w.show_until) : ""}${w.media_url ? " &middot; media attached" : ""}</div>
+        <div style="margin-top:6px"><button type="button" class="btn sm alt" data-wtog="${esc(w.id)}" data-on="${w.active ? 1 : 0}">${w.active ? "Hide" : "Show"}</button>
+        <button type="button" class="btn sm alt" data-wdel="${esc(w.id)}">Delete</button></div></article>`).join("") || '<p class="muted">No widgets yet.</p>'}</div>`;
+    const form = $("#wg-form");
+    form.addEventListener("submit", async e => {
+      e.preventDefault(); const btn = form.querySelector("button"), err = form.querySelector(".err"); err.textContent = "";
+      const kind = form.kind.value, file = form.file.files[0], url = form.url.value.trim();
+      if (!["image", "video", "text"].includes(kind)) return;
+      if (file && file.size > 50 * 1024 * 1024) { err.textContent = "That file is larger than 50 MB. Use a YouTube or Vimeo link instead."; return; }
+      if (kind === "video" && !file && !url) { err.textContent = "Add a video file or a YouTube / Vimeo link."; return; }
+      if (kind === "image" && !file && !url) { err.textContent = "Add an image file or an image link."; return; }
+      if (kind === "text" && !form.title.value.trim() && !form.body.value.trim()) { err.textContent = "Add a title or some text."; return; }
+      if (url && !/^https?:\/\//i.test(url)) { err.textContent = "Links must start with https://"; return; }
+      btn.disabled = true;
+      try {
+        let media = url;
+        if (file) {
+          const path = kind + "/" + Date.now() + "-" + file.name.replace(/[^\w.\-]+/g, "_");
+          const up = await sb.storage.from("site-media").upload(path, file, { cacheControl: "3600", contentType: file.type || undefined });
+          if (up.error) throw up.error;
+          media = sb.storage.from("site-media").getPublicUrl(path).data.publicUrl;
+        }
+        const row = { kind, title: form.title.value.trim(), body: form.body.value.trim(), media_url: media || "", link_url: form.link_url.value.trim(), link_label: form.link_label.value.trim(), position: Number(form.position.value) || 0, active: form.active.checked, show_from: form.show_from.value || null, show_until: form.show_until.value || null };
+        const r = await sb.from("site_widgets").insert(row); if (r.error) throw r.error;
+        await loadWidgets();
+      } catch (x) { err.textContent = x.message || "Could not save."; btn.disabled = false; }
+    });
+    box.querySelector("#wg-list").addEventListener("click", async e => {
+      const t = e.target.closest("button"); if (!t) return;
+      if (t.dataset.wtog) { const r = await sb.from("site_widgets").update({ active: t.dataset.on !== "1" }).eq("id", t.dataset.wtog); if (r.error) return alert(r.error.message); loadWidgets(); }
+      if (t.dataset.wdel) { if (!confirm("Delete this widget from the home page?")) return; const r = await sb.from("site_widgets").delete().eq("id", t.dataset.wdel); if (r.error) return alert(r.error.message); loadWidgets(); }
+    });
+  }
+
   /* ---------- staff management (admin only) ---------- */
   document.querySelectorAll("[data-view]").forEach(b => b.addEventListener("click", () => {
     document.querySelectorAll("[data-view]").forEach(x => x.setAttribute("aria-selected", x === b));
-    ["orders", "balances", "access", "samples", "staff"].forEach(v => { $("#v-" + v).hidden = b.dataset.view !== v; });
-    if (b.dataset.view === "staff") loadStaff(); if (b.dataset.view === "samples") loadSamples(); if (b.dataset.view === "access") loadAccess(); if (b.dataset.view === "balances") loadBalances();
+    ["orders", "balances", "access", "samples", "staff", "widgets"].forEach(v => { $("#v-" + v).hidden = b.dataset.view !== v; });
+    if (b.dataset.view === "staff") loadStaff(); if (b.dataset.view === "samples") loadSamples(); if (b.dataset.view === "access") loadAccess(); if (b.dataset.view === "balances") loadBalances(); if (b.dataset.view === "widgets") loadWidgets();
   }));
   /* ---------- samples (admin) and sample access codes (admin + staff) ---------- */
   const LEVELS = ["Undergraduate", "Masters", "PhD"];

@@ -90,7 +90,8 @@
   function cfg() { return window.RGH || {}; }
   function el(tag, cls, txt) { var n = document.createElement(tag); if (cls) n.className = cls; if (txt != null) n.textContent = txt; return n; }
 
-  var css = ".rgh-s-btn{background:none;border:1.5px solid currentColor;border-radius:8px;padding:7px 12px;font:600 .9rem system-ui,sans-serif;cursor:pointer;color:inherit;margin-right:8px}" +
+  var css = ".rgh-s-btn{background:rgba(255,255,255,.08);border:1.5px solid #fff;border-radius:8px;padding:7px 12px;font:600 .9rem system-ui,sans-serif;cursor:pointer;color:#fff;margin-right:8px}" +
+    ".rgh-s-btn:hover{background:rgba(255,255,255,.18)}" +
     ".rgh-s-ov{position:fixed;inset:0;background:rgba(15,27,51,.55);z-index:90;display:none;align-items:flex-start;justify-content:center;padding:clamp(12px,6vh,70px) 14px}" +
     ".rgh-s-ov.on{display:flex}" +
     ".rgh-s-box{background:#fff;color:#0F1B33;width:min(640px,100%);border-radius:14px;padding:18px;box-shadow:0 20px 50px rgba(0,0,0,.3);max-height:84vh;overflow:auto;font-family:system-ui,sans-serif}" +
