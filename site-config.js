@@ -74,7 +74,7 @@ window.RGH = {
 
   // ---- Student reviews ----
   // Add REAL reviews only, with the student's permission. The Reviews section stays hidden while this list is empty.
-  // Example: { name: "A. Student", country: "Canada", service: "Dissertation support", text: "..." }
+  // Example: { name: "A. Student", service: "Dissertation support", text: "..." }
   testimonials: [],
 
   // ---- Part payment ----

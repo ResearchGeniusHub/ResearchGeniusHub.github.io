@@ -10,7 +10,7 @@
     { t: "Presenting findings", u: "services.html#presenting-findings", d: "Turning results into clear tables, charts, figures and written interpretation.", k: "presenting findings results tables table charts chart figures figure interpretation discussion" },
     { t: "Reports and business plans", u: "services.html#reports-business-plans", d: "Reports, business plans and proposals written and structured for assessment.", k: "report reports business plan proposal write writing" },
     { t: "PowerPoint and presentations", u: "services.html#powerpoint", d: "Slides and presentations for class or viva.", k: "powerpoint slides slide presentation deck presentations" },
-    { t: "Online coaching (one to one)", u: "coaching.html", d: "Live one-to-one sessions for undergraduate, Masters and PhD students, including viva preparation, and how to book.", k: "coaching coach tutor tutoring lesson lessons session sessions live online one to one viva defence thesis prepare book hour hours" },
+    { t: "Online coaching (one to one)", u: "coaching.html", d: "Live one-to-one sessions for students at every level of higher education, including viva preparation, and how to book.", k: "coaching coach tutor tutoring lesson lessons session sessions live online one to one viva defence thesis prepare book hour hours" },
     { t: "Dissertation and thesis support", u: "services.html#dissertation-support", d: "Support across each chapter of a dissertation or thesis.", k: "dissertation thesis chapter chapters project final year masters phd" },
     { t: "Assignment guides and how to", u: "guides.html", d: "Guides for assignments, briefs, marking criteria and referencing.", k: "guide guides assignment assignments brief marking criteria rubric how to instructions tips" },
     { t: "Editing and proofreading", u: "editing.html", d: "Grammar, spelling, clarity and academic language editing.", k: "editing edit proofreading proofread proof grammar spelling language clarity english" },
@@ -24,7 +24,7 @@
     { t: "Payment support", u: "faq.html", d: "Help if your payment was not confirmed, or you paid and have no code.", k: "payment support problem not confirmed confirm missing failed issue wrong refund" },
     { t: "Frequently asked questions (FAQ)", u: "faq.html", d: "Answers to common questions about services, prices, payments, samples, uploads and revisions.", k: "faq faqs question questions answer answers common ask asked help" },
     { t: "Revisions", u: "faq.html", d: "Send revision notes within 7 days of delivery and we update the work against your brief.", k: "revision revisions revise change changes feedback edit edits within days corrections" },
-    { t: "Countries and levels we work with", u: "faq.html", d: "Undergraduate, Masters and PhD students worldwide. We follow your country's referencing and spelling.", k: "country countries region level levels undergraduate masters phd students worldwide spelling referencing" },
+    { t: "Levels of study we support", u: "faq.html", d: "From certificates and diplomas to PhD work. We follow your institution's referencing and spelling.", k: "level levels certificate diploma postgraduate undergraduate masters phd degree study students referencing spelling" },
     { t: "Help and guides", u: "help.html", d: "How to place an order, upload your brief, pay and get your work.", k: "help support how guide instructions steps tutorial use site website" },
     { t: "Samples", u: "samples.html", d: "Read free sample introductions and unlock more pages.", k: "sample samples example examples preview read unlock pages free introduction" },
     { t: "Sample access code and download", u: "samples.html", d: "Enter your email and access code to read or download a sample you have paid for.", k: "code access code download downloads private link expired open view pages paid" },
@@ -57,7 +57,7 @@
     whatsapp: "contact chat", email: "contact", phone: "contact whatsapp", talk: "chat contact", human: "chat", agent: "chat",
     deadline: "turnaround price", deadlines: "turnaround", urgent: "deadline turnaround", days: "deadline turnaround",
     guide: "guides help", guides: "guide help", help: "support faq", support: "help faq",
-    country: "region", countries: "country", region: "country", level: "undergraduate masters phd",
+    region: "country", level: "certificate diploma undergraduate masters phd",
     review: "reviews", testimonial: "reviews", reviews: "review", about: "who"
   };
 
@@ -90,8 +90,8 @@
   function cfg() { return window.RGH || {}; }
   function el(tag, cls, txt) { var n = document.createElement(tag); if (cls) n.className = cls; if (txt != null) n.textContent = txt; return n; }
 
-  var css = ".rgh-s-btn{background:rgba(255,255,255,.08);border:1.5px solid #fff;border-radius:8px;padding:7px 12px;font:600 .9rem system-ui,sans-serif;cursor:pointer;color:#fff;margin-right:8px}" +
-    ".rgh-s-btn:hover{background:rgba(255,255,255,.18)}" +
+  var css = ".rgh-s-btn{position:fixed;left:max(16px,env(safe-area-inset-left,0px));bottom:max(16px,env(safe-area-inset-bottom,0px));z-index:70;background:#0F1B33;border:2px solid #0F1B33;border-radius:999px;padding:12px 18px;font:700 1rem system-ui,sans-serif;cursor:pointer;color:#fff;box-shadow:0 8px 20px rgba(15,27,51,.35)}" +
+    ".rgh-s-btn:hover{background:#17305A}" +
     ".rgh-s-ov{position:fixed;inset:0;background:rgba(15,27,51,.55);z-index:90;display:none;align-items:flex-start;justify-content:center;padding:clamp(12px,6vh,70px) 14px}" +
     ".rgh-s-ov.on{display:flex}" +
     ".rgh-s-box{background:#fff;color:#0F1B33;width:min(640px,100%);border-radius:14px;padding:18px;box-shadow:0 20px 50px rgba(0,0,0,.3);max-height:84vh;overflow:auto;font-family:system-ui,sans-serif}" +
@@ -144,12 +144,7 @@
     btn.type = "button";
     btn.setAttribute("aria-label", "Search the site");
     btn.addEventListener("click", open);
-    var menu = document.querySelector(".site-header .menu-toggle");
-    var acts = document.querySelector(".hdr-actions");
-    var phone = menu && getComputedStyle(menu).display !== "none";
-    if (phone && menu.parentNode) { menu.parentNode.insertBefore(btn, menu); btn.style.marginRight = "8px"; }
-    else if (acts) acts.insertBefore(btn, acts.firstChild);
-    else if (menu && menu.parentNode) menu.parentNode.insertBefore(btn, menu);
+    document.body.appendChild(btn);
 
     ov = el("div", "rgh-s-ov");
     ov.setAttribute("role", "dialog");
