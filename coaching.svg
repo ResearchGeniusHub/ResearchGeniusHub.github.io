@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" role="img" aria-label="coaching">
+<rect width="320" height="220" rx="18" fill="#CFEBDD"/>
+<g stroke="#0F1B33" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+<path d="M40 52 H180 Q190 52 190 62 V110 Q190 120 180 120 H92 L64 142 V120 H40 Q30 120 30 110 V62 Q30 52 40 52 Z" fill="#F2B531"/>
+<path d="M170 92 H270 Q280 92 280 102 V140 Q280 150 270 150 H262 V172 L236 150 H170 Q160 150 160 140 V102 Q160 92 170 92 Z" fill="#FFFFFF"/>
+<circle cx="84" cy="150" r="0" fill="none" stroke-width="0"/>
+<circle cx="96" cy="78" r="0"/>
+<circle cx="200" cy="124" r="0"/>
+<path d="M78 84 H154 M78 100 H130" fill="none" stroke="#0F1B33" stroke-width="3" opacity=".5"/>
+<path d="M186 118 H258 M186 132 H240" fill="none" stroke="#0E7C86" stroke-width="3"/>
+<circle cx="66" cy="26" r="0"/>
+</g>
+</svg>

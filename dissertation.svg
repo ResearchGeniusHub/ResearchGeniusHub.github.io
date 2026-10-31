@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" role="img" aria-label="dissertation">
+<rect width="320" height="220" rx="18" fill="#F8D7CF"/>
+<g stroke="#0F1B33" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+<rect x="60" y="150" width="200" height="26" rx="4" fill="#0F1B33"/>
+<rect x="72" y="118" width="180" height="32" rx="4" fill="#0E7C86"/>
+<rect x="84" y="86" width="164" height="32" rx="4" fill="#F2B531"/>
+<rect x="96" y="54" width="140" height="32" rx="4" fill="#E8664A"/>
+<path d="M208 54 V26 L218 36 L228 26 V54" fill="#0F1B33" stroke-width="2"/>
+<path d="M240 170 Q260 180 272 170 V196 Q260 186 240 196 Z" fill="#F2B531"/>
+</g>
+</svg>
